@@ -33,7 +33,7 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
         case "import_from_statement":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("from", _), _, ("import", _), *name_nodes):
-                    for _, child in cast(list[tuple[str, SgNode]], name_nodes):  # type: ignore[redundant-cast]
+                    for _, child in name_nodes:
                         match child.kind():
                             case "dotted_name":
                                 if identifier := last_child_of_type(child, "identifier"):
