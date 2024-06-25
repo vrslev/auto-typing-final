@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import cast
 
 from ast_grep_py import SgNode
 
@@ -16,15 +15,17 @@ def last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
     return last_child if (children := node.children()) and (last_child := children[-1]).kind() == type_ else None
 
 
-def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
+def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
+    return (child.text() for child in node.children() if child.kind() == "identifier")
+
+
+def find_identifiers_in_node(node: SgNode) -> Iterable[str]:  # noqa: C901
     match node.kind():
         case "assignment" | "augmented_assignment":
             if (left := node.field("left")) and node.field("right"):
                 match left.kind():
                     case "pattern_list" | "tuple_pattern":
-                        for child in left.children():
-                            if child.kind() == "identifier":
-                                yield child.text()
+                        yield from texts_of_identifier_nodes(node)
                     case "identifier":
                         yield left.text()
         case "function_definition" | "class_definition" | "named_expression":
@@ -54,9 +55,7 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
                     if identifier := last_child_of_type(alias, "identifier"):
                         yield identifier.text()
         case "splat_pattern":
-            for child in node.children():
-                if child.kind() == "identifier":
-                    yield child.text()
+            yield from texts_of_identifier_nodes(node)
         case "dict_pattern":
             for child in node.children():
                 if (

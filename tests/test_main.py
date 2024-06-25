@@ -44,6 +44,7 @@ def test_variants(before: str, after: str) -> None:
 scopes_case = (
     """
 a = 1
+b, c = 1
 MUTABLE_FIRST = 1
 MUTABLE_FIRST = 2
 
@@ -118,6 +119,7 @@ def fourth() -> None:
 """,
     """
 a = 1
+b, c = 1
 MUTABLE_FIRST = 1
 MUTABLE_FIRST = 2
 
