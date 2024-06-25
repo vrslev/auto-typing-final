@@ -12,6 +12,10 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     return False
 
 
+def last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
+    return last_child if (children := node.children()) and (last_child := children[-1]).kind() == type_ else None
+
+
 def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
     match node.kind():
         case "assignment" | "augmented_assignment":
@@ -32,10 +36,8 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
                     for _, child in cast(list[tuple[str, SgNode]], name_nodes):  # type: ignore[redundant-cast]
                         match child.kind():
                             case "dotted_name":
-                                if (inner_children := child.children()) and (
-                                    last_child := inner_children[-1]
-                                ).kind() == "identifier":
-                                    yield last_child.text()
+                                if identifier := last_child_of_type(child, "identifier"):
+                                    yield identifier.text()
                             case "aliased_import":
                                 if alias := child.field("alias"):
                                     yield alias.text()
@@ -49,8 +51,8 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
         case "keyword_pattern":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("identifier", _), ("=", _), ("dotted_name", alias)):
-                    if (children := alias.children()) and (last_child := children[-1]).kind() == "identifier":
-                        yield last_child.text()
+                    if identifier := last_child_of_type(alias, "identifier"):
+                        yield identifier.text()
         case "splat_pattern":
             for child in node.children():
                 if child.kind() == "identifier":
@@ -58,13 +60,11 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
         case "dict_pattern":
             for child in node.children():
                 if (
-                    child.kind() == "case_pattern"  # noqa: PLR0916
-                    and (previous := child.prev())
-                    and previous.kind() == ":"
-                    and (inner_children := child.children())
-                    and (last_child := inner_children[-1]).kind() == "dotted_name"
-                    and (inner_inner_children := last_child.children())
-                    and (last_last_child := inner_inner_children[-1]).kind() == "identifier"
+                    child.kind() == "case_pattern"
+                    and (previous_child := child.prev())
+                    and previous_child.kind() == ":"
+                    and (last_child := last_child_of_type(child, "dotted_name"))
+                    and (last_last_child := last_child_of_type(last_child, "identifier"))
                 ):
                     yield last_last_child.text()
         case "for_statement":
