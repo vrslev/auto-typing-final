@@ -15,10 +15,10 @@ def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
 def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
-            if (left := node.field("left")) and node.field("right"):
+            if (left := node.field("left")):
                 match left.kind():
                     case "pattern_list" | "tuple_pattern":
-                        yield from texts_of_identifier_nodes(node)
+                        yield from texts_of_identifier_nodes(left)
                     case "identifier":
                         yield left.text()
         case "function_definition" | "class_definition" | "named_expression":
@@ -107,10 +107,9 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
 def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgNode]]:
     definition_map = defaultdict(list)
     ignored_names = set[str]()
-
     if parameters := root.field("parameters"):
         for node in parameters.children():
-            for identifier in find_identifiers_in_function_parameter(parameters):
+            for identifier in find_identifiers_in_function_parameter(node):
                 definition_map[identifier].append(node)
 
     for node in root.find_all(rule):
