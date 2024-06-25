@@ -12,7 +12,7 @@ def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
     return (child.text() for child in node.children() if child.kind() == "identifier")
 
 
-def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901
+def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
             if (left := node.field("left")) and node.field("right"):
