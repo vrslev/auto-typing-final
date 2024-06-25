@@ -82,6 +82,8 @@ class B(A):
 
 def second() -> whatever:
     hi = "hi"
+    for _ in ...:
+        me = 1
 
 class C:
     @t(a=1)
@@ -152,6 +154,8 @@ class B(A):
 
 def second() -> whatever:
     hi: typing.Final = "hi"
+    for _ in ...:
+        me = 1
 
 class C:
     @t(a=1)
