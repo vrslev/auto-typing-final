@@ -17,10 +17,10 @@ from add_typing_final.main import make_edits_for_all_assignments_in_scope, run_f
         ("b = 1\nb = 2\na = 3", "b = 1\nb = 2\na: typing.Final = 3"),
         ("a = 1\nb = 2\nb = 3", "a: typing.Final = 1\nb = 2\nb = 3"),
         ("a = 1\na = 2\nb: int", "a = 1\na = 2\nb: int"),
-        ("a = 1\na: int", "a: typing.Final = 1\na: int"),
-        ("a: int\na = 1", "a: int\na: typing.Final = 1"),
-        ("a: typing.Final\na = 1", "a: typing.Final\na: typing.Final = 1"),
-        ("a: int\na: int = 1", "a: int\na: typing.Final[int] = 1"),
+        ("a = 1\na: int", "a = 1\na: int"),
+        ("a: int\na = 1", "a: int\na = 1"),
+        ("a: typing.Final\na = 1", "a: typing.Final\na = 1"),
+        ("a: int\na: int = 1", "a: int\na: int = 1"),
         ("a, b = 1, 2", "a, b = 1, 2"),
         ("(a, b) = 1, 2", "(a, b) = 1, 2"),
         ("(a, b) = t()", "(a, b) = t()"),
@@ -44,6 +44,7 @@ def test_variants(before: str, after: str) -> None:
 scopes_case = (
     """
 a = 1
+b, c = 1
 MUTABLE_FIRST = 1
 MUTABLE_FIRST = 2
 
@@ -82,6 +83,10 @@ class B(A):
 
 def second() -> whatever:
     hi = "hi"
+    for _ in ...:
+        me = 1
+    ih = 0
+    ih += 1
 
 class C:
     @t(a=1)
@@ -114,6 +119,7 @@ def fourth() -> None:
 """,
     """
 a = 1
+b, c = 1
 MUTABLE_FIRST = 1
 MUTABLE_FIRST = 2
 
@@ -152,6 +158,10 @@ class B(A):
 
 def second() -> whatever:
     hi: typing.Final = "hi"
+    for _ in ...:
+        me = 1
+    ih = 0
+    ih += 1
 
 class C:
     @t(a=1)

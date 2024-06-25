@@ -1,11 +1,12 @@
 import argparse
 import re
-from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TextIO, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
+
+from add_typing_final.finder import find_definitions_in_scope_grouped_by_name
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
 
@@ -29,40 +30,53 @@ class AssignmentWithAnnotation:
     right: str
 
 
-Assignment = AssignmentWithoutAnnotation | AssignmentWithAnnotation
+@dataclass
+class OtherDefinition:
+    node: SgNode
+
+
+Definition = AssignmentWithoutAnnotation | AssignmentWithAnnotation | OtherDefinition
 
 
 @dataclass
 class AddFinal:
-    assignment: Assignment
+    definition: Definition
 
 
 @dataclass
 class RemoveFinal:
-    nodes: list[Assignment]
+    nodes: list[Definition]
 
 
 Operation = AddFinal | RemoveFinal
 
 
+def is_in_loop(node: SgNode) -> bool:
+    return any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors())
+
+
 def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
-    value_assignments: list[Assignment] = []
+    value_assignments: list[Definition] = []
 
     for node in nodes:
         children = node.children()
 
-        match tuple(child.kind() for child in children):
-            case ("identifier", "=", _):
-                value_assignments.append(
-                    AssignmentWithoutAnnotation(node=node, left=children[0].text(), right=children[2].text())
-                )
-            case ("identifier", ":", "type", "=", _):
-                value_assignments.append(
-                    AssignmentWithAnnotation(
-                        node=node, left=children[0].text(), annotation=children[2].text(), right=children[4].text()
+        if node.kind() == "assignment" and not is_in_loop(node):
+            match tuple(child.kind() for child in children):
+                case ("identifier", "=", _):
+                    value_assignments.append(
+                        AssignmentWithoutAnnotation(node=node, left=children[0].text(), right=children[2].text())
                     )
-                )
-
+                case ("identifier", ":", "type", "=", _):
+                    value_assignments.append(
+                        AssignmentWithAnnotation(
+                            node=node, left=children[0].text(), annotation=children[2].text(), right=children[4].text()
+                        )
+                    )
+                case _:
+                    value_assignments.append(OtherDefinition(node))
+        else:
+            value_assignments.append(OtherDefinition(node))
     match value_assignments:
         case [assignment]:
             return AddFinal(assignment)
@@ -70,7 +84,7 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
             return RemoveFinal(assignments)
 
 
-def convert_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: C901
+def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: C901
     match operation:
         case AddFinal(assignment):
             match assignment:
@@ -93,32 +107,14 @@ def convert_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noq
                             yield node.replace(f"{left}: {new_annotation[0]} = {right}")
 
 
-def find_assignments_not_in_function_or_class(node: SgNode) -> Iterable[SgNode]:
-    if node.kind() == "assignment":
-        yield node
-    else:
-        for child in node.children():
-            if child.kind() not in {"function_definition", "class_definition"}:
-                yield from find_assignments_not_in_function_or_class(child)
-
-
-def find_assignments_grouped_by_name(node: SgNode) -> Iterable[list[SgNode]]:
-    assignment_map: defaultdict[str, list[SgNode]] = defaultdict(list)
-    for child in find_assignments_not_in_function_or_class(node):
-        if left := child.field("left"):
-            assignment_map[left.text()].append(child)
-    return assignment_map.values()
-
-
 def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
-    for assignments in find_assignments_grouped_by_name(node):
-        yield from convert_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
+    for assignments in find_definitions_in_scope_grouped_by_name(node):
+        yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
 
 
 def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
     for function in root.find_all(kind="function_definition"):
-        if body := function.field("body"):
-            yield from make_edits_for_all_assignments_in_scope(body)
+        yield from make_edits_for_all_assignments_in_scope(function)
 
 
 def run_fixer(source: str) -> str:
