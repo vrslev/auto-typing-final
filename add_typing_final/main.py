@@ -108,8 +108,7 @@ def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
 
 def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
     for function in root.find_all(kind="function_definition"):
-        if function.field("name").text() == "t":
-            yield from make_edits_for_all_assignments_in_scope(function)
+        yield from make_edits_for_all_assignments_in_scope(function)
 
 
 def run_fixer(source: str) -> str:

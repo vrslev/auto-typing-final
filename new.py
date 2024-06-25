@@ -1,8 +1,7 @@
 from collections import defaultdict
-from pathlib import Path
 from typing import cast
 
-from ast_grep_py import SgNode, SgRoot
+from ast_grep_py import SgNode
 
 
 def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
@@ -115,11 +114,3 @@ def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
             del definition_map[param]
 
     return definition_map
-
-
-with Path("t.py").open("r+", encoding="locale") as f:
-    root = SgRoot(f.read(), "python").root()
-
-functions = root.find_all(kind="function_definition")
-
-function = functions[0]
