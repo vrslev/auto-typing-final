@@ -15,7 +15,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
-repository = "https://github.com/vrslev/auto-typing-final"
+homepage = "https://github.com/vrslev/auto-typing-final"
 
 [project.scripts]
 auto-typing-final = "auto_typing_final.main:main"
