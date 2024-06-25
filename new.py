@@ -49,9 +49,9 @@ def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
             continue
         match node.kind():
             case "assignment" | "augmented_assignment":
-                if (left := node.field("left")):
+                if left := node.field("left"):
                     match left.kind():
-                        case "pattern_list":
+                        case "pattern_list" | "tuple_pattern":
                             for child in left.children():
                                 if child.kind() == "identifier":
                                     definition_map[child.text()].append(node)

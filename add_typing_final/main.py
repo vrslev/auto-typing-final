@@ -73,6 +73,8 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
                             node=node, left=children[0].text(), annotation=children[2].text(), right=children[4].text()
                         )
                     )
+                case _:
+                    value_assignments.append(OtherDefinition(node))
         else:
             value_assignments.append(OtherDefinition(node))
     match value_assignments:
