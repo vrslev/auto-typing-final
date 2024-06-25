@@ -1,0 +1,56 @@
+[project]
+name = "add-typing-final"
+authors = [{ name = "Lev Vereshchagin", email = "mail@vrslev.com" }]
+dependencies = ["ast-grep-py==0.24.0"]
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["automation", "flake8", "mypy", "typing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Typing :: Typed",
+]
+dynamic = ["version"]
+
+[project.urls]
+repository = "https://github.com/vrslev/add-typing-final"
+
+[project.scripts]
+add-typing-final = "add_typing_final.main:main"
+
+[tool.uv]
+dev-dependencies = ["mypy==1.10.0", "pytest==8.2.2", "pytest-cov==5.0.0", "ruff==0.4.10"]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+strict = true
+
+[tool.ruff]
+target-version = "py311"
+fix = true
+unsafe-fixes = true
+line-length = 120
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = ["D1", "D203", "D213", "COM812", "ISC001", "CPY001"]
+extend-per-file-ignores = { "tests/*" = ["S101", "SLF001", "ARG"] }
+
+[tool.pytest.ini_options]
+addopts = "--cov -s -vv"
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

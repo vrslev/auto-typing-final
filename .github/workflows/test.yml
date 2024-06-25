@@ -1,0 +1,66 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  DEFAULT_PYTHON_VERSION: "3.12"
+
+jobs:
+  check-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: check-types-${{ hashFiles('pyproject.toml') }}
+      - run: curl -LsSf https://astral.sh/uv/0.2.11/install.sh | sh
+      - uses: extractions/setup-just@v2
+      - run: just install check-types
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: lint-${{ hashFiles('pyproject.toml') }}
+      - run: curl -LsSf https://astral.sh/uv/0.2.11/install.sh | sh
+      - uses: extractions/setup-just@v2
+      - run: just install lint
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ github.job }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+      - run: curl -LsSf https://astral.sh/uv/0.2.11/install.sh | sh
+      - uses: extractions/setup-just@v2
+      - run: just install test
