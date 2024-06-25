@@ -4,13 +4,6 @@ from collections.abc import Iterable
 from ast_grep_py import Config, SgNode
 
 
-def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
-    for ancestor in node.ancestors():
-        if ancestor.kind() in {"function_definition", "class_definition"}:
-            return ancestor != root
-    return False
-
-
 def last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
     return last_child if (children := node.children()) and (last_child := children[-1]).kind() == type_ else None
 
@@ -102,6 +95,13 @@ rule: Config = {
         ]
     }
 }
+
+
+def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
+    for ancestor in node.ancestors():
+        if ancestor.kind() in {"function_definition", "class_definition"}:
+            return ancestor != root
+    return False
 
 
 def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:

@@ -84,7 +84,7 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
             return RemoveFinal(assignments)
 
 
-def convert_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: C901
+def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: C901
     match operation:
         case AddFinal(assignment):
             match assignment:
@@ -109,7 +109,7 @@ def convert_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noq
 
 def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
     for assignments in find_definitions_in_function(node).values():
-        yield from convert_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
+        yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
 
 
 def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
