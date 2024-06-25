@@ -53,7 +53,7 @@ def t(d, ed=1, de: int=2, *ded, **deed):
         dfdsfdfsd = 1
 
         def t():
-            fdsfsf = 1
+            fdsfsf: typing.Final = 1
 
     def ffff(a=1): ...
 

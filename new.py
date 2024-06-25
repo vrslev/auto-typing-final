@@ -7,8 +7,8 @@ from ast_grep_py import SgNode, SgRoot
 
 def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     for ancestor in node.ancestors():
-        if ancestor.kind() in {"function_definition", "class_definition"} and ancestor != root:
-            return True
+        if ancestor.kind() in {"function_definition", "class_definition"}:
+            return ancestor != root
     return False
 
 

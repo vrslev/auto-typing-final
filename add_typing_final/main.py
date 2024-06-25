@@ -58,7 +58,6 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
         children = node.children()
 
         if node.kind() == "assignment":
-            print(node)
             match tuple(child.kind() for child in children):
                 case ("identifier", "=", _):
                     value_assignments.append(
@@ -108,9 +107,9 @@ def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
 
 
 def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
-    print(root.find_all(kind="function_definition"))
     for function in root.find_all(kind="function_definition"):
-        yield from make_edits_for_all_assignments_in_scope(function)
+        if function.field("name").text() == "t":
+            yield from make_edits_for_all_assignments_in_scope(function)
 
 
 def run_fixer(source: str) -> str:
