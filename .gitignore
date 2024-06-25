@@ -1,4 +1,5 @@
 .coverage
 .venv
 *.egg-info
+dist
 uv.lock

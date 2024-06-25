@@ -17,8 +17,9 @@ check-types:
 publish:
     rm -rf dist/*
     uv tool run --from build python -- -m build --installer uv
-    uv tool run twine check dist/*
-    uv tool run twine upload dist/* --username __token__ --password $PYPI_TOKEN
+    # https://github.com/pypa/twine/issues/977
+    uv tool run --with=importlib-metadata==7.* twine check dist/*
+    uv tool run --with=importlib-metadata==7.* twine upload dist/* --username __token__ --password $PYPI_TOKEN
 
 run *args:
     @.venv/bin/auto-typing-final {{ args }}
