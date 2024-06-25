@@ -1,23 +1,23 @@
 # auto-typing-final
 
-Auto-fixer for Python code that:
+Auto-fixer for Python code that would:
 
-- sets `typing.Final` inside functions for variables that are not reassigned
-- and removes `typing.Final` from variables that are reassined.
+- set `typing.Final` inside functions for variables that are not reassigned,
+- and remove `typing.Final` from variables that *are* reassigned.
 
 ## How To Use
 
 ```sh
-uv tool run auto-typing-final *files*
+uv tool run auto-typing-final ./**/*.py
 ```
 
-or
+or:
 
 ```sh
-pipx run auto-typing-final *files*
+pipx run auto-typing-final main.py
 ```
 
-### Setting up VS Code keybinding
+### VS Code key binding
 
 Add to your `keybindings.json`:
 
