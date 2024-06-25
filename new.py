@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable
 
-from ast_grep_py import SgNode
+from ast_grep_py import Config, SgNode
 
 
 def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
@@ -19,7 +19,7 @@ def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
     return (child.text() for child in node.children() if child.kind() == "identifier")
 
 
-def find_identifiers_in_node(node: SgNode) -> Iterable[str]:  # noqa: C901
+def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901
     match node.kind():
         case "assignment" | "augmented_assignment":
             if (left := node.field("left")) and node.field("right"):
@@ -72,25 +72,20 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[str]:  # noqa: C901
                     yield child.text()
 
 
-def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
-    definition_map = defaultdict(list)
-    ignored_names = set[str]()
+def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[str]:
+    match node.kind():
+        case "default_parameter" | "typed_default_parameter":
+            if name := node.field("name"):
+                yield name.text()
+        case "identifier":
+            yield node.text()
+        case _:
+            yield from texts_of_identifier_nodes(node)
 
-    if parameters := function.field("parameters"):
-        for child in parameters.children():
-            match child.kind():
-                case "default_parameter" | "typed_default_parameter":
-                    if name := child.field("name"):
-                        definition_map[name.text()].append(child)
-                case "identifier":
-                    definition_map[child.text()].append(child)
-                case _:
-                    for inner_child in child.children():
-                        if inner_child.kind() == "identifier":
-                            definition_map[inner_child.text()].append(child)
 
-    for node in function.find_all(
-        any=[
+rule: Config = {
+    "rule": {
+        "any": [
             {"kind": "assignment"},
             {"kind": "augmented_assignment"},
             {"kind": "named_expression"},
@@ -105,20 +100,30 @@ def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
             {"kind": "dict_pattern"},
             {"kind": "for_statement"},
         ]
-    ):
+    }
+}
+
+
+def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
+    definition_map = defaultdict(list)
+    ignored_names = set[str]()
+
+    if parameters := function.field("parameters"):
+        for node in parameters.children():
+            for identifier in find_identifiers_in_function_parameter(parameters):
+                definition_map[identifier].append(node)
+
+    for node in function.find_all(rule):
         if node_is_in_inner_function_or_class(function, node):
             continue
         match node.kind():
             case "global_statement" | "nonlocal_statement":
-                for child in node.children():
-                    if child.kind() == "identifier":
-                        ignored_names.add(child.text())
+                ignored_names.update(texts_of_identifier_nodes(node))
             case _:
-                for identifier in find_identifiers_in_node(node):
+                for identifier in find_identifiers_in_function_body(node):
                     definition_map[identifier].append(node)
 
     for param in ignored_names:
         if param in definition_map:
             del definition_map[param]
-
     return definition_map
