@@ -15,7 +15,7 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
 def find_identifiers_in_node(node: SgNode) -> Iterable[str]:
     match node.kind():
         case "assignment" | "augmented_assignment":
-            if left := node.field("left"):
+            if (left := node.field("left")) and node.field("right"):
                 match left.kind():
                     case "pattern_list" | "tuple_pattern":
                         for child in left.children():
