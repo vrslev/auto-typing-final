@@ -3,9 +3,9 @@
 Auto-fixer for Python code that:
 
 - sets `typing.Final` inside functions for variables that are not reassigned
-- and removes `typing.Final` from variables that are reassined
+- and removes `typing.Final` from variables that are reassined.
 
-## How To Use
+## How To Use
 
 ```sh
 uv tool run add-typing-final *files*
