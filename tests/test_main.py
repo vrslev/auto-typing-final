@@ -84,6 +84,8 @@ def second() -> whatever:
     hi = "hi"
     for _ in ...:
         me = 1
+    ih = 0
+    ih += 1
 
 class C:
     @t(a=1)
@@ -156,6 +158,8 @@ def second() -> whatever:
     hi: typing.Final = "hi"
     for _ in ...:
         me = 1
+    ih = 0
+    ih += 1
 
 class C:
     @t(a=1)

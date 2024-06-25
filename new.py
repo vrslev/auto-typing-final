@@ -31,6 +31,7 @@ def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
     for node in function.find_all(
         any=[
             {"kind": "assignment"},
+            {"kind": "augmented_assignment"},
             {"kind": "named_expression"},
             {"kind": "function_definition"},
             {"kind": "global_statement"},
@@ -47,8 +48,8 @@ def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
         if node_is_in_inner_function_or_class(function, node):
             continue
         match node.kind():
-            case "assignment":
-                if (left := node.field("left")) and node.field("right"):
+            case "assignment" | "augmented_assignment":
+                if (left := node.field("left")):
                     match left.kind():
                         case "pattern_list":
                             for child in left.children():
