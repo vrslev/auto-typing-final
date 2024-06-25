@@ -6,7 +6,7 @@ from typing import TextIO, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
 
-from new import find_definitions_in_function
+from new import find_definitions_in_scope_grouped_by_name
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
 
@@ -108,7 +108,7 @@ def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: 
 
 
 def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
-    for assignments in find_definitions_in_function(node).values():
+    for assignments in find_definitions_in_scope_grouped_by_name(node):
         yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
 
 

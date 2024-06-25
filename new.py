@@ -104,17 +104,17 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     return False
 
 
-def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
+def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgNode]]:
     definition_map = defaultdict(list)
     ignored_names = set[str]()
 
-    if parameters := function.field("parameters"):
+    if parameters := root.field("parameters"):
         for node in parameters.children():
             for identifier in find_identifiers_in_function_parameter(parameters):
                 definition_map[identifier].append(node)
 
-    for node in function.find_all(rule):
-        if node_is_in_inner_function_or_class(function, node):
+    for node in root.find_all(rule):
+        if node_is_in_inner_function_or_class(root, node):
             continue
         match node.kind():
             case "global_statement" | "nonlocal_statement":
@@ -126,4 +126,4 @@ def find_definitions_in_function(function: SgNode) -> dict[str, list[SgNode]]:
     for param in ignored_names:
         if param in definition_map:
             del definition_map[param]
-    return definition_map
+    return definition_map.values()
