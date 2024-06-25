@@ -47,9 +47,13 @@ def t(d, ed=1, de: int=2, *ded, **deed):
         a = 2
         if a := 111:
             ...
-
+        abcd = 1
     class C:
         c = 2
+        dfdsfdfsd = 1
+
+        def t():
+            fdsfsf = 1
 
     def ffff(a=1): ...
 
@@ -71,5 +75,5 @@ def t(d, ed=1, de: int=2, *ded, **deed):
             ...
         case a:
             ...
-
+    o: typing.Final = 1
     await a
