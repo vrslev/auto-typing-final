@@ -6,7 +6,7 @@ from typing import TextIO, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
 
-from add_typing_final.finder import find_definitions_in_scope_grouped_by_name
+from auto_typing_final.finder import find_definitions_in_scope_grouped_by_name
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
 

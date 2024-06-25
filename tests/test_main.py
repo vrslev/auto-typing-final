@@ -1,7 +1,7 @@
 import pytest
 from ast_grep_py import SgRoot
 
-from add_typing_final.main import make_edits_for_all_assignments_in_scope, run_fixer
+from auto_typing_final.main import make_edits_for_all_assignments_in_scope, run_fixer
 
 
 @pytest.mark.parametrize(

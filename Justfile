@@ -21,4 +21,4 @@ publish:
     uv tool run twine upload dist/* --username __token__ --password $PYPI_TOKEN
 
 run *args:
-    @.venv/bin/add-typing-final {{ args }}
+    @.venv/bin/auto-typing-final {{ args }}
