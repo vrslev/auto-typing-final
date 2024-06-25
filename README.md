@@ -1,4 +1,4 @@
-# add-typing-final
+# auto-typing-final
 
 Auto-fixer for Python code that:
 
@@ -8,13 +8,13 @@ Auto-fixer for Python code that:
 ## How To Use
 
 ```sh
-uv tool run add-typing-final *files*
+uv tool run auto-typing-final *files*
 ```
 
 or
 
 ```sh
-pipx run add-typing-final *files*
+pipx run auto-typing-final *files*
 ```
 
 ### Setting up VS Code keybinding
@@ -34,7 +34,7 @@ Add to your `keybindings.json`:
       {
         "command": "workbench.action.terminal.sendSequence",
         "args": {
-          "text": "uv tool run add-typing-final ${file}\u000Dexit\u000D"
+          "text": "uv tool run auto-typing-final ${file}\u000Dexit\u000D"
         }
       }
     ]
