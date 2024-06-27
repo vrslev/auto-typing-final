@@ -196,6 +196,340 @@ def fourth() -> None:
 )
 
 
-@pytest.mark.parametrize(("before", "after"), [scopes_case])
+# fmt: off
+scopes_cases = [
+    # scopes_case,
+("""
+a = 1
+""", """
+a = 1
+"""),
+
+("""
+def foo():
+    a = 1
+""", """
+def foo():
+    a: typing.Final = 1
+"""),
+
+("""
+a = 1
+
+def foo():
+    a = 2
+
+    def bar():
+        a = 3
+""", """
+a = 1
+
+def foo():
+    a: typing.Final = 2
+
+    def bar():
+        a: typing.Final = 3
+"""),
+
+# TODO
+# ("""
+# def foo():
+#     def bar():
+#         nonlocal a
+#         a = 1
+
+#     a = 2
+# """, """
+# def foo():
+#     def bar():
+#         nonlocal a
+#         a = 1
+
+#     a = 2
+# """)
+
+("""
+a = 1
+
+def foo():
+    global a
+    a = 2
+""", """
+a = 1
+
+def foo():
+    global a
+    a = 2
+"""),
+
+("""
+def foo():
+    from b import bar
+    baz = 1
+""", """
+def foo():
+    from b import bar
+    baz: typing.Final = 1
+"""),
+
+("""
+def foo():
+    from b import bar as baz
+    bar = 1
+    baz = 1
+""", """
+def foo():
+    from b import bar as baz
+    bar: typing.Final = 1
+    baz = 1
+"""),
+
+# TODO:
+# ("""
+# from foo import bar
+
+# def foo():
+#     bar = 1
+# """, """
+# from foo import bar
+
+# def foo():
+#     bar = 1
+# """),
+
+("""
+def foo():
+    from b import bar
+    bar = 1
+""", """
+def foo():
+    from b import bar
+    bar = 1
+"""),
+
+("""
+def foo():
+    from b import bar, baz
+    bar = 1
+    baz = 1
+""", """
+def foo():
+    from b import bar, baz
+    bar = 1
+    baz = 1
+"""),
+
+("""
+def foo():
+    from b import bar, baz as bazbaz
+    bar = 1
+    baz = 1
+""", """
+def foo():
+    from b import bar, baz as bazbaz
+    bar = 1
+    baz: typing.Final = 1
+"""),
+
+("""
+def foo():
+    # Dotted paths are not allowed, but tree-sitter-python grammar permits it
+    from b import d.bar, bazbaz as baz
+    bar = 1
+    baz = 1
+""", """
+def foo():
+    # Dotted paths are not allowed, but tree-sitter-python grammar permits it
+    from b import d.bar, bazbaz as baz
+    bar = 1
+    baz = 1
+"""),
+
+("""
+def foo():
+    from b import (bar, bazbaz)
+    bar = 1
+    baz = 1
+""", """
+def foo():
+    from b import (bar, bazbaz)
+    bar = 1
+    baz: typing.Final = 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    a += 1
+""", """
+def foo():
+    a = 1
+    a += 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    a: int
+""", """
+def foo():
+    a = 1
+    a: int
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    a: typing.Final
+""", """
+def foo():
+    a = 1
+    a: typing.Final
+"""),
+
+("""
+def foo():
+    a, b = 1
+""", """
+def foo():
+    a, b = 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    b: typing.Final = 2
+    a, b = 3
+""", """
+def foo():
+    a = 1
+    b = 2
+    a, b = 3
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    b, c = 2
+""", """
+def foo():
+    a: typing.Final = 1
+    b, c = 2
+"""),
+
+("""
+def foo():
+    a, b: typing.Final = 1
+""", """
+def foo():
+    a, b: typing.Final = 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    (a, b) = 2
+""", """
+def foo():
+    a = 1
+    (a, b) = 2
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    (a, *other) = 2
+""", """
+def foo():
+    a = 1
+    (a, *other) = 2
+"""),
+
+("""
+def foo():
+    def a(): ...
+    a: typing.Final = 1
+""", """
+def foo():
+    def a(): ...
+    a = 1
+"""),
+
+("""
+def foo():
+    class a: ...
+    a: typing.Final = 1
+""", """
+def foo():
+    class a: ...
+    a = 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    if a := 1: ...
+""", """
+def foo():
+    a = 1
+    if a := 1: ...
+"""),
+
+# TODO: Remove typing.Final from loops
+# ("""
+# def foo():
+#     while True:
+#         a: typing.Final = 1
+# """, """
+# def foo():
+#     while True:
+#         a = 1
+# """),
+
+("""
+def foo():
+    while True:
+        a = 1
+""", """
+def foo():
+    while True:
+        a = 1
+"""),
+
+("""
+def foo():
+    for _ in ...:
+        a: typing.Final = 1
+""", """
+def foo():
+    for _ in ...:
+        a: typing.Final = 1
+"""),
+
+("""
+def foo():
+    for _ in ...:
+        a = 1
+""", """
+def foo():
+    for _ in ...:
+        a = 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    for a in ...: ...
+""", """
+def foo():
+    a = 1
+    for a in ...: ...
+"""),
+
+]
+# fmt: on
+
+
+@pytest.mark.parametrize(("before", "after"), scopes_cases)
 def test_scopes(before: str, after: str) -> None:
     assert run_fixer(before.strip()) == after.strip()

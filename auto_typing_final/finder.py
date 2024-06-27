@@ -3,6 +3,8 @@ from collections.abc import Iterable
 
 from ast_grep_py import Config, SgNode
 
+# https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
+
 
 def last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
     return last_child if (children := node.children()) and (last_child := children[-1]).kind() == type_ else None
@@ -15,7 +17,7 @@ def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
 def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
-            if (left := node.field("left")):
+            if left := node.field("left"):
                 match left.kind():
                     case "pattern_list" | "tuple_pattern":
                         yield from texts_of_identifier_nodes(left)
