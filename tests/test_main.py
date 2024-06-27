@@ -526,6 +526,104 @@ def foo():
     for a in ...: ...
 """),
 
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case ...: ...
+""", """
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case ...: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case [] as a: ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case [] as a: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case {"hello": a, **b}: ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case {"hello": a, **b}: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case {**a}: ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case {**a}: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case A(b=a): ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case A(b=a): ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case [b, *a]: ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case [b, *a]: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case [a]: ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case [a]: ...
+"""),
+
 ]
 # fmt: on
 
