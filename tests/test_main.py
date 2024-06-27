@@ -587,13 +587,13 @@ def foo():
     a: typing.Final = 1
 
     match ...:
-        case A(b=a): ...
+        case A(b=a) | B(b=a): ...
 """, """
 def foo():
     a = 1
 
     match ...:
-        case A(b=a): ...
+        case A(b=a) | B(b=a): ...
 """),
 
 ("""
@@ -622,6 +622,20 @@ def foo():
 
     match ...:
         case [a]: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case (a,): ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case (a,): ...
 """),
 
 ]
