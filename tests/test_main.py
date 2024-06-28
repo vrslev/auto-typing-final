@@ -541,6 +541,46 @@ def foo():
 
 ("""
 def foo():
+    a: typing.Final = 1
+    b: typing.Final = 2
+    c: typing.Final = 3
+
+    def bar():
+        nonlocal a
+        b: typing.Final = 4
+        c: typing.Final = 5
+
+        class C:
+            a = 6
+            c = 7
+
+            def baz():
+                nonlocal a, b
+                b: typing.Final = 8
+                c: typing.Final = 9
+""", """
+def foo():
+    a = 1
+    b: typing.Final = 2
+    c: typing.Final = 3
+
+    def bar():
+        nonlocal a
+        b = 4
+        c: typing.Final = 5
+
+        class C:
+            a = 6
+            c = 7
+
+            def baz():
+                nonlocal a, b
+                b = 8
+                c: typing.Final = 19
+"""),
+
+("""
+def foo():
     foo: typing.Final = 1
 """, """
 def foo():
