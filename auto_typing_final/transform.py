@@ -109,7 +109,7 @@ def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: 
                             yield node.replace(f"{left}: {new_annotation[0]} = {right}")
 
 
-def make_edits_for_module(root: SgNode) -> list[Edit]:
+def make_edits_for_module(root: SgNode) -> str:
     edits: list[Edit] = []
     has_added_final = False
 
@@ -119,12 +119,14 @@ def make_edits_for_module(root: SgNode) -> list[Edit]:
             has_added_final = True
         edits.extend(make_edits_from_operation(operation))
 
-    if has_added_final and not has_global_import_with_name(root, "typing"):
-        edits.append(root.replace(f"import typing\n{root.text()}"))
+    result = root.commit_edits(edits)
 
-    return edits
+    if has_added_final and not has_global_import_with_name(root, "typing"):
+        result = root.commit_edits([root.replace(f"import typing\n{result}")])
+
+    return result
 
 
 def transform_file_content(source: str) -> str:
     root = SgRoot(source, "python").root()
-    return root.commit_edits(make_edits_for_module(root))
+    return make_edits_for_module(root)
