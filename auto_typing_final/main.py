@@ -1,7 +1,7 @@
 import argparse
 import sys
 from collections.abc import Iterable
-from difflib import ndiff
+from difflib import unified_diff
 from pathlib import Path
 
 from auto_typing_final.transform import transform_file_content
@@ -45,10 +45,15 @@ def main() -> int:
                 has_changes = True
 
             if args.check:
-                sys.stdout.writelines([f"{path}\n"])
-                sys.stdout.writelines(
-                    ndiff(data.splitlines(keepends=True), transformed_content.splitlines(keepends=True))
-                )
+                if data != transformed_content:
+                    sys.stdout.writelines(
+                        unified_diff(
+                            data.splitlines(keepends=True),
+                            transformed_content.splitlines(keepends=True),
+                            fromfile=str(path),
+                            tofile=str(path),
+                        )
+                    )
             else:
                 file.seek(0)
                 file.write(transformed_content)
