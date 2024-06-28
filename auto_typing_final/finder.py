@@ -21,7 +21,14 @@ def node_is_in_inner_function(root: SgNode, node: SgNode) -> bool:
     return False
 
 
-def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912
+def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
+    for ancestor in node.ancestors():
+        if ancestor.kind() in {"function_definition", "class_definition"}:
+            return ancestor != root
+    return False
+
+
+def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912, PLR0915
     match node.kind():
         case "assignment" | "augmented_assignment":
             if left := node.field("left"):
@@ -127,13 +134,6 @@ rule: Config = {
         ]
     }
 }
-
-
-def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
-    for ancestor in node.ancestors():
-        if ancestor.kind() in {"function_definition", "class_definition"}:
-            return ancestor != root
-    return False
 
 
 def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgNode]]:
