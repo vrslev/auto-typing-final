@@ -63,6 +63,19 @@ def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
             yield from find_identifiers_in_children(node)
 
 
+def find_identifiers_in_import(node: SgNode) -> Iterable[SgNode]:
+    match tuple((child.kind(), child) for child in node.children()):
+        case (("from", _), _, ("import", _), *name_nodes) | (("import", _), *name_nodes):
+            for kind, name_node in name_nodes:
+                match kind:
+                    case "dotted_name":
+                        if identifier := last_child_of_type(name_node, "identifier"):
+                            yield identifier
+                    case "aliased_import":
+                        if alias := name_node.field("alias"):
+                            yield alias
+
+
 def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912, PLR0915
     match node.kind():
         case "assignment" | "augmented_assignment":
@@ -92,16 +105,7 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                     continue
                 yield from find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement" | "import_statement":
-            match tuple((child.kind(), child) for child in node.children()):
-                case (("from", _), _, ("import", _), *name_nodes) | (("import", _), *name_nodes):
-                    for kind, name_node in name_nodes:
-                        match kind:
-                            case "dotted_name":
-                                if identifier := last_child_of_type(name_node, "identifier"):
-                                    yield identifier
-                            case "aliased_import":
-                                if alias := name_node.field("alias"):
-                                    yield alias
+            yield from find_identifiers_in_import(node)
         case "as_pattern":
             match tuple((child.kind(), child) for child in node.children()):
                 case (
@@ -172,3 +176,11 @@ def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         yield from find_definitions_in_scope_grouped_by_name(function).values()
     yield from find_definitions_in_global_scope(root).values()
+
+
+# def find_global_imports(root: SgNode) -> list[SgNode]:
+#     for import_statement in root.find_all({"rule": {"any": [
+#         {"kind": "import_from_statement"},
+#         {"kind": "import_statement"},
+#     ]})
+#     is_inside_inner_function_or_class(root, node)
