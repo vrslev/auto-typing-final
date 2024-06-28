@@ -41,22 +41,23 @@ def main() -> int:
         with path.open("r+") as file:
             data = file.read()
             transformed_content = transform_file_content(data)
-            if data != transformed_content:
-                has_changes = True
+            if data == transformed_content:
+                continue
+
+            has_changes = True
 
             if args.check:
-                if data != transformed_content:
-                    sys.stdout.writelines(
-                        unified_diff(
-                            data.splitlines(keepends=True),
-                            transformed_content.splitlines(keepends=True),
-                            fromfile=str(path),
-                            tofile=str(path),
-                        )
+                sys.stdout.writelines(
+                    unified_diff(
+                        data.splitlines(keepends=True),
+                        transformed_content.splitlines(keepends=True),
+                        fromfile=str(path),
+                        tofile=str(path),
                     )
+                )
             else:
                 file.seek(0)
                 file.write(transformed_content)
                 file.truncate()
 
-    return has_changes
+    return has_changes if args.check else 0
