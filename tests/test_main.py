@@ -670,6 +670,30 @@ def foo():
     global b
 """),
 
+("""
+def foo():
+    foo: typing.Final = 1
+""", """
+def foo():
+    foo = 1
+"""),
+
+("""
+def foo(a, b: int, c=1, d: int = 2):
+    a: typing.Final = 1
+    b: typing.Final = 2
+    c: typing.Final = 3
+    d: typing.Final = 4
+    e: typing.Final = 5
+""", """
+def foo(a, b: int, c=1, d: int = 2):
+    a = 1
+    b = 2
+    c = 3
+    d = 4
+    e: typing.Final = 5
+"""),
+
 # TODO:
 # ("""
 # def foo():
