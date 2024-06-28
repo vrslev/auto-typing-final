@@ -48,21 +48,20 @@ class RemoveFinal:
 Operation = AddFinal | RemoveFinal
 
 
-def is_in_loop(node: SgNode) -> bool:
+def is_inside_loop(node: SgNode) -> bool:
     return any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors())
 
 
 def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
     value_assignments: list[Definition] = []
-    has_node_in_loop = False
+    has_node_inside_loop = False
 
     for node in nodes:
-        children = node.children()
-
-        if is_in_loop(node):
-            has_node_in_loop = True
+        if is_inside_loop(node):
+            has_node_inside_loop = True
 
         if node.kind() == "assignment":
+            children = node.children()
             match tuple(child.kind() for child in children):
                 case ("identifier", "=", _):
                     value_assignments.append(
@@ -79,7 +78,7 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
         else:
             value_assignments.append(OtherDefinition(node))
 
-    if has_node_in_loop:
+    if has_node_inside_loop:
         return RemoveFinal(value_assignments)
 
     match value_assignments:
