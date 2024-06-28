@@ -321,6 +321,18 @@ def foo():
 
 ("""
 def foo():
+    for _ in ...:
+        def foo():
+            a: typing.Final = 1
+""", """
+def foo():
+    for _ in ...:
+        def foo():
+            a = 1
+"""),
+
+("""
+def foo():
     a: typing.Final = 1
     b: typing.Final = 2
 
