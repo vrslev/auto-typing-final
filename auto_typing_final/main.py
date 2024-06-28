@@ -45,6 +45,7 @@ def main() -> int:
                 has_changes = True
 
             if args.check:
+                sys.stdout.writelines([f"{path}\n"])
                 sys.stdout.writelines(
                     ndiff(data.splitlines(keepends=True), transformed_content.splitlines(keepends=True))
                 )
