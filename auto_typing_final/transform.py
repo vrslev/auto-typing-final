@@ -119,16 +119,10 @@ def make_edits_for_module(root: SgNode) -> list[Edit]:
             has_added_final = True
         edits.extend(make_edits_from_operation(operation))
 
-    if has_added_final and (import_edit := add_typing_import(root)):
-        edits.append(import_edit)
+    if has_added_final and "typing" in set(find_global_imports(root)):
+        edits.append(root.replace(f"import typing\n{root.text()}"))
 
     return edits
-
-
-def add_typing_import(root: SgNode) -> Edit | None:
-    if "typing" in set(find_global_imports(root)):
-        return None
-    return root.replace(f"import typing\n{root.text()}")
 
 
 def transform_file_content(source: str) -> str:
