@@ -172,11 +172,3 @@ def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         yield from find_definitions_in_scope_grouped_by_name(function).values()
     yield from find_definitions_in_global_scope(root).values()
-
-
-# def find_global_imports(root: SgNode) -> list[SgNode]:
-#     for import_statement in root.find_all({"rule":{"any":[
-#         {"kind":"import_from_statement"},
-
-#     ]}})
-#     is_inside_inner_function_or_class(root, node)
