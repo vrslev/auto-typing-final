@@ -163,3 +163,9 @@ def find_definitions_in_global_scope(root: SgNode) -> dict[str, list[SgNode]]:
         identifier: (global_statement_identifiers[identifier] + definitions)
         for identifier, definitions in find_definitions_in_scope_grouped_by_name(root).items()
     }
+
+
+def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
+    for function in root.find_all(kind="function_definition"):
+        yield from find_definitions_in_scope_grouped_by_name(function).values()
+    yield from find_definitions_in_global_scope(root).values()

@@ -6,10 +6,7 @@ from typing import TextIO, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
 
-from auto_typing_final.finder import (
-    find_definitions_in_global_scope,
-    find_definitions_in_scope_grouped_by_name,
-)
+from auto_typing_final.finder import find_definitions_in_module
 
 TYPING_FINAL = "typing.Final"
 TYPING_FINAL_ANNOTATION_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
@@ -120,15 +117,10 @@ def make_edits_for_definitions(definitions: Iterable[list[SgNode]]) -> Iterable[
         yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(current_definitions))
 
 
-def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
-    for function in root.find_all(kind="function_definition"):
-        yield from make_edits_for_definitions(find_definitions_in_scope_grouped_by_name(function).values())
-    yield from make_edits_for_definitions(find_definitions_in_global_scope(root).values())
-
-
 def run_fixer(source: str) -> str:
     root = SgRoot(source, "python").root()
-    return root.commit_edits(list(make_edits_for_all_functions(root)))
+    edits = list(make_edits_for_definitions(find_definitions_in_module(root)))
+    return root.commit_edits(edits)
 
 
 def main() -> None:  # pragma: no cover
