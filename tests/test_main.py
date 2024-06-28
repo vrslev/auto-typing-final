@@ -41,164 +41,8 @@ def test_variants(before: str, after: str) -> None:
     assert root.commit_edits(list(make_edits_for_all_assignments_in_scope(root))) == after.strip()
 
 
-scopes_case = (
-    """
-a = 1
-b, c = 1
-MUTABLE_FIRST = 1
-MUTABLE_FIRST = 2
-
-@f
-class A:
-    def first(self) -> None:
-        a = 1
-
-        if a:
-            b = 2
-
-        if ...: c = 3
-
-        if ...:
-            a = 4
-
-        while ...:
-            ...
-
-        for _ in ...:
-            ...
-
-        async for _ in ...: ...
-
-        with ...:
-            d = 5
-
-        async with ...:
-            e = 6
-
-@s()
-class B(A):
-    def duplicated(self) -> None:
-        a = 1
-        a = 2
-
-def second() -> whatever:
-    hi = "hi"
-    for _ in ...:
-        me = 1
-    ih = 0
-    ih += 1
-
-class C:
-    @t(a=1)
-    def duplicated(self) -> None:
-        a: typing.Final = 2
-        a = 1
-
-MUTABLE_SECOND = 1
-CONSTANT = 300
-MUTABLE_SECOND: int = 2
-
-def fourth() -> None:
-    def inner() -> None:
-        @f(a=2)
-        def inner_inner() -> None:
-            a = 1
-            sss = 1
-
-        a: typing.Final = 1
-        b = 2
-        c: typing.Final = 3
-
-    class A:
-        a = 1
-
-        def fifth() -> None:
-            a = 1
-
-    a = 1
-""",
-    """
-a = 1
-b, c = 1
-MUTABLE_FIRST = 1
-MUTABLE_FIRST = 2
-
-@f
-class A:
-    def first(self) -> None:
-        a = 1
-
-        if a:
-            b: typing.Final = 2
-
-        if ...: c: typing.Final = 3
-
-        if ...:
-            a = 4
-
-        while ...:
-            ...
-
-        for _ in ...:
-            ...
-
-        async for _ in ...: ...
-
-        with ...:
-            d: typing.Final = 5
-
-        async with ...:
-            e: typing.Final = 6
-
-@s()
-class B(A):
-    def duplicated(self) -> None:
-        a = 1
-        a = 2
-
-def second() -> whatever:
-    hi: typing.Final = "hi"
-    for _ in ...:
-        me = 1
-    ih = 0
-    ih += 1
-
-class C:
-    @t(a=1)
-    def duplicated(self) -> None:
-        a = 2
-        a = 1
-
-MUTABLE_SECOND = 1
-CONSTANT = 300
-MUTABLE_SECOND: int = 2
-
-def fourth() -> None:
-    def inner() -> None:
-        @f(a=2)
-        def inner_inner() -> None:
-            a: typing.Final = 1
-            sss: typing.Final = 1
-
-        a: typing.Final = 1
-        b: typing.Final = 2
-        c: typing.Final = 3
-
-    class A:
-        a = 1
-
-        def fifth() -> None:
-            a: typing.Final = 1
-
-    a: typing.Final = 1
-
-""",
-)
-
-
 # fmt: off
 scopes_cases = [
-    # scopes_case,
 ("""
 a = 1
 """, """
@@ -230,23 +74,6 @@ def foo():
     def bar():
         a: typing.Final = 3
 """),
-
-# TODO
-# ("""
-# def foo():
-#     def bar():
-#         nonlocal a
-#         a = 1
-
-#     a = 2
-# """, """
-# def foo():
-#     def bar():
-#         nonlocal a
-#         a = 1
-
-#     a = 2
-# """)
 
 ("""
 a = 1
@@ -283,19 +110,6 @@ def foo():
     bar: typing.Final = 1
     baz = 1
 """),
-
-# TODO:
-# ("""
-# from foo import bar
-
-# def foo():
-#     bar = 1
-# """, """
-# from foo import bar
-
-# def foo():
-#     bar = 1
-# """),
 
 ("""
 def foo():
@@ -474,17 +288,6 @@ def foo():
     a = 1
     if a := 1: ...
 """),
-
-# TODO: Remove typing.Final from loops
-# ("""
-# def foo():
-#     while True:
-#         a: typing.Final = 1
-# """, """
-# def foo():
-#     while True:
-#         a = 1
-# """),
 
 ("""
 def foo():
@@ -693,36 +496,6 @@ def foo(a, b: int, c=1, d: int = 2):
     d = 4
     e: typing.Final = 5
 """),
-
-# TODO:
-# ("""
-# def foo():
-#     a: typing.Final = 1
-
-#     match ...:
-#         case [a]: ...
-# """, """
-# def foo():
-#     a = 1
-
-#     match ...:
-#         case [a]: ...
-# """),
-
-# ("""
-# def foo():
-#     a: typing.Final = 1
-
-#     match ...:
-#         case (a,): ...
-# """, """
-# def foo():
-#     a = 1
-
-#     match ...:
-#         case (a,): ...
-# """),
-
 ]
 # fmt: on
 
