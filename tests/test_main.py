@@ -568,6 +568,18 @@ def foo(a, b: int, c=1, d: int = 2):
     d = 4
     e: typing.Final = 5
 """,
+        """
+def foo(self):
+    self.me = 1
+---
+def foo(self):
+    self.me = 1
+""",
+        """
+a.b = 1
+---
+a.b = 1
+""",
     ],
 )
 def test_transform_file_content(case: str) -> None:
