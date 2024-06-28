@@ -21,7 +21,12 @@ repository = "https://github.com/vrslev/auto-typing-final"
 auto-typing-final = "auto_typing_final.main:main"
 
 [tool.uv]
-dev-dependencies = ["mypy==1.10.0", "pytest==8.2.2", "pytest-cov==5.0.0", "ruff==0.4.10"]
+dev-dependencies = [
+    "mypy==1.10.0",
+    "pytest==8.2.2",
+    "pytest-cov==5.0.0",
+    "ruff==0.4.10",
+]
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -50,6 +55,9 @@ extend-per-file-ignores = { "tests/*" = ["S101", "SLF001", "ARG"] }
 
 [tool.pytest.ini_options]
 addopts = "--cov -s -vv"
+
+[tool.coverage.run]
+branch = true
 
 [tool.coverage.report]
 skip_covered = true
