@@ -145,7 +145,7 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
                 definition_map[identifier].append(node)
 
     for node in root.find_all(rule):
-        if node_is_in_inner_function_or_class(root, node):
+        if node_is_in_inner_function_or_class(root, node) or node == root:
             continue
         for identifier in find_identifiers_in_function_body(node):
             definition_map[identifier].append(node)

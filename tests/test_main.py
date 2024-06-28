@@ -585,10 +585,10 @@ def foo():
 
 ("""
 def foo():
-    foo: typing.Final = 1
+    foo = 1
 """, """
 def foo():
-    foo = 1
+    foo: typing.Final = 1
 """),
 
 ("""
