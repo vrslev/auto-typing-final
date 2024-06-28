@@ -416,6 +416,34 @@ def foo():
 ("""
 def foo():
     a: typing.Final = 1
+
+    match ...:
+        case [a]: ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case [a]: ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+
+    match ...:
+        case (a,): ...
+""", """
+def foo():
+    a = 1
+
+    match ...:
+        case (a,): ...
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
     nonlocal a
 """, """
 def foo():

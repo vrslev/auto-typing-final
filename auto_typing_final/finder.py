@@ -49,6 +49,14 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C
                 case (("identifier", _), ("=", _), ("dotted_name", alias)):
                     if identifier := last_child_of_type(alias, "identifier"):
                         yield identifier.text()
+        case "list_pattern" | "tuple_pattern":
+            for child in node.children():
+                if (
+                    child.kind() == "case_pattern"
+                    and (last_child := last_child_of_type(child, "dotted_name"))
+                    and (last_last_child := last_child_of_type(last_child, "identifier"))
+                ):
+                    yield last_last_child.text()
         case "splat_pattern":
             yield from texts_of_identifier_nodes(node)
         case "dict_pattern":
@@ -93,6 +101,8 @@ rule: Config = {
             {"kind": "keyword_pattern"},
             {"kind": "splat_pattern"},
             {"kind": "dict_pattern"},
+            {"kind": "list_pattern"},
+            {"kind": "tuple_pattern"},
             {"kind": "for_statement"},
         ]
     }
