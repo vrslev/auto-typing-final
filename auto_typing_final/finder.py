@@ -70,15 +70,15 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                     continue
                 yield from find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement":
-            match tuple((child.kind(), child) for child in node.children()):
+            match tuple((child.kind(), child) for child in node.children()):  # TODO: child to something specific
                 case (("from", _), _, ("import", _), *name_nodes):
-                    for _, child in name_nodes:
-                        match child.kind():
+                    for name_node_kind, name_node in name_nodes:
+                        match name_node_kind:
                             case "dotted_name":
-                                if identifier := last_child_of_type(child, "identifier"):
+                                if identifier := last_child_of_type(name_node, "identifier"):
                                     yield identifier
                             case "aliased_import":
-                                if alias := child.field("alias"):
+                                if alias := name_node.field("alias"):
                                     yield alias
         case "as_pattern":
             match tuple((child.kind(), child) for child in node.children()):
@@ -96,10 +96,10 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
             for child in node.children():
                 if (
                     child.kind() == "case_pattern"
-                    and (last_child := last_child_of_type(child, "dotted_name"))
-                    and (last_last_child := last_child_of_type(last_child, "identifier"))
+                    and (dotted_name := last_child_of_type(child, "dotted_name"))
+                    and (identifier := last_child_of_type(dotted_name, "identifier"))
                 ):
-                    yield last_last_child
+                    yield identifier
         case "splat_pattern" | "global_statement" | "nonlocal_statement":
             yield from find_identifiers_in_children(node)
         case "dict_pattern":
@@ -108,10 +108,10 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                     child.kind() == "case_pattern"
                     and (previous_child := child.prev())
                     and previous_child.kind() == ":"
-                    and (last_child := last_child_of_type(child, "dotted_name"))
-                    and (last_last_child := last_child_of_type(last_child, "identifier"))
+                    and (dotted_name := last_child_of_type(child, "dotted_name"))
+                    and (identifier := last_child_of_type(dotted_name, "identifier"))
                 ):
-                    yield last_last_child
+                    yield identifier
         case "for_statement":
             if left := node.field("left"):
                 yield from left.find_all(kind="identifier")
