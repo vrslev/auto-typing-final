@@ -5,7 +5,7 @@ install:
     uv sync
 
 test *args:
-    @.venv/bin/pytest {{ args }}
+    @.venv/bin/pytest -- {{ args }}
 
 lint:
     uv -q run ruff check .
