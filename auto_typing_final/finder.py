@@ -151,3 +151,15 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
             definition_map[identifier].append(node)
 
     return definition_map
+
+
+def find_definitions_in_global_scope(root: SgNode) -> dict[str, list[SgNode]]:
+    global_statement_identifiers = defaultdict(list)
+    for node in root.find_all(kind="global_statement"):
+        for identifier in texts_of_identifier_nodes(node):
+            global_statement_identifiers[identifier].append(node)
+
+    return {
+        identifier: (global_statement_identifiers[identifier] + definitions)
+        for identifier, definitions in find_definitions_in_scope_grouped_by_name(root).items()
+    }
