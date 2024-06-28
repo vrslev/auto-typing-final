@@ -86,27 +86,33 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
             return RemoveFinal(assignments)
 
 
-def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: C901
+def make_expected_text_from_operation(operation: Operation) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
     match operation:
         case AddFinal(assignment):
             match assignment:
                 case AssignmentWithoutAnnotation(node, left, right):
-                    yield node.replace(f"{left}: {TYPING_FINAL} = {right}")
+                    yield node, f"{left}: {TYPING_FINAL} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
                     if TYPING_FINAL in annotation:
                         return
-                    yield node.replace(f"{left}: {TYPING_FINAL}[{annotation}] = {right}")
+                    yield node, f"{left}: {TYPING_FINAL}[{annotation}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
                 match assignment:
                     case AssignmentWithoutAnnotation(node, left, right):
-                        yield node.replace(f"{left} = {right}")
+                        yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
                         if annotation == TYPING_FINAL:
-                            yield node.replace(f"{left} = {right}")
+                            yield node, f"{left} = {right}"
                         elif new_annotation := TYPING_FINAL_ANNOTATION_REGEX.findall(annotation):
-                            yield node.replace(f"{left}: {new_annotation[0]} = {right}")
+                            yield node, f"{left}: {new_annotation[0]} = {right}"
+
+
+def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:
+    for node, new_text in make_expected_text_from_operation(operation):
+        if node.text() != new_text:
+            yield node.replace(new_text)
 
 
 def make_edits_for_module(root: SgNode) -> str:
@@ -115,9 +121,12 @@ def make_edits_for_module(root: SgNode) -> str:
 
     for current_definitions in find_definitions_in_module(root):
         operation = make_operation_from_assignments_to_one_name(current_definitions)
-        if isinstance(operation, AddFinal):
+        current_edits = list(make_edits_from_operation(operation))
+
+        if isinstance(operation, AddFinal) and current_edits:
             has_added_final = True
-        edits.extend(make_edits_from_operation(operation))
+
+        edits.extend(current_edits)
 
     result = root.commit_edits(edits)
 
