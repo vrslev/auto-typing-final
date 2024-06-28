@@ -4,6 +4,27 @@ from collections.abc import Iterable
 from ast_grep_py import Config, SgNode
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
+DEFINITION_RULE: Config = {
+    "rule": {
+        "any": [
+            {"kind": "assignment"},
+            {"kind": "augmented_assignment"},
+            {"kind": "named_expression"},
+            {"kind": "function_definition"},
+            {"kind": "global_statement"},
+            {"kind": "nonlocal_statement"},
+            {"kind": "class_definition"},
+            {"kind": "import_from_statement"},
+            {"kind": "as_pattern"},
+            {"kind": "keyword_pattern"},
+            {"kind": "splat_pattern"},
+            {"kind": "dict_pattern"},
+            {"kind": "list_pattern"},
+            {"kind": "tuple_pattern"},
+            {"kind": "for_statement"},
+        ]
+    }
+}
 
 
 def last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
@@ -117,29 +138,6 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                 yield from left.find_all(kind="identifier")
 
 
-rule: Config = {
-    "rule": {
-        "any": [
-            {"kind": "assignment"},
-            {"kind": "augmented_assignment"},
-            {"kind": "named_expression"},
-            {"kind": "function_definition"},
-            {"kind": "global_statement"},
-            {"kind": "nonlocal_statement"},
-            {"kind": "class_definition"},
-            {"kind": "import_from_statement"},
-            {"kind": "as_pattern"},
-            {"kind": "keyword_pattern"},
-            {"kind": "splat_pattern"},
-            {"kind": "dict_pattern"},
-            {"kind": "list_pattern"},
-            {"kind": "tuple_pattern"},
-            {"kind": "for_statement"},
-        ]
-    }
-}
-
-
 def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[SgNode]]:
     definition_map = defaultdict(list)
 
@@ -148,7 +146,7 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
             for identifier in find_identifiers_in_function_parameter(node):
                 definition_map[identifier.text()].append(node)
 
-    for node in root.find_all(rule):
+    for node in root.find_all(DEFINITION_RULE):
         if node_is_in_inner_function_or_class(root, node) or node == root:
             continue
         for identifier in find_identifiers_in_function_body(node):
