@@ -14,6 +14,13 @@ def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
     return (child.text() for child in node.children() if child.kind() == "identifier")
 
 
+def node_is_in_inner_function(root: SgNode, node: SgNode) -> bool:
+    for ancestor in node.ancestors():
+        if ancestor.kind() == "function_definition":
+            return ancestor != root
+    return False
+
+
 def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
@@ -23,9 +30,22 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C
                         yield from texts_of_identifier_nodes(left)
                     case "identifier":
                         yield left.text()
-        case "function_definition" | "class_definition" | "named_expression":
+        case "named_expression":
             if name := node.field("name"):
                 yield name.text()
+        case "class_definition":
+            if name := node.field("name"):
+                yield name.text()
+            for function in node.find_all(kind="function_definition"):
+                for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
+                    if not node_is_in_inner_function(root=function, node=nonlocal_statement):
+                        yield from texts_of_identifier_nodes(nonlocal_statement)
+        case "function_definition":
+            if name := node.field("name"):
+                yield name.text()
+            for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
+                if not node_is_in_inner_function(root=node, node=nonlocal_statement):
+                    yield from texts_of_identifier_nodes(nonlocal_statement)
         case "import_from_statement":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("from", _), _, ("import", _), *name_nodes):
@@ -118,7 +138,7 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
 
 def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgNode]]:
     definition_map = defaultdict(list)
-    ignored_names = set[str]()
+
     if parameters := root.field("parameters"):
         for node in parameters.children():
             for identifier in find_identifiers_in_function_parameter(node):
@@ -129,12 +149,10 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgN
             continue
         match node.kind():
             case "global_statement" | "nonlocal_statement":
-                ignored_names.update(texts_of_identifier_nodes(node))
+                for identifier in texts_of_identifier_nodes(node):
+                    definition_map[identifier].append(node)
             case _:
                 for identifier in find_identifiers_in_function_body(node):
                     definition_map[identifier].append(node)
 
-    for param in ignored_names:
-        if param in definition_map:
-            del definition_map[param]
     return definition_map.values()

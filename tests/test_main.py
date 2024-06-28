@@ -485,7 +485,7 @@ def foo():
     nonlocal a
 """, """
 def foo():
-    a: typing.Final = 1
+    a = 1
     nonlocal a
 """),
 
@@ -515,7 +515,7 @@ def foo():
     global a
 """, """
 def foo():
-    a: typing.Final = 1
+    a = 1
     global a
 """),
 
@@ -576,7 +576,7 @@ def foo():
             def baz():
                 nonlocal a, b
                 b = 8
-                c: typing.Final = 19
+                c: typing.Final = 9
 """),
 
 ("""
