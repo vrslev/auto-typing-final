@@ -44,12 +44,13 @@ def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
 def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912, PLR0915
     match node.kind():
         case "assignment" | "augmented_assignment":
-            if left := node.field("left"):
-                match left.kind():
-                    case "pattern_list" | "tuple_pattern":
-                        yield from find_identifiers_in_children(left)
-                    case "identifier":
-                        yield left
+            if not (left := node.field("left")):
+                return
+            match left.kind():
+                case "pattern_list" | "tuple_pattern":
+                    yield from find_identifiers_in_children(left)
+                case "identifier":
+                    yield left
         case "named_expression":
             if name := node.field("name"):
                 yield name
@@ -58,14 +59,16 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                 yield name
             for function in node.find_all(kind="function_definition"):
                 for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
-                    if not node_is_in_inner_function(root=function, node=nonlocal_statement):
-                        yield from find_identifiers_in_children(nonlocal_statement)
+                    if node_is_in_inner_function(root=function, node=nonlocal_statement):
+                        continue
+                    yield from find_identifiers_in_children(nonlocal_statement)
         case "function_definition":
             if name := node.field("name"):
                 yield name
             for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
-                if not node_is_in_inner_function(root=node, node=nonlocal_statement):
-                    yield from find_identifiers_in_children(nonlocal_statement)
+                if node_is_in_inner_function(root=node, node=nonlocal_statement):
+                    continue
+                yield from find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("from", _), _, ("import", _), *name_nodes):
@@ -111,8 +114,7 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                     yield last_last_child
         case "for_statement":
             if left := node.field("left"):
-                for child in left.find_all(kind="identifier"):
-                    yield child
+                yield from left.find_all(kind="identifier")
 
 
 rule: Config = {
