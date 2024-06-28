@@ -119,7 +119,7 @@ def make_edits_for_module(root: SgNode) -> list[Edit]:
             has_added_final = True
         edits.extend(make_edits_from_operation(operation))
 
-    if has_added_final and "typing" in set(find_global_imports(root)):
+    if has_added_final and "typing" not in set(find_global_imports(root)):
         edits.append(root.replace(f"import typing\n{root.text()}"))
 
     return edits

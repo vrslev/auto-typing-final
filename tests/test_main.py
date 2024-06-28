@@ -573,3 +573,40 @@ def foo(a, b: int, c=1, d: int = 2):
 def test_transform_file_content(case: str) -> None:
     before, _, after = case.partition("---")
     assert transform_file_content("import typing\n" + before.strip()) == "import typing\n" + after.strip()
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        """
+import typing
+a = 1
+---
+import typing
+a: typing.Final = 1
+""",
+        """
+import typing
+a: typing.Final = 1
+---
+import typing
+a: typing.Final = 1
+""",
+        """
+a: typing.Final = 1
+---
+import typing
+a: typing.Final = 1
+""",
+        """
+a: typing.Final = 1
+a = 2
+---
+a = 1
+a = 2
+""",
+    ],
+)
+def test_add_import(case: str) -> None:
+    before, _, after = case.partition("---")
+    assert transform_file_content(before.strip()) == after.strip()
