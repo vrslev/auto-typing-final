@@ -10,8 +10,10 @@ def last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
     return last_child if (children := node.children()) and (last_child := children[-1]).kind() == type_ else None
 
 
-def texts_of_identifier_nodes(node: SgNode) -> Iterable[str]:
-    return (child.text() for child in node.children() if child.kind() == "identifier")
+def find_identifiers_in_children(node: SgNode) -> Iterable[SgNode]:
+    for child in node.children():
+        if child.kind() == "identifier":
+            yield child
 
 
 def node_is_in_inner_function(root: SgNode, node: SgNode) -> bool:
@@ -28,31 +30,31 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     return False
 
 
-def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C901, PLR0912, PLR0915
+def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912, PLR0915
     match node.kind():
         case "assignment" | "augmented_assignment":
             if left := node.field("left"):
                 match left.kind():
                     case "pattern_list" | "tuple_pattern":
-                        yield from texts_of_identifier_nodes(left)
+                        yield from find_identifiers_in_children(left)
                     case "identifier":
-                        yield left.text()
+                        yield left
         case "named_expression":
             if name := node.field("name"):
-                yield name.text()
+                yield name
         case "class_definition":
             if name := node.field("name"):
-                yield name.text()
+                yield name
             for function in node.find_all(kind="function_definition"):
                 for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
                     if not node_is_in_inner_function(root=function, node=nonlocal_statement):
-                        yield from texts_of_identifier_nodes(nonlocal_statement)
+                        yield from find_identifiers_in_children(nonlocal_statement)
         case "function_definition":
             if name := node.field("name"):
-                yield name.text()
+                yield name
             for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
                 if not node_is_in_inner_function(root=node, node=nonlocal_statement):
-                    yield from texts_of_identifier_nodes(nonlocal_statement)
+                    yield from find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("from", _), _, ("import", _), *name_nodes):
@@ -60,22 +62,22 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C
                         match child.kind():
                             case "dotted_name":
                                 if identifier := last_child_of_type(child, "identifier"):
-                                    yield identifier.text()
+                                    yield identifier
                             case "aliased_import":
                                 if alias := child.field("alias"):
-                                    yield alias.text()
+                                    yield alias
         case "as_pattern":
             match tuple((child.kind(), child) for child in node.children()):
                 case (
                     (("identifier", _), ("as", _), ("as_pattern_target", alias))
                     | (("case_pattern", _), ("as", _), ("identifier", alias))
                 ):
-                    yield alias.text()
+                    yield alias
         case "keyword_pattern":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("identifier", _), ("=", _), ("dotted_name", alias)):
                     if identifier := last_child_of_type(alias, "identifier"):
-                        yield identifier.text()
+                        yield identifier
         case "list_pattern" | "tuple_pattern":
             for child in node.children():
                 if (
@@ -83,9 +85,9 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C
                     and (last_child := last_child_of_type(child, "dotted_name"))
                     and (last_last_child := last_child_of_type(last_child, "identifier"))
                 ):
-                    yield last_last_child.text()
+                    yield last_last_child
         case "splat_pattern" | "global_statement" | "nonlocal_statement":
-            yield from texts_of_identifier_nodes(node)
+            yield from find_identifiers_in_children(node)
         case "dict_pattern":
             for child in node.children():
                 if (
@@ -95,22 +97,22 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C
                     and (last_child := last_child_of_type(child, "dotted_name"))
                     and (last_last_child := last_child_of_type(last_child, "identifier"))
                 ):
-                    yield last_last_child.text()
+                    yield last_last_child
         case "for_statement":
             if left := node.field("left"):
                 for child in left.find_all(kind="identifier"):
-                    yield child.text()
+                    yield child
 
 
-def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[str]:
+def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
     match node.kind():
         case "default_parameter" | "typed_default_parameter":
             if name := node.field("name"):
-                yield name.text()
+                yield name
         case "identifier":
-            yield node.text()
+            yield node
         case _:
-            yield from texts_of_identifier_nodes(node)
+            yield from find_identifiers_in_children(node)
 
 
 rule: Config = {
@@ -142,13 +144,13 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
     if parameters := root.field("parameters"):
         for node in parameters.children():
             for identifier in find_identifiers_in_function_parameter(node):
-                definition_map[identifier].append(node)
+                definition_map[identifier.text()].append(node)
 
     for node in root.find_all(rule):
         if node_is_in_inner_function_or_class(root, node) or node == root:
             continue
         for identifier in find_identifiers_in_function_body(node):
-            definition_map[identifier].append(node)
+            definition_map[identifier.text()].append(node)
 
     return definition_map
 
@@ -156,8 +158,8 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
 def find_definitions_in_global_scope(root: SgNode) -> dict[str, list[SgNode]]:
     global_statement_identifiers = defaultdict(list)
     for node in root.find_all(kind="global_statement"):
-        for identifier in texts_of_identifier_nodes(node):
-            global_statement_identifiers[identifier].append(node)
+        for identifier in find_identifiers_in_children(node):
+            global_statement_identifiers[identifier.text()].append(node)
 
     return {
         identifier: (global_statement_identifiers[identifier] + definitions)
