@@ -30,6 +30,17 @@ def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     return False
 
 
+def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
+    match node.kind():
+        case "default_parameter" | "typed_default_parameter":
+            if name := node.field("name"):
+                yield name
+        case "identifier":
+            yield node
+        case _:
+            yield from find_identifiers_in_children(node)
+
+
 def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912, PLR0915
     match node.kind():
         case "assignment" | "augmented_assignment":
@@ -102,17 +113,6 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
             if left := node.field("left"):
                 for child in left.find_all(kind="identifier"):
                     yield child
-
-
-def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
-    match node.kind():
-        case "default_parameter" | "typed_default_parameter":
-            if name := node.field("name"):
-                yield name
-        case "identifier":
-            yield node
-        case _:
-            yield from find_identifiers_in_children(node)
 
 
 rule: Config = {
