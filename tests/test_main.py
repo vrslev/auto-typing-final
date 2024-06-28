@@ -2,7 +2,7 @@ import pytest
 from ast_grep_py import SgRoot
 
 from auto_typing_final.finder import find_definitions_in_scope_grouped_by_name
-from auto_typing_final.main import make_edits_for_definitions, run_fixer
+from auto_typing_final.transform import make_edits_for_definitions, transform_file_content
 
 
 @pytest.mark.parametrize(
@@ -611,5 +611,5 @@ def foo(a, b: int, c=1, d: int = 2):
 
 
 @pytest.mark.parametrize(("before", "after"), scopes_cases)
-def test_scopes(before: str, after: str) -> None:
-    assert run_fixer(before.strip()) == after.strip()
+def test_transform_file_content(before: str, after: str) -> None:
+    assert transform_file_content(before.strip()) == after.strip()
