@@ -613,30 +613,91 @@ def foo():
 ("""
 def foo():
     a: typing.Final = 1
+    nonlocal a
+""", """
+def foo():
+    a: typing.Final = 1
+    nonlocal a
+"""),
 
-    match ...:
-        case [a]: ...
+("""
+def foo():
+    a = 1
+    nonlocal a
 """, """
 def foo():
     a = 1
-
-    match ...:
-        case [a]: ...
+    nonlocal a
 """),
 
 ("""
 def foo():
     a: typing.Final = 1
+    global b
+""", """
+def foo():
+    a: typing.Final = 1
+    global b
+"""),
 
-    match ...:
-        case (a,): ...
+("""
+def foo():
+    a: typing.Final = 1
+    global a
+""", """
+def foo():
+    a: typing.Final = 1
+    global a
+"""),
+
+("""
+def foo():
+    a = 1
+    nonlocal a
 """, """
 def foo():
     a = 1
-
-    match ...:
-        case (a,): ...
+    nonlocal a
 """),
+
+("""
+def foo():
+    a: typing.Final = 1
+    global b
+""", """
+def foo():
+    a: typing.Final = 1
+    global b
+"""),
+
+# TODO:
+# ("""
+# def foo():
+#     a: typing.Final = 1
+
+#     match ...:
+#         case [a]: ...
+# """, """
+# def foo():
+#     a = 1
+
+#     match ...:
+#         case [a]: ...
+# """),
+
+# ("""
+# def foo():
+#     a: typing.Final = 1
+
+#     match ...:
+#         case (a,): ...
+# """, """
+# def foo():
+#     a = 1
+
+#     match ...:
+#         case (a,): ...
+# """),
 
 ]
 # fmt: on
