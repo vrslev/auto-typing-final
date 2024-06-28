@@ -113,22 +113,22 @@ def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: 
                             yield node.replace(f"{left}: {new_annotation[0]} = {right}")
 
 
-def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
-    for assignments in find_definitions_in_scope_grouped_by_name(node).values():
-        yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
+def make_edits_for_definitions(definitions: Iterable[list[SgNode]]) -> Iterable[Edit]:
+    for current_definitions in definitions:
+        yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(current_definitions))
 
 
 def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
     for function in root.find_all(kind="function_definition"):
-        yield from make_edits_for_all_assignments_in_scope(function)
+        yield from make_edits_for_definitions(find_definitions_in_scope_grouped_by_name(function).values())
 
     global_statement_identifiers = defaultdict(list)
     for node in root.find_all(kind="global_statement"):
         for identifier in texts_of_identifier_nodes(node):
             global_statement_identifiers[identifier].append(node)
 
-    for identifier, assignments in find_definitions_in_scope_grouped_by_name(root).items():
-        all_assignments = global_statement_identifiers[identifier] + assignments
+    for identifier, definitions in find_definitions_in_scope_grouped_by_name(root).items():
+        all_assignments = global_statement_identifiers[identifier] + definitions
         yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(all_assignments))
 
 

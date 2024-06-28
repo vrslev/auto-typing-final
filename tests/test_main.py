@@ -1,7 +1,8 @@
 import pytest
 from ast_grep_py import SgRoot
 
-from auto_typing_final.main import make_edits_for_all_assignments_in_scope, run_fixer
+from auto_typing_final.finder import find_definitions_in_scope_grouped_by_name
+from auto_typing_final.main import make_edits_for_definitions, run_fixer
 
 
 @pytest.mark.parametrize(
@@ -38,7 +39,10 @@ from auto_typing_final.main import make_edits_for_all_assignments_in_scope, run_
 )
 def test_variants(before: str, after: str) -> None:
     root = SgRoot(before.strip(), "python").root()
-    assert root.commit_edits(list(make_edits_for_all_assignments_in_scope(root))) == after.strip()
+    assert (
+        root.commit_edits(list(make_edits_for_definitions(find_definitions_in_scope_grouped_by_name(root).values())))
+        == after.strip()
+    )
 
 
 # fmt: off
