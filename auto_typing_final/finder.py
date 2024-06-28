@@ -136,7 +136,7 @@ rule: Config = {
 }
 
 
-def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgNode]]:
+def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[SgNode]]:
     definition_map = defaultdict(list)
 
     if parameters := root.field("parameters"):
@@ -150,4 +150,4 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgN
         for identifier in find_identifiers_in_function_body(node):
             definition_map[identifier].append(node)
 
-    return definition_map.values()
+    return definition_map

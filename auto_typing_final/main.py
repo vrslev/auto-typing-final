@@ -1,12 +1,13 @@
 import argparse
 import re
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TextIO, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
 
-from auto_typing_final.finder import find_definitions_in_scope_grouped_by_name
+from auto_typing_final.finder import find_definitions_in_scope_grouped_by_name, texts_of_identifier_nodes
 
 TYPING_FINAL = "typing.Final"
 TYPING_FINAL_ANNOTATION_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
@@ -113,13 +114,22 @@ def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: 
 
 
 def make_edits_for_all_assignments_in_scope(node: SgNode) -> Iterable[Edit]:
-    for assignments in find_definitions_in_scope_grouped_by_name(node):
+    for assignments in find_definitions_in_scope_grouped_by_name(node).values():
         yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(assignments))
 
 
 def make_edits_for_all_functions(root: SgNode) -> Iterable[Edit]:
     for function in root.find_all(kind="function_definition"):
         yield from make_edits_for_all_assignments_in_scope(function)
+
+    global_statement_identifiers = defaultdict(list)
+    for node in root.find_all(kind="global_statement"):
+        for identifier in texts_of_identifier_nodes(node):
+            global_statement_identifiers[identifier].append(node)
+
+    for identifier, assignments in find_definitions_in_scope_grouped_by_name(root).items():
+        all_assignments = global_statement_identifiers[identifier] + assignments
+        yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(all_assignments))
 
 
 def run_fixer(source: str) -> str:

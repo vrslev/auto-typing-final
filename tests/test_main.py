@@ -46,7 +46,7 @@ scopes_cases = [
 ("""
 a = 1
 """, """
-a = 1
+a: typing.Final = 1
 """),
 
 ("""
@@ -66,7 +66,7 @@ def foo():
     def bar():
         a = 3
 """, """
-a = 1
+a: typing.Final = 1
 
 def foo():
     a: typing.Final = 2
@@ -76,7 +76,7 @@ def foo():
 """),
 
 ("""
-a = 1
+a: typing.Final = 1
 
 def foo():
     global a
