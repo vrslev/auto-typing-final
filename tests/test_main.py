@@ -1,7 +1,8 @@
 import pytest
 from ast_grep_py import SgRoot
 
-from auto_typing_final.main import make_edits_for_all_assignments_in_scope, run_fixer
+from auto_typing_final.finder import find_definitions_in_scope_grouped_by_name
+from auto_typing_final.main import make_edits_for_definitions, run_fixer
 
 
 @pytest.mark.parametrize(
@@ -38,7 +39,10 @@ from auto_typing_final.main import make_edits_for_all_assignments_in_scope, run_
 )
 def test_variants(before: str, after: str) -> None:
     root = SgRoot(before.strip(), "python").root()
-    assert root.commit_edits(list(make_edits_for_all_assignments_in_scope(root))) == after.strip()
+    assert (
+        root.commit_edits(list(make_edits_for_definitions(find_definitions_in_scope_grouped_by_name(root).values())))
+        == after.strip()
+    )
 
 
 # fmt: off
@@ -46,7 +50,7 @@ scopes_cases = [
 ("""
 a = 1
 """, """
-a = 1
+a: typing.Final = 1
 """),
 
 ("""
@@ -66,7 +70,7 @@ def foo():
     def bar():
         a = 3
 """, """
-a = 1
+a: typing.Final = 1
 
 def foo():
     a: typing.Final = 2
@@ -76,7 +80,7 @@ def foo():
 """),
 
 ("""
-a = 1
+a: typing.Final = 1
 
 def foo():
     global a
@@ -485,7 +489,7 @@ def foo():
     nonlocal a
 """, """
 def foo():
-    a: typing.Final = 1
+    a = 1
     nonlocal a
 """),
 
@@ -515,7 +519,7 @@ def foo():
     global a
 """, """
 def foo():
-    a: typing.Final = 1
+    a = 1
     global a
 """),
 
@@ -537,6 +541,46 @@ def foo():
 def foo():
     a: typing.Final = 1
     global b
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    b: typing.Final = 2
+    c: typing.Final = 3
+
+    def bar():
+        nonlocal a
+        b: typing.Final = 4
+        c: typing.Final = 5
+
+        class C:
+            a = 6
+            c = 7
+
+            def baz():
+                nonlocal a, b
+                b: typing.Final = 8
+                c: typing.Final = 9
+""", """
+def foo():
+    a = 1
+    b: typing.Final = 2
+    c: typing.Final = 3
+
+    def bar():
+        nonlocal a
+        b = 4
+        c: typing.Final = 5
+
+        class C:
+            a = 6
+            c = 7
+
+            def baz():
+                nonlocal a, b
+                b = 8
+                c: typing.Final = 9
 """),
 
 ("""
