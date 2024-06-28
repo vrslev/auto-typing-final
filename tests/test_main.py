@@ -58,7 +58,7 @@ def foo():
         """
 a = 1
 ---
-a: typing.Final = 1
+a = 1
 """,
         """
 def foo():
@@ -76,7 +76,7 @@ def foo():
     def bar():
         a = 3
 ---
-a: typing.Final = 1
+a = 1
 
 def foo():
     a: typing.Final = 2
@@ -85,7 +85,7 @@ def foo():
         a: typing.Final = 3
 """,
         """
-a: typing.Final = 1
+a = 1
 
 def foo():
     global a
@@ -595,7 +595,7 @@ import typing
 a = 1
 ---
 import typing
-a: typing.Final = 1
+a = 1
 """,
         """
 import typing
@@ -607,21 +607,14 @@ a: typing.Final = 1
         """
 a: typing.Final = 1
 ---
-import typing
 a: typing.Final = 1
 """,
         """
 a: typing.Final = 1
 a = 2
 ---
-a = 1
-a = 2
-""",
-        """
-a = 1
----
-import typing
 a: typing.Final = 1
+a = 2
 """,
     ],
 )
