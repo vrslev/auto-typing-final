@@ -2,6 +2,8 @@
 
 Auto-fixer for Python code that adds `typing.Final` annotation to variable assignments inside functions that are not reassigned, and removes the annotation from variables that _are_ mutated.
 
+Keeps mypy happy.
+
 - Global `import typing` will be added if `typing` was not imported before.
 - Global variables are ignored to avoid confusion with the type aliases like `Fruit = Apple | Banana`.
 - Class variables are ignored since it is common to use `typing.ClassVar` instead of `typing.Final`.
