@@ -630,11 +630,29 @@ def foo():
         """
 def foo():
     from b import bar
-    bar = 1
+    bar: typing.Final = 1
 ---
 def foo():
     from b import bar
     bar = 1
+""",
+        """
+def foo():
+    import bar
+    bar: typing.Final = 1
+---
+def foo():
+    import bar
+    bar = 1
+""",
+        """
+def foo():
+    import baz
+    bar: typing.Final = 1
+---
+def foo():
+    import baz
+    bar: typing.Final = 1
 """,
         """
 def foo():
