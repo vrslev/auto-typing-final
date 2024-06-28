@@ -54,11 +54,15 @@ def is_in_loop(node: SgNode) -> bool:
 
 def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
     value_assignments: list[Definition] = []
+    has_node_in_loop = False
 
     for node in nodes:
         children = node.children()
 
-        if node.kind() == "assignment" and not is_in_loop(node):
+        if is_in_loop(node):
+            has_node_in_loop = True
+
+        if node.kind() == "assignment":
             match tuple(child.kind() for child in children):
                 case ("identifier", "=", _):
                     value_assignments.append(
@@ -74,6 +78,10 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
                     value_assignments.append(OtherDefinition(node))
         else:
             value_assignments.append(OtherDefinition(node))
+
+    if has_node_in_loop:
+        return RemoveFinal(value_assignments)
+
     match value_assignments:
         case [assignment]:
             return AddFinal(assignment)

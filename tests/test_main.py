@@ -301,12 +301,50 @@ def foo():
 
 ("""
 def foo():
+    while True:
+        a: typing.Final = 1
+""", """
+def foo():
+    while True:
+        a = 1
+"""),
+
+("""
+def foo():
     for _ in ...:
         a: typing.Final = 1
 """, """
 def foo():
     for _ in ...:
+        a = 1
+"""),
+
+("""
+def foo():
+    for _ in ...:
+        def foo():
+            a: typing.Final = 1
+""", """
+def foo():
+    for _ in ...:
+        def foo():
+            a = 1
+"""),
+
+("""
+def foo():
+    a: typing.Final = 1
+    b: typing.Final = 2
+
+    for _ in ...:
         a: typing.Final = 1
+""", """
+def foo():
+    a = 1
+    b: typing.Final = 2
+
+    for _ in ...:
+        a = 1
 """),
 
 ("""
