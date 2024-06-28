@@ -37,14 +37,14 @@ def find_identifiers_in_children(node: SgNode) -> Iterable[SgNode]:
             yield child
 
 
-def node_is_in_inner_function(root: SgNode, node: SgNode) -> bool:
+def is_inside_inner_function(root: SgNode, node: SgNode) -> bool:
     for ancestor in node.ancestors():
         if ancestor.kind() == "function_definition":
             return ancestor != root
     return False
 
 
-def node_is_in_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
+def is_inside_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     for ancestor in node.ancestors():
         if ancestor.kind() in {"function_definition", "class_definition"}:
             return ancestor != root
@@ -80,14 +80,14 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                 yield name
             for function in node.find_all(kind="function_definition"):
                 for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
-                    if node_is_in_inner_function(root=function, node=nonlocal_statement):
+                    if is_inside_inner_function(root=function, node=nonlocal_statement):
                         continue
                     yield from find_identifiers_in_children(nonlocal_statement)
         case "function_definition":
             if name := node.field("name"):
                 yield name
             for nonlocal_statement in node.find_all(kind="nonlocal_statement"):
-                if node_is_in_inner_function(root=node, node=nonlocal_statement):
+                if is_inside_inner_function(root=node, node=nonlocal_statement):
                     continue
                 yield from find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement":
@@ -147,7 +147,7 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
                 definition_map[identifier.text()].append(node)
 
     for node in root.find_all(DEFINITION_RULE):
-        if node_is_in_inner_function_or_class(root, node) or node == root:
+        if is_inside_inner_function_or_class(root, node) or node == root:
             continue
         for identifier in find_identifiers_in_function_body(node):
             definition_map[identifier.text()].append(node)
