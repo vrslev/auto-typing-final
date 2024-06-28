@@ -15,6 +15,7 @@ DEFINITION_RULE: Config = {
             {"kind": "nonlocal_statement"},
             {"kind": "class_definition"},
             {"kind": "import_from_statement"},
+            {"kind": "import_statement"},
             {"kind": "as_pattern"},
             {"kind": "keyword_pattern"},
             {"kind": "splat_pattern"},
@@ -90,9 +91,9 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                 if is_inside_inner_function(root=node, node=nonlocal_statement):
                     continue
                 yield from find_identifiers_in_children(nonlocal_statement)
-        case "import_from_statement":
+        case "import_from_statement" | "import_statement":
             match tuple((child.kind(), child) for child in node.children()):
-                case (("from", _), _, ("import", _), *name_nodes):
+                case (("from", _), _, ("import", _), *name_nodes) | (("from", _), _, ("import", _), *name_nodes):
                     for name_node_kind, name_node in name_nodes:
                         match name_node_kind:
                             case "dotted_name":
@@ -171,3 +172,11 @@ def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         yield from find_definitions_in_scope_grouped_by_name(function).values()
     yield from find_definitions_in_global_scope(root).values()
+
+
+# def find_global_imports(root: SgNode) -> list[SgNode]:
+#     for import_statement in root.find_all({"rule":{"any":[
+#         {"kind":"import_from_statement"},
+
+#     ]}})
+#     is_inside_inner_function_or_class(root, node)
