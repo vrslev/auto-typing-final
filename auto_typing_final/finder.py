@@ -91,7 +91,7 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                     continue
                 yield from find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement":
-            match tuple((child.kind(), child) for child in node.children()):  # TODO: child to something specific
+            match tuple((child.kind(), child) for child in node.children()):
                 case (("from", _), _, ("import", _), *name_nodes):
                     for name_node_kind, name_node in name_nodes:
                         match name_node_kind:
@@ -142,9 +142,9 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
     definition_map = defaultdict(list)
 
     if parameters := root.field("parameters"):
-        for node in parameters.children():
-            for identifier in find_identifiers_in_function_parameter(node):
-                definition_map[identifier.text()].append(node)
+        for parameter in parameters.children():
+            for identifier in find_identifiers_in_function_parameter(parameter):
+                definition_map[identifier.text()].append(parameter)
 
     for node in root.find_all(DEFINITION_RULE):
         if is_inside_inner_function_or_class(root, node) or node == root:
@@ -157,9 +157,9 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[Sg
 
 def find_definitions_in_global_scope(root: SgNode) -> dict[str, list[SgNode]]:
     global_statement_identifiers = defaultdict(list)
-    for node in root.find_all(kind="global_statement"):
-        for identifier in find_identifiers_in_children(node):
-            global_statement_identifiers[identifier.text()].append(node)
+    for global_statement in root.find_all(kind="global_statement"):
+        for identifier in find_identifiers_in_children(global_statement):
+            global_statement_identifiers[identifier.text()].append(global_statement)
 
     return {
         identifier: (global_statement_identifiers[identifier] + definitions)
