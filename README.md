@@ -1,9 +1,11 @@
 # auto-typing-final
 
-Auto-fixer for Python code that would:
+Auto-fixer for Python code that adds `typing.Final` annotation to variable assignments inside functions that are not reassigned, and removes the annotation from variables that _are_ mutated.
 
-- set `typing.Final` inside functions for variables that are not reassigned,
-- and remove `typing.Final` from variables that _are_ reassigned.
+- Global `import typing` will be added if `typing` was not imported before.
+- Global variables are ignored to avoid confusion with the type aliases like `Fruit = Apple | Banana`.
+- Class variables are ignored since it is common to use `typing.ClassVar` instead of `typing.Final`.
+- One file at a time is inspected.
 
 ## How To Use
 
@@ -17,10 +19,10 @@ or:
 pipx run auto-typing-final .
 ```
 
-You can specify `--check` flag to check only, without fixing:
+You can specify `--check` flag to check the files instead of actually fixing them:
 
 ```sh
-pipx run auto-typing-final . --check
+auto-typing-final . --check
 ```
 
 ### VS Code key binding
