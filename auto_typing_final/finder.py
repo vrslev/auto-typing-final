@@ -77,7 +77,7 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[str]:  # noqa: C
                     and (last_last_child := last_child_of_type(last_child, "identifier"))
                 ):
                     yield last_last_child.text()
-        case "splat_pattern":
+        case "splat_pattern" | "global_statement" | "nonlocal_statement":
             yield from texts_of_identifier_nodes(node)
         case "dict_pattern":
             for child in node.children():
@@ -147,12 +147,7 @@ def find_definitions_in_scope_grouped_by_name(root: SgNode) -> Iterable[list[SgN
     for node in root.find_all(rule):
         if node_is_in_inner_function_or_class(root, node):
             continue
-        match node.kind():
-            case "global_statement" | "nonlocal_statement":
-                for identifier in texts_of_identifier_nodes(node):
-                    definition_map[identifier].append(node)
-            case _:
-                for identifier in find_identifiers_in_function_body(node):
-                    definition_map[identifier].append(node)
+        for identifier in find_identifiers_in_function_body(node):
+            definition_map[identifier].append(node)
 
     return definition_map.values()
