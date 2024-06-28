@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from ast_grep_py import Edit, SgNode, SgRoot
 
-from auto_typing_final.finder import find_definitions_in_module
+from auto_typing_final.finder import find_definitions_in_module, find_global_imports
 
 TYPING_FINAL = "typing.Final"
 TYPING_FINAL_ANNOTATION_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
@@ -109,12 +109,28 @@ def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:  # noqa: 
                             yield node.replace(f"{left}: {new_annotation[0]} = {right}")
 
 
-def make_edits_for_definitions(definitions: Iterable[list[SgNode]]) -> Iterable[Edit]:
-    for current_definitions in definitions:
-        yield from make_edits_from_operation(make_operation_from_assignments_to_one_name(current_definitions))
+def make_edits_for_module(root: SgNode) -> list[Edit]:
+    edits: list[Edit] = []
+    has_added_final = False
+
+    for current_definitions in find_definitions_in_module(root):
+        operation = make_operation_from_assignments_to_one_name(current_definitions)
+        if isinstance(operation, AddFinal):
+            has_added_final = True
+        edits.extend(make_edits_from_operation(operation))
+
+    if has_added_final and (import_edit := add_typing_import(root)):
+        edits.append(import_edit)
+
+    return edits
+
+
+def add_typing_import(root: SgNode) -> Edit | None:
+    if "typing" in set(find_global_imports(root)):
+        return None
+    return root.replace(f"import typing\n{root.text()}")
 
 
 def transform_file_content(source: str) -> str:
     root = SgRoot(source, "python").root()
-    edits = list(make_edits_for_definitions(find_definitions_in_module(root)))
-    return root.commit_edits(edits)
+    return root.commit_edits(make_edits_for_module(root))

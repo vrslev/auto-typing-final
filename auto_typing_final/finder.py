@@ -76,7 +76,7 @@ def find_identifiers_in_import(node: SgNode) -> Iterable[SgNode]:
                             yield alias
 
 
-def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912, PLR0915
+def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
             if not (left := node.field("left")):
@@ -178,9 +178,11 @@ def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
     yield from find_definitions_in_global_scope(root).values()
 
 
-# def find_global_imports(root: SgNode) -> list[SgNode]:
-#     for import_statement in root.find_all({"rule": {"any": [
-#         {"kind": "import_from_statement"},
-#         {"kind": "import_statement"},
-#     ]})
-#     is_inside_inner_function_or_class(root, node)
+def find_global_imports(root: SgNode) -> Iterable[str]:
+    for import_statement in root.find_all(
+        {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
+    ):
+        if is_inside_inner_function_or_class(root, import_statement):
+            continue
+        for identifier in find_identifiers_in_import(import_statement):
+            yield identifier.text()
