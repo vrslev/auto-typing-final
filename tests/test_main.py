@@ -617,6 +617,12 @@ a = 2
 a = 1
 a = 2
 """,
+        """
+a = 1
+---
+import typing
+a: typing.Final = 1
+""",
     ],
 )
 def test_add_import(case: str) -> None:
