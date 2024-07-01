@@ -1,7 +1,7 @@
 [project]
 name = "auto-typing-final"
 authors = [{ name = "Lev Vereshchagin", email = "mail@vrslev.com" }]
-dependencies = ["ast-grep-py==0.24.0"]
+dependencies = ["ast-grep-py==0.24.1"]
 requires-python = ">=3.12"
 readme = "README.md"
 license = { text = "MIT" }
