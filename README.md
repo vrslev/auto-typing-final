@@ -2,12 +2,23 @@
 
 Auto-fixer for Python code that adds `typing.Final` annotation to variable assignments inside functions that are not reassigned, and removes the annotation from variables that _are_ mutated.
 
-Keeps mypy happy.
+```diff
+ def foo() -> None:
+-    a = 2
++    a: typing.Final = 2
 
-- Global `import typing` will be added if `typing` was not imported before.
-- Global variables are ignored to avoid confusion with the type aliases like `Fruit = Apple | Banana`.
-- Class variables are ignored since it is common to use `typing.ClassVar` instead of `typing.Final`.
-- One file at a time is inspected.
+-    b: typing.Final = 2
++    b = 2
+     b = 3
+```
+
+Basically, this, but handles different operations (like usage of `nonlocal`, augmented assignments: `+=`, etc) as well.
+
+- Keeps mypy happy.
+- Ignores global variables to avoid confusion with the type aliases like `Fruit = Apple | Banana`.
+- Ignores class variables: it is common to use `typing.ClassVar` instead of `typing.Final`.
+- Adds global `typing` import if it's not imported yet.
+- Inspects one file at a time.
 
 ## How To Use
 
