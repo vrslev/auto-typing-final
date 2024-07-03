@@ -22,8 +22,10 @@ Basically, this, but handles different operations (like usage of `nonlocal`, aug
 
 ## How To Use
 
+Having uv installed:
+
 ```sh
-uv tool run auto-typing-final .
+uvx auto-typing-final .
 ```
 
 or:
@@ -55,7 +57,7 @@ Add to your `keybindings.json`:
       {
         "command": "workbench.action.terminal.sendSequence",
         "args": {
-          "text": "uv tool run auto-typing-final ${file}\u000Dexit\u000D"
+          "text": "uvx auto-typing-final ${file}\u000Dexit\u000D"
         }
       }
     ]
