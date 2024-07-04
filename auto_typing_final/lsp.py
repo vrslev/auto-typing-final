@@ -148,7 +148,7 @@ def did_close(params: DidCloseTextDocumentParams) -> None:
     CodeActionOptions(code_action_kinds=[CodeActionKind.QuickFix, CodeActionKind.SourceFixAll], resolve_provider=True),
 )
 def code_action(params: CodeActionParams) -> list[CodeAction] | None:
-    requested_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
+    requested_kinds = params.context.only or {CodeActionKind.QuickFix, CodeActionKind.SourceFixAll}
     actions: list[CodeAction] = []
 
     if CodeActionKind.QuickFix in requested_kinds:
