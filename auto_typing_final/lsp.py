@@ -3,6 +3,7 @@ from typing import TypedDict, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
 from lsprotocol.types import (
+    CODE_ACTION_RESOLVE,
     INITIALIZE,
     TEXT_DOCUMENT_CODE_ACTION,
     TEXT_DOCUMENT_DID_CHANGE,
@@ -122,8 +123,17 @@ async def did_change(params: DidChangeTextDocumentParams) -> None:
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
 
 
+def make_text_edit_from_diagnostic_edit(edit: DiagnosticEdit) -> TextEdit:
+    return TextEdit(
+        range=Range(
+            start=Position(line=edit["start"]["row"], character=edit["start"]["column"]),
+            end=Position(line=edit["end"]["row"], character=edit["end"]["column"]),
+        ),
+        new_text=edit["new_text"],
+    )
 
-def make_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument) -> Iterable[CodeAction]:
+
+def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument) -> Iterable[CodeAction]:
     for diagnostic in diagnostics:
         if diagnostic.source != "auto-typing-final":
             continue
@@ -140,21 +150,29 @@ def make_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument
                         text_document=OptionalVersionedTextDocumentIdentifier(
                             uri=text_document.uri, version=text_document.version
                         ),
-                        edits=[
-                            TextEdit(
-                                range=Range(
-                                    start=Position(line=edit["start"]["row"], character=edit["start"]["column"]),
-                                    end=Position(line=edit["end"]["row"], character=edit["end"]["column"]),
-                                ),
-                                new_text=edit["new_text"],
-                            )
-                            for edit in fix["edits"]
-                        ],
+                        edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
                     )
                 ],
             ),
             diagnostics=[diagnostic],
         )
+        # if CodeActionKind.SourceFixAll in enabled_kinds:
+        #     yield CodeAction(
+        #         title=fix["message"],
+        #         kind=CodeActionKind.SourceFixAll,
+        #         data=text_document.uri,
+        #         edit=WorkspaceEdit(
+        #             document_changes=[
+        #                 TextDocumentEdit(
+        #                     text_document=OptionalVersionedTextDocumentIdentifier(
+        #                         uri=text_document.uri, version=text_document.version
+        #                     ),
+        #                     edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
+        #                 )
+        #             ],
+        #         ),
+        #         diagnostics=[diagnostic],
+        #     )
 
 
 @LSP_SERVER.feature(
@@ -163,12 +181,70 @@ def make_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument
 )
 async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    code_actions = list(make_code_actions(diagnostics=params.context.diagnostics, text_document=text_document))
-    return code_actions or None
+    actions: list[CodeAction] = []
+
+    if params.context.only:
+        enabled_kinds = []
+        if CodeActionKind.QuickFix in params.context.only:
+            enabled_kinds.append(CodeActionKind.QuickFix)
+        if CodeActionKind.SourceFixAll in params.context.only:
+            enabled_kinds.append(CodeActionKind.SourceFixAll)
+    else:
+        enabled_kinds = [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
+
+    our_diagnostics = [
+        diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
+    ]
+
+    if CodeActionKind.QuickFix in enabled_kinds:
+        actions.extend(make_quick_fix_code_actions(diagnostics=our_diagnostics, text_document=text_document))
+
+    if CodeActionKind.SourceFixAll in enabled_kinds:
+        actions.append(
+            CodeAction(
+                title="auto-typing-final: Fix All",
+                kind=CodeActionKind.SourceFixAll,
+                data=params.text_document.uri,
+                edit=None,
+                diagnostics=[],
+            ),
+        )
+
+    return actions or None
 
 
-# @LSP_SERVER.feature(CODE_ACTION_RESOLVE)
-# async def resolve_code_action(params: CodeAction) -> CodeAction: ...
+def make_text_edits_for_whole_document(source: str) -> Iterable[TextEdit]:
+    root = SgRoot(source, "python").root()
+    for current_definitions in find_definitions_in_module(root):
+        operation = make_operation_from_assignments_to_one_name(current_definitions)
+        for node, edit in make_edits_from_operation(operation):
+            range_ = node.range()
+            yield TextEdit(
+                range=Range(
+                    start=Position(line=range_.start.line, character=range_.start.column),
+                    end=Position(line=range_.end.line, character=range_.end.column),
+                ),
+                new_text=edit.inserted_text,
+            )
+
+
+@LSP_SERVER.feature(CODE_ACTION_RESOLVE)
+def resolve_code_action(params: CodeAction) -> CodeAction:
+    if params.kind != CodeActionKind.SourceFixAll:
+        return params
+
+    text_document = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
+    params.edit = WorkspaceEdit(
+        document_changes=[
+            TextDocumentEdit(
+                text_document=OptionalVersionedTextDocumentIdentifier(
+                    uri=text_document.uri, version=text_document.version
+                ),
+                edits=list(make_text_edits_for_whole_document(text_document.source)),
+            )
+        ],
+    )
+    return params
 
 
 @LSP_SERVER.feature(INITIALIZE)
