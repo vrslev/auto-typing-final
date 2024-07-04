@@ -1,0 +1,52 @@
+{
+  "name": "auto-typing-final",
+  "publisher": "vrslev",
+  "displayName": "auto-typing-final",
+  "description": "GitHub Copilot in 70 lines of JavaScript.",
+  "repository": {
+    "url": "https://github.com/vrslev/auto-typing-final"
+  },
+  "version": "1.0.3",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "AI"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "icon": "./icon.png",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "title": "Restart Server",
+        "category": "auto-typing-final",
+        "command": "auto-typing-final.restart"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "auto-typing-final",
+        "properties": {}
+      }
+    ]
+  },
+  "scripts": {
+    "build": "webpack --mode production --devtool hidden-source-map",
+    "watch": "npm run build -- --watch",
+    "package": "vsce package --allow-star-activation"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "webpack": "^5.92.1",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0",
+    "openai": "^4.52.0"
+  }
+}

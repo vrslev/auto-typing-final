@@ -1,5 +1,7 @@
 .coverage
 .venv
 *.egg-info
+*.vsix
 dist
+node_modules
 uv.lock
