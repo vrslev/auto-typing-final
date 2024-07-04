@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import TypedDict, cast
 
+from ast_grep_py import SgRoot
 import cattrs
 from lsprotocol.types import (
     CODE_ACTION_RESOLVE,
@@ -30,7 +31,7 @@ from lsprotocol.types import (
 from pygls import server
 from pygls.workspace import TextDocument
 
-from auto_typing_final.transform import AddFinal, AppliedEdit, make_operations_from_source
+from auto_typing_final.transform import AddFinal, AppliedEdit, make_operations_from_root
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
 
@@ -79,7 +80,7 @@ def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
 
 
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
-    for applied_operation in make_operations_from_source(source):
+    for applied_operation in make_operations_from_root(SgRoot(source, "python").root()):
         if isinstance(applied_operation.operation, AddFinal):
             fix_message = f"{LSP_SERVER.name}: Add typing.Final"
             diagnostic_message = "Missing typing.Final"
@@ -101,7 +102,7 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
 
 def make_text_edits_for_file(source: str) -> Iterable[TextEdit]:
-    for applied_operation in make_operations_from_source(source):
+    for applied_operation in make_operations_from_root(SgRoot(source, "python").root()):
         for applied_edit in applied_operation.edits:
             yield TextEdit(range=make_range_from_edit(applied_edit), new_text=applied_edit.edit.inserted_text)
 

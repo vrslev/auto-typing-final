@@ -129,8 +129,8 @@ def _make_operations_from_current_definitions(definitions: list[SgNode]) -> Appl
     )
 
 
-def make_operations_from_source(source: str) -> Iterable[AppliedOperation]:
-    for current_definitions in find_definitions_in_module(SgRoot(source, "python").root()):
+def make_operations_from_root(root: SgNode) -> Iterable[AppliedOperation]:
+    for current_definitions in find_definitions_in_module(root):
         yield _make_operations_from_current_definitions(current_definitions)
 
 
@@ -139,7 +139,7 @@ def transform_file_content(source: str) -> str:
     edits: list[Edit] = []
     has_added_final = False
 
-    for applied_operation in make_operations_from_source(source):
+    for applied_operation in make_operations_from_root(root):
         if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
             has_added_final = True
 
