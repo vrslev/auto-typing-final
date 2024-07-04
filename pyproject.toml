@@ -19,6 +19,7 @@ repository = "https://github.com/vrslev/auto-typing-final"
 
 [project.scripts]
 auto-typing-final = "auto_typing_final.main:main"
+auto-typing-final-lsp-server = "auto_typing_final.lsp:main"
 
 [tool.uv]
 dev-dependencies = [

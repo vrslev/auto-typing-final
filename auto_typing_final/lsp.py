@@ -208,5 +208,6 @@ def resolve_code_action(params: CodeAction) -> CodeAction:
     return params
 
 
-if __name__ == "__main__":
+def main() -> int:
     LSP_SERVER.start_io()
+    return 0
