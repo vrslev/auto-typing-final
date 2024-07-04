@@ -109,7 +109,7 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
             )
 
 
-def make_text_edits_for_file(source: str) -> Iterable[TextEdit]:
+def make_fixall_text_edits(source: str) -> Iterable[TextEdit]:
     root = SgRoot(source, "python").root()
     has_import = has_global_import_with_name(root, "typing")
 
@@ -201,7 +201,7 @@ def resolve_code_action(params: CodeAction) -> CodeAction:
                 text_document=OptionalVersionedTextDocumentIdentifier(
                     uri=text_document.uri, version=text_document.version
                 ),
-                edits=list(make_text_edits_for_file(text_document.source)),
+                edits=list(make_fixall_text_edits(text_document.source)),
             )
         ],
     )
