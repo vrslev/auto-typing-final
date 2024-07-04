@@ -46,16 +46,12 @@ class RemoveFinal:
 Operation = AddFinal | RemoveFinal
 
 
-def is_inside_loop(node: SgNode) -> bool:
-    return any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors())
-
-
-def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
+def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
     value_assignments: list[Definition] = []
     has_node_inside_loop = False
 
     for node in nodes:
-        if is_inside_loop(node):
+        if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
             has_node_inside_loop = True
 
         if node.kind() == "assignment":
@@ -86,7 +82,7 @@ def make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operatio
             return RemoveFinal(assignments)
 
 
-def make_expected_text_from_operation(operation: Operation) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
+def _make_changed_text_from_operation(operation: Operation) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
     match operation:
         case AddFinal(assignment):
             match assignment:
@@ -109,24 +105,45 @@ def make_expected_text_from_operation(operation: Operation) -> Iterable[tuple[Sg
                             yield node, f"{left}: {new_annotation[0]} = {right}"
 
 
-def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:
-    for node, new_text in make_expected_text_from_operation(operation):
-        if node.text() != new_text:
-            yield node.replace(new_text)
+@dataclass
+class AppliedEdit:
+    node: SgNode
+    edit: Edit
 
 
-def make_edits_for_module(root: SgNode) -> str:
+@dataclass
+class AppliedOperation:
+    operation: Operation
+    edits: list[AppliedEdit]
+
+
+def _make_operations_from_current_definitions(definitions: list[SgNode]) -> AppliedOperation:
+    operation = _make_operation_from_assignments_to_one_name(definitions)
+    return AppliedOperation(
+        operation=operation,
+        edits=[
+            AppliedEdit(node=node, edit=node.replace(new_text))
+            for node, new_text in _make_changed_text_from_operation(operation)
+            if node.text() != new_text
+        ],
+    )
+
+
+def make_operations_from_root(root: SgNode) -> Iterable[AppliedOperation]:
+    for current_definitions in find_definitions_in_module(root):
+        yield _make_operations_from_current_definitions(current_definitions)
+
+
+def transform_file_content(source: str) -> str:
+    root = SgRoot(source, "python").root()
     edits: list[Edit] = []
     has_added_final = False
 
-    for current_definitions in find_definitions_in_module(root):
-        operation = make_operation_from_assignments_to_one_name(current_definitions)
-        current_edits = list(make_edits_from_operation(operation))
-
-        if isinstance(operation, AddFinal) and current_edits:
+    for applied_operation in make_operations_from_root(root):
+        if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
             has_added_final = True
 
-        edits.extend(current_edits)
+        edits.extend(edit.edit for edit in applied_operation.edits)
 
     result = root.commit_edits(edits)
 
@@ -134,8 +151,3 @@ def make_edits_for_module(root: SgNode) -> str:
         result = root.commit_edits([root.replace(f"import typing\n{result}")])
 
     return result
-
-
-def transform_file_content(source: str) -> str:
-    root = SgRoot(source, "python").root()
-    return make_edits_for_module(root)
