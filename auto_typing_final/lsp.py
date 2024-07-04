@@ -32,7 +32,7 @@ from pygls import server
 from pygls.workspace import TextDocument
 
 from auto_typing_final.finder import has_global_import_with_name
-from auto_typing_final.transform import AddFinal, AppliedEdit, AppliedOperation, make_operations_from_root
+from auto_typing_final.transform import AddFinal, AppliedOperation, make_operations_from_root
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
 
@@ -64,27 +64,19 @@ class DiagnosticData(TypedDict):
 def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:  # noqa: FBT001
     for edit in applied_operation.edits:
         node_range = edit.node.range()
-        yield DiagnosticTextEdit(
-            new_text=edit.edit.inserted_text,
-            range=DiagnosticRange(
-                start=DiagnosticPosition(line=node_range.start.line, character=node_range.start.column),
-                end=DiagnosticPosition(line=node_range.end.line, character=node_range.end.column),
-            ),
-        )
+        yield {
+            "range": {
+                "start": {"line": node_range.start.line, "character": node_range.start.column},
+                "end": {"line": node_range.end.line, "character": node_range.end.column},
+            },
+            "new_text": edit.edit.inserted_text,
+        }
 
     if isinstance(applied_operation.operation, AddFinal) and not has_import:
         yield {
             "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
             "new_text": "import typing\n",
         }
-
-
-def make_range_from_edit(edit: AppliedEdit) -> Range:
-    node_range = edit.node.range()
-    return Range(
-        start=Position(line=node_range.start.line, character=node_range.start.column),
-        end=Position(line=node_range.end.line, character=node_range.end.column),
-    )
 
 
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
@@ -105,8 +97,12 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
         )
 
         for applied_edit in applied_operation.edits:
+            node_range = applied_edit.node.range()
             yield Diagnostic(
-                range=make_range_from_edit(applied_edit),
+                range=Range(
+                    start=Position(line=node_range.start.line, character=node_range.start.column),
+                    end=Position(line=node_range.end.line, character=node_range.end.column),
+                ),
                 message=diagnostic_message,
                 source=LSP_SERVER.name,
                 data=DiagnosticData(fix=fix),
