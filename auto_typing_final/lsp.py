@@ -135,8 +135,7 @@ def did_open_did_save_did_change(
     params: DidOpenTextDocumentParams | DidSaveTextDocumentParams | DidChangeTextDocumentParams,
 ) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    diagnostics = list(make_diagnostics(text_document.source))
-    LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
+    LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
 
 
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_CLOSE)
@@ -149,7 +148,6 @@ def did_close(params: DidCloseTextDocumentParams) -> None:
     CodeActionOptions(code_action_kinds=[CodeActionKind.QuickFix, CodeActionKind.SourceFixAll], resolve_provider=True),
 )
 def code_action(params: CodeActionParams) -> list[CodeAction] | None:
-    text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     requested_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
     our_diagnostics = [
         diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
@@ -157,6 +155,7 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     actions: list[CodeAction] = []
 
     if CodeActionKind.QuickFix in requested_kinds:
+        text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
         actions.extend(
             make_quickfix_action(diagnostic=diagnostic, text_document=text_document) for diagnostic in our_diagnostics
         )
