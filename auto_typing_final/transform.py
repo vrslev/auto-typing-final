@@ -117,7 +117,7 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def make_operations_from_current_definitions(definitions: list[SgNode]) -> AppliedOperation:
+def _make_operations_from_current_definitions(definitions: list[SgNode]) -> AppliedOperation:
     operation = _make_operation_from_assignments_to_one_name(definitions)
     return AppliedOperation(
         operation=operation,
@@ -131,7 +131,7 @@ def make_operations_from_current_definitions(definitions: list[SgNode]) -> Appli
 
 def make_operations_from_source(source: str) -> Iterable[AppliedOperation]:
     for current_definitions in find_definitions_in_module(SgRoot(source, "python").root()):
-        yield make_operations_from_current_definitions(current_definitions)
+        yield _make_operations_from_current_definitions(current_definitions)
 
 
 def transform_file_content(source: str) -> str:

@@ -1,8 +1,6 @@
 from collections.abc import Iterable
-from itertools import starmap
 from typing import TypedDict, cast
 
-from ast_grep_py import Edit, SgNode, SgRoot
 from lsprotocol.types import (
     CODE_ACTION_RESOLVE,
     INITIALIZE,
@@ -31,13 +29,7 @@ from lsprotocol.types import (
 from pygls import server
 from pygls.workspace import TextDocument
 
-from auto_typing_final.finder import find_definitions_in_module
-from auto_typing_final.transform import (
-    AddFinal,
-    Operation,
-    _make_operation_from_assignments_to_one_name,
-    make_edits_from_operation,
-)
+from auto_typing_final.transform import AddFinal, AppliedEdit, make_operations_from_source
 
 LSP_SERVER = server.LanguageServer(
     name="auto-typing-final",
@@ -66,40 +58,37 @@ class DiagnosticData(TypedDict):
     fix: Fix
 
 
-def make_diagnostic_edit(node: SgNode, edit: Edit) -> DiagnosticEdit:
-    range_ = node.range()
+def make_diagnostic_edit(applied_edit: AppliedEdit) -> DiagnosticEdit:
+    range_ = applied_edit.node.range()
     return DiagnosticEdit(
-        new_text=edit.inserted_text,
+        new_text=applied_edit.edit.inserted_text,
         start=Location(row=range_.start.line, column=range_.start.column),
         end=Location(row=range_.end.line, column=range_.end.column),
     )
 
 
-def make_operations(source: str) -> Iterable[tuple[type[Operation], list[tuple[SgNode, Edit]]]]:
-    root = SgRoot(source, "python").root()
-    for current_definitions in find_definitions_in_module(root):
-        operation = _make_operation_from_assignments_to_one_name(current_definitions)
-        yield type(operation), list(make_edits_from_operation(operation))
+def make_range_from_edit(edit: AppliedEdit) -> Range:
+    range_ = edit.node.range()
+    return Range(
+        start=Position(line=range_.start.line, character=range_.start.column),
+        end=Position(line=range_.end.line, character=range_.end.column),
+    )
 
 
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
-    for operation_type, nodes_and_edits in make_operations(source):
-        if operation_type == AddFinal:
+    for applied_operation in make_operations_from_source(source):
+        if isinstance(applied_operation.operation, AddFinal):
             fix_message = "Add typing.Final"
             diagnostic_message = "Missing typing.Final"
         else:
             fix_message = "Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
-        fix = Fix(message=fix_message, edits=list(starmap(make_diagnostic_edit, nodes_and_edits)))
+        fix = Fix(message=fix_message, edits=[make_diagnostic_edit(edit) for edit in applied_operation.edits])
 
-        for node, _ in nodes_and_edits:
-            range_ = node.range()
+        for applied_edit in applied_operation.edits:
             yield Diagnostic(
-                range=Range(
-                    start=Position(line=range_.start.line, character=range_.start.column),
-                    end=Position(line=range_.end.line, character=range_.end.column),
-                ),
+                range=make_range_from_edit(applied_edit),
                 message=diagnostic_message,
                 source="auto-typing-final",
                 data=DiagnosticData(fix=fix),
@@ -107,16 +96,9 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
 
 def make_text_edits_for_whole_document(source: str) -> Iterable[TextEdit]:
-    for _operation_type, nodes_and_edits in make_operations(source):
-        for node, edit in nodes_and_edits:
-            range_ = node.range()
-            yield TextEdit(
-                range=Range(
-                    start=Position(line=range_.start.line, character=range_.start.column),
-                    end=Position(line=range_.end.line, character=range_.end.column),
-                ),
-                new_text=edit.inserted_text,
-            )
+    for applied_operation in make_operations_from_source(source):
+        for applied_edit in applied_operation.edits:
+            yield TextEdit(range=make_range_from_edit(applied_edit), new_text=applied_edit.edit.inserted_text)
 
 
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_OPEN)
