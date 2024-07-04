@@ -4,16 +4,9 @@ const vscodeLanguageClient = require("vscode-languageclient/node");
 
 /** @type {vscodeLanguageClient.LanguageClient | undefined} */
 let lsClient;
-let restartInProgress = false;
-let restartQueued = false;
 let outputChannel = undefined;
 
 async function restartServer() {
-  if (restartInProgress) {
-    if (!restartQueued) restartQueued = true;
-    return;
-  }
-
   await lsClient?.stop()
 
   let serverOptions = {
