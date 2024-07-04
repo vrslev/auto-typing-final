@@ -154,7 +154,7 @@ def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) ->
                     ),
                     edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
                 )
-            ],
+            ]
         ),
         diagnostics=[diagnostic],
     )
