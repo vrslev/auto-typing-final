@@ -1,0 +1,57 @@
+{
+  "name": "auto-typing-final",
+  "displayName": "auto-typing-final",
+  "description": "VS Code extension for auto-typing-final auto-fixer",
+  "version": "0",
+  "publisher": "vrslev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vrslev/auto-typing-final.git"
+  },
+  "keywords": [
+    "python",
+    "linting",
+    "mypy"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "extensionDependencies": [
+    "ms-python.python"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "workspaceContains:*.py"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "title": "Restart Server",
+        "category": "auto-typing-final",
+        "command": "auto-typing-final.restart"
+      }
+    ]
+  },
+  "scripts": {
+    "fmt": "prettier -w .",
+    "package": "webpack --mode production --devtool source-map --config ./webpack.config.js",
+    "watch": "webpack --watch",
+    "vscode:prepublish": "npm run package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "prettier": "^3.3.2",
+    "webpack": "^5.92.1",
+    "webpack-cli": "^5.1.4"
+  }
+}

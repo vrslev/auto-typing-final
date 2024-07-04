@@ -40,27 +40,18 @@ You can specify `--check` flag to check the files instead of actually fixing the
 auto-typing-final . --check
 ```
 
-### VS Code key binding
+You also can install VS Code extension. It uses installation of `auto-typing-final` from the current Python environment and shows diagnostics and quick fixes.
 
-Add to your `keybindings.json`:
+To get started, add `auto-typing-final` to your project:
 
-```json
-{
-  "key": "ctrl+shift+t",
-  "when": "editorLangId == 'python'",
-  "command": "runCommands",
-  "args": {
-    "commands": [
-      "workbench.action.files.save",
-      "workbench.action.terminal.newInActiveWorkspace",
-      "workbench.action.terminal.toggleTerminal",
-      {
-        "command": "workbench.action.terminal.sendSequence",
-        "args": {
-          "text": "uvx auto-typing-final ${file}\u000Dexit\u000D"
-        }
-      }
-    ]
-  }
-}
+```sh
+uv add auto-typing-final --dev
 ```
+
+or:
+
+```sh
+poetry add auto-typing-final --group=dev
+```
+
+And install the extension: https://marketplace.visualstudio.com/items?itemName=vrslev.auto-typing-final.
