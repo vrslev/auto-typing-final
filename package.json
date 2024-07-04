@@ -9,7 +9,6 @@
     "type": "git",
     "url": "https://github.com/vrslev/auto-typing-final.git"
   },
-  "icon": "./icon.png",
   "keywords": [
     "python",
     "linting",
