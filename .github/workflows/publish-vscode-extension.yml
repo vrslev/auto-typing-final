@@ -15,4 +15,4 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npx vsce publish ${{ github.event.inputs.version }} --pat ${{ secrets.VSCODE_MARKETPLACE_TOKEN }} --packagePath ./dist/auto-typing-final.vsix
+      - run: npx @vscode/vsce publish ${{ github.event.inputs.version }} --pat ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
