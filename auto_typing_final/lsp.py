@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from itertools import starmap
 from typing import TypedDict, cast
 
 from ast_grep_py import Edit, SgNode, SgRoot
@@ -33,6 +34,7 @@ from pygls.workspace import TextDocument
 from auto_typing_final.finder import find_definitions_in_module
 from auto_typing_final.transform import (
     AddFinal,
+    Operation,
     make_edits_from_operation,
     make_operation_from_assignments_to_one_name,
 )
@@ -64,25 +66,33 @@ class DiagnosticData(TypedDict):
     fix: Fix
 
 
-def make_diagnostic_edits(nodes_and_edits: Iterable[tuple[SgNode, Edit]]) -> Iterable[DiagnosticEdit]:
-    for node, edit in nodes_and_edits:
-        range_ = node.range()
-        yield DiagnosticEdit(
-            new_text=edit.inserted_text,
-            start=Location(row=range_.start.line, column=range_.start.column),
-            end=Location(row=range_.end.line, column=range_.end.column),
-        )
+def make_diagnostic_edit(node: SgNode, edit: Edit) -> DiagnosticEdit:
+    range_ = node.range()
+    return DiagnosticEdit(
+        new_text=edit.inserted_text,
+        start=Location(row=range_.start.line, column=range_.start.column),
+        end=Location(row=range_.end.line, column=range_.end.column),
+    )
 
 
-def make_diagnostics(source: str) -> Iterable[Diagnostic]:
+def make_operations(source: str) -> Iterable[tuple[type[Operation], list[tuple[SgNode, Edit]]]]:
     root = SgRoot(source, "python").root()
     for current_definitions in find_definitions_in_module(root):
         operation = make_operation_from_assignments_to_one_name(current_definitions)
-        nodes_and_edits = list(make_edits_from_operation(operation))
-        fix = Fix(
-            message="Add typing.Final" if isinstance(operation, AddFinal) else "Remove typing.Final",
-            edits=list(make_diagnostic_edits(nodes_and_edits)),
-        )
+        yield type(operation), list(make_edits_from_operation(operation))
+
+
+def make_diagnostics(source: str) -> Iterable[Diagnostic]:
+    for operation_type, nodes_and_edits in make_operations(source):
+        if operation_type == AddFinal:
+            fix_message = "Add typing.Final"
+            diagnostic_message = "Missing typing.Final"
+        else:
+            fix_message = "Remove typing.Final"
+            diagnostic_message = "Unexpected typing.Final"
+
+        fix = Fix(message=fix_message, edits=list(starmap(make_diagnostic_edit, nodes_and_edits)))
+
         for node, _ in nodes_and_edits:
             range_ = node.range()
             yield Diagnostic(
@@ -90,14 +100,27 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
                     start=Position(line=range_.start.line, character=range_.start.column),
                     end=Position(line=range_.end.line, character=range_.end.column),
                 ),
-                message="Missing typing.Final" if isinstance(operation, AddFinal) else "Unexpected typing.Final",
+                message=diagnostic_message,
                 source="auto-typing-final",
                 data=DiagnosticData(fix=fix),
             )
 
 
+def make_text_edits_for_whole_document(source: str) -> Iterable[TextEdit]:
+    for _operation_type, nodes_and_edits in make_operations(source):
+        for node, edit in nodes_and_edits:
+            range_ = node.range()
+            yield TextEdit(
+                range=Range(
+                    start=Position(line=range_.start.line, character=range_.start.column),
+                    end=Position(line=range_.end.line, character=range_.end.column),
+                ),
+                new_text=edit.inserted_text,
+            )
+
+
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_OPEN)
-async def did_open(params: DidOpenTextDocumentParams) -> None:
+def did_open(params: DidOpenTextDocumentParams) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     diagnostics = list(make_diagnostics(text_document.source))
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
@@ -110,14 +133,14 @@ def did_close(params: DidCloseTextDocumentParams) -> None:
 
 
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_SAVE)
-async def did_save(params: DidSaveTextDocumentParams) -> None:
+def did_save(params: DidSaveTextDocumentParams) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     diagnostics = list(make_diagnostics(text_document.source))
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
 
 
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_CHANGE)
-async def did_change(params: DidChangeTextDocumentParams) -> None:
+def did_change(params: DidChangeTextDocumentParams) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     diagnostics = list(make_diagnostics(text_document.source))
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
@@ -185,21 +208,6 @@ async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
         )
 
     return actions or None
-
-
-def make_text_edits_for_whole_document(source: str) -> Iterable[TextEdit]:
-    root = SgRoot(source, "python").root()
-    for current_definitions in find_definitions_in_module(root):
-        operation = make_operation_from_assignments_to_one_name(current_definitions)
-        for node, edit in make_edits_from_operation(operation):
-            range_ = node.range()
-            yield TextEdit(
-                range=Range(
-                    start=Position(line=range_.start.line, character=range_.start.column),
-                    end=Position(line=range_.end.line, character=range_.end.column),
-                ),
-                new_text=edit.inserted_text,
-            )
 
 
 @LSP_SERVER.feature(CODE_ACTION_RESOLVE)
