@@ -156,23 +156,6 @@ def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: Te
             ),
             diagnostics=[diagnostic],
         )
-        # if CodeActionKind.SourceFixAll in enabled_kinds:
-        #     yield CodeAction(
-        #         title=fix["message"],
-        #         kind=CodeActionKind.SourceFixAll,
-        #         data=text_document.uri,
-        #         edit=WorkspaceEdit(
-        #             document_changes=[
-        #                 TextDocumentEdit(
-        #                     text_document=OptionalVersionedTextDocumentIdentifier(
-        #                         uri=text_document.uri, version=text_document.version
-        #                     ),
-        #                     edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
-        #                 )
-        #             ],
-        #         ),
-        #         diagnostics=[diagnostic],
-        #     )
 
 
 @LSP_SERVER.feature(
@@ -181,7 +164,6 @@ def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: Te
 )
 async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    actions: list[CodeAction] = []
 
     if params.context.only:
         enabled_kinds = []
@@ -195,6 +177,7 @@ async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     our_diagnostics = [
         diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
     ]
+    actions: list[CodeAction] = []
 
     if CodeActionKind.QuickFix in enabled_kinds:
         actions.extend(make_quick_fix_code_actions(diagnostics=our_diagnostics, text_document=text_document))
