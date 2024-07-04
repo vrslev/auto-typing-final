@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import TypedDict, cast
 
+import cattrs
 from lsprotocol.types import (
     CODE_ACTION_RESOLVE,
     INITIALIZE,
@@ -34,24 +35,28 @@ from auto_typing_final.transform import AddFinal, AppliedEdit, make_operations_f
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
 
 
-class Location(TypedDict):
-    row: int
-    column: int
+class DiagnosticPosition(TypedDict):
+    line: int
+    character: int
 
 
-class DiagnosticEdit(TypedDict):
+class DiagnosticRange(TypedDict):
+    start: DiagnosticPosition
+    end: DiagnosticPosition
+
+
+class DiagnosticTextEdit(TypedDict):
+    range: DiagnosticRange
     new_text: str
-    start: Location
-    end: Location
 
 
-class Fix(TypedDict):
+class DiagnosticFix(TypedDict):
     message: str
-    edits: list[DiagnosticEdit]
+    text_edits: list[DiagnosticTextEdit]
 
 
 class DiagnosticData(TypedDict):
-    fix: Fix
+    fix: DiagnosticFix
 
 
 def make_range_from_edit(edit: AppliedEdit) -> Range:
@@ -62,22 +67,14 @@ def make_range_from_edit(edit: AppliedEdit) -> Range:
     )
 
 
-def make_diagnostic_edit(edit: AppliedEdit) -> DiagnosticEdit:
+def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
     range_ = edit.node.range()
-    return DiagnosticEdit(
+    return DiagnosticTextEdit(
         new_text=edit.edit.inserted_text,
-        start=Location(row=range_.start.line, column=range_.start.column),
-        end=Location(row=range_.end.line, column=range_.end.column),
-    )
-
-
-def make_text_edit_from_diagnostic_edit(edit: DiagnosticEdit) -> TextEdit:
-    return TextEdit(
-        range=Range(
-            start=Position(line=edit["start"]["row"], character=edit["start"]["column"]),
-            end=Position(line=edit["end"]["row"], character=edit["end"]["column"]),
+        range=DiagnosticRange(
+            start=DiagnosticPosition(line=range_.start.line, character=range_.start.column),
+            end=DiagnosticPosition(line=range_.end.line, character=range_.end.column),
         ),
-        new_text=edit["new_text"],
     )
 
 
@@ -90,7 +87,9 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
             fix_message = "Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
-        fix = Fix(message=fix_message, edits=[make_diagnostic_edit(edit) for edit in applied_operation.edits])
+        fix = DiagnosticFix(
+            message=fix_message, text_edits=[make_diagnostic_text_edit(edit) for edit in applied_operation.edits]
+        )
 
         for applied_edit in applied_operation.edits:
             yield Diagnostic(
@@ -137,7 +136,7 @@ def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) ->
                     text_document=OptionalVersionedTextDocumentIdentifier(
                         uri=text_document.uri, version=text_document.version
                     ),
-                    edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
+                    edits=[cattrs.structure(edit, TextEdit) for edit in fix["text_edits"]],
                 )
             ]
         ),
