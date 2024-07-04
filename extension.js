@@ -1,5 +1,4 @@
 // @ts-check
-const { exists, stat, existsSync } = require("fs");
 const path = require("path");
 const fs = require("fs");
 const vscode = require("vscode");
@@ -78,12 +77,9 @@ module.exports = {
 
     context.subscriptions.push(
       outputChannel,
-      pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(async (event) => {
+      pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(async () => {
         await restartServer();
       }),
-      // vscode.workspace.onDidChangeConfiguration(async (event) => {
-      //   if (["auto-typing-final.path"].some((s) => event.affectsConfiguration(s))) await restartServer();
-      // }),
       vscode.commands.registerCommand(`${serverName}.restart`, async () => {
         await restartServer();
       }),
