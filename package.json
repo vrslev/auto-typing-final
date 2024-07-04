@@ -41,15 +41,19 @@
     ]
   },
   "scripts": {
-    "build": "webpack --mode production --devtool hidden-source-map",
-    "watch": "npm run build -- --watch",
-    "package": "vsce package --allow-star-activation"
+    "fmt": "prettier -w .",
+    "fmt-check": "prettier --check .",
+    "package": "webpack --mode production --devtool source-map --config ./webpack.config.js",
+    "watch": "webpack --watch",
+    "vsce-package": "vsce package -o auto-typing-final.vsix",
+    "vscode:prepublish": "npm run package"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.90.0",
+    "prettier": "^3.3.2",
     "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
   }

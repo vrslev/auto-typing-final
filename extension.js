@@ -27,20 +27,26 @@ function getPythonExtension() {
 async function findExecutable() {
   const extension = getPythonExtension();
   if (!extension) return;
-  const environmentPath = extension.exports.environments.getActiveEnvironmentPath();
+  const environmentPath =
+    extension.exports.environments.getActiveEnvironmentPath();
   if (!environmentPath) return;
-  const environment = await extension.exports.environments.resolveEnvironment(environmentPath);
+  const environment =
+    await extension.exports.environments.resolveEnvironment(environmentPath);
   if (!environment) return;
   const fsPath = environment.executable.uri?.fsPath;
   if (!fsPath) return;
   const parsedPath = path.parse(fsPath);
-  const lspServerPath = path.format({ base: "auto-typing-final-lsp-server", dir: parsedPath.dir, root: parsedPath.root })
+  const lspServerPath = path.format({
+    base: "auto-typing-final-lsp-server",
+    dir: parsedPath.dir,
+    root: parsedPath.root,
+  });
   if (!fs.existsSync(lspServerPath)) return;
-  return lspServerPath
+  return lspServerPath;
 }
 
 async function restartServer() {
-  await languageClient?.stop()
+  await languageClient?.stop();
 
   const executable = await findExecutable();
   if (!executable) return;
@@ -60,8 +66,13 @@ async function restartServer() {
     revealOutputChannelOn: vscodeLanguageClient.RevealOutputChannelOn.Never,
   };
 
-  languageClient = new vscodeLanguageClient.LanguageClient(serverId, serverName, serverOptions, clientOptions);
-  await languageClient.start()
+  languageClient = new vscodeLanguageClient.LanguageClient(
+    serverId,
+    serverName,
+    serverOptions,
+    clientOptions,
+  );
+  await languageClient.start();
 }
 
 module.exports = {
@@ -73,13 +84,17 @@ module.exports = {
     const pythonExtension = vscode.extensions.getExtension("ms-python.python");
     if (!pythonExtension?.isActive) await pythonExtension?.activate();
 
-    outputChannel = vscode.window.createOutputChannel(serverName, { log: true });
+    outputChannel = vscode.window.createOutputChannel(serverName, {
+      log: true,
+    });
 
     context.subscriptions.push(
       outputChannel,
-      pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(async () => {
-        await restartServer();
-      }),
+      pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
+        async () => {
+          await restartServer();
+        },
+      ),
       vscode.commands.registerCommand(`${serverName}.restart`, async () => {
         await restartServer();
       }),
@@ -88,6 +103,6 @@ module.exports = {
     await restartServer();
   },
   async deactivate() {
-    await languageClient?.stop()
-  }
+    await languageClient?.stop();
+  },
 };
