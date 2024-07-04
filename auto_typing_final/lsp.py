@@ -60,20 +60,20 @@ class DiagnosticData(TypedDict):
 
 
 def make_range_from_edit(edit: AppliedEdit) -> Range:
-    range_ = edit.node.range()
+    node_range = edit.node.range()
     return Range(
-        start=Position(line=range_.start.line, character=range_.start.column),
-        end=Position(line=range_.end.line, character=range_.end.column),
+        start=Position(line=node_range.start.line, character=node_range.start.column),
+        end=Position(line=node_range.end.line, character=node_range.end.column),
     )
 
 
 def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
-    range_ = edit.node.range()
+    node_range = edit.node.range()
     return DiagnosticTextEdit(
         new_text=edit.edit.inserted_text,
         range=DiagnosticRange(
-            start=DiagnosticPosition(line=range_.start.line, character=range_.start.column),
-            end=DiagnosticPosition(line=range_.end.line, character=range_.end.column),
+            start=DiagnosticPosition(line=node_range.start.line, character=node_range.start.column),
+            end=DiagnosticPosition(line=node_range.end.line, character=node_range.end.column),
         ),
     )
 
@@ -107,9 +107,7 @@ def make_text_edits_for_file(source: str) -> Iterable[TextEdit]:
 
 
 def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
-    data = cast(DiagnosticData, diagnostic.data)
-    fix = data["fix"]
-
+    fix = cast(DiagnosticData, diagnostic.data)["fix"]
     return CodeAction(
         title=fix["message"],
         kind=CodeActionKind.QuickFix,
