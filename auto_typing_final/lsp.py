@@ -100,7 +100,7 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
             )
 
 
-def make_text_edits_for_whole_document(source: str) -> Iterable[TextEdit]:
+def make_text_edits_for_file(source: str) -> Iterable[TextEdit]:
     for applied_operation in make_operations_from_source(source):
         for applied_edit in applied_operation.edits:
             yield TextEdit(range=make_range_from_edit(applied_edit), new_text=applied_edit.edit.inserted_text)
@@ -187,7 +187,7 @@ def resolve_code_action(params: CodeAction) -> CodeAction:
                 text_document=OptionalVersionedTextDocumentIdentifier(
                     uri=text_document.uri, version=text_document.version
                 ),
-                edits=list(make_text_edits_for_whole_document(text_document.source)),
+                edits=list(make_text_edits_for_file(text_document.source)),
             )
         ],
     )
