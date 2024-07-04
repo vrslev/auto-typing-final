@@ -1,4 +1,7 @@
 // @ts-check
+const { exists, stat, existsSync } = require("fs");
+const path = require("path");
+const fs = require("fs");
 const vscode = require("vscode");
 const vscodeLanguageClient = require("vscode-languageclient/node");
 
@@ -9,10 +12,43 @@ let outputChannel;
 const serverId = "auto-typing-final";
 const serverName = serverId;
 
+/**
+ * @returns {vscode.Extension<{
+ *   environments: {
+ *     onDidChangeActiveEnvironmentPath: ((event) => any),
+ *     getActiveEnvironmentPath: () => { path: string },
+ *     resolveEnvironment: (environment: { path: string }) => Promise<{ executable: { uri?: { fsPath: string } } } | undefined>,
+ *   }
+ * }> | undefined}
+ **/
+function getPythonExtension() {
+  return vscode.extensions.getExtension("ms-python.python");
+}
+
+async function findExecutable() {
+  const extension = getPythonExtension();
+  if (!extension) return;
+  const environmentPath = extension.exports.environments.getActiveEnvironmentPath();
+  if (!environmentPath) return;
+  const environment = await extension.exports.environments.resolveEnvironment(environmentPath);
+  if (!environment) return;
+  const fsPath = environment.executable.uri?.fsPath;
+  if (!fsPath) return;
+  const parsedPath = path.parse(fsPath);
+  const lspServerPath = path.format({ base: "auto-typing-final-lsp-server", dir: parsedPath.dir, root: parsedPath.root })
+  if (!fs.existsSync(lspServerPath)) return;
+  return lspServerPath
+}
+
 async function restartServer() {
+  await languageClient?.stop()
+
+  const executable = await findExecutable();
+  if (!executable) return;
+
   const serverOptions = {
-    command: "/Users/lev/code/auto-typing-final/.venv/bin/python",
-    args: ["/Users/lev/code/auto-typing-final/auto_typing_final/lsp.py"],
+    command: executable,
+    args: [],
     options: { env: process.env },
   };
   const clientOptions = {
@@ -25,7 +61,6 @@ async function restartServer() {
     revealOutputChannelOn: vscodeLanguageClient.RevealOutputChannelOn.Never,
   };
 
-  await languageClient?.stop()
   languageClient = new vscodeLanguageClient.LanguageClient(serverId, serverName, serverOptions, clientOptions);
   await languageClient.start()
 }
