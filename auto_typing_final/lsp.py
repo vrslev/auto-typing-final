@@ -81,10 +81,10 @@ def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
     for applied_operation in make_operations_from_source(source):
         if isinstance(applied_operation.operation, AddFinal):
-            fix_message = "Add typing.Final"
+            fix_message = f"{LSP_SERVER.name}: Add typing.Final"
             diagnostic_message = "Missing typing.Final"
         else:
-            fix_message = "Remove typing.Final"
+            fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
         fix = DiagnosticFix(
@@ -164,7 +164,7 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     if CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
             CodeAction(
-                title="auto-typing-final: Fix All",
+                title=f"{LSP_SERVER.name}: Fix All",
                 kind=CodeActionKind.SourceFixAll,
                 data=params.text_document.uri,
                 edit=None,
