@@ -80,7 +80,7 @@ def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
     )
 
 
-def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:
+def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:  # noqa: FBT001
     for edit in applied_operation.edits:
         yield make_diagnostic_text_edit(edit)
     if isinstance(applied_operation.operation, AddFinal) and not has_import:
@@ -92,6 +92,7 @@ def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: 
 
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
     root = SgRoot(source, "python").root()
+    has_import = has_global_import_with_name(root, "typing")
 
     for applied_operation in make_operations_from_root(root):
         if isinstance(applied_operation.operation, AddFinal):
@@ -103,11 +104,7 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
         fix = DiagnosticFix(
             message=fix_message,
-            text_edits=list(
-                make_diagnostic_text_edits(
-                    applied_operation=applied_operation, has_import=has_global_import_with_name(root, "typing")
-                )
-            ),
+            text_edits=list(make_diagnostic_text_edits(applied_operation=applied_operation, has_import=has_import)),
         )
 
         for applied_edit in applied_operation.edits:
@@ -121,10 +118,11 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
 def make_text_edits_for_file(source: str) -> Iterable[TextEdit]:
     root = SgRoot(source, "python").root()
+    has_import = has_global_import_with_name(root, "typing")
 
     for applied_operation in make_operations_from_root(root):
         for diagnostic_text_edit in make_diagnostic_text_edits(
-            applied_operation=applied_operation, has_import=has_global_import_with_name(root, "typing")
+            applied_operation=applied_operation, has_import=has_import
         ):
             yield cattrs.structure(diagnostic_text_edit, TextEdit)
 
