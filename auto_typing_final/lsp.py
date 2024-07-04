@@ -32,7 +32,7 @@ from pygls import server
 from pygls.workspace import TextDocument
 
 from auto_typing_final.finder import has_global_import_with_name
-from auto_typing_final.transform import AddFinal, AppliedEdit, make_operations_from_root
+from auto_typing_final.transform import AddFinal, AppliedEdit, AppliedOperation, make_operations_from_root
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
 
@@ -80,6 +80,16 @@ def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
     )
 
 
+def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:
+    for edit in applied_operation.edits:
+        yield make_diagnostic_text_edit(edit)
+    if isinstance(applied_operation.operation, AddFinal) and not has_import:
+        yield {
+            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+            "new_text": "import typing\n",
+        }
+
+
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
     root = SgRoot(source, "python").root()
 
@@ -87,22 +97,18 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
         if isinstance(applied_operation.operation, AddFinal):
             fix_message = f"{LSP_SERVER.name}: Add typing.Final"
             diagnostic_message = "Missing typing.Final"
-            has_added_final = True
         else:
             fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
-            has_added_final = False
 
         fix = DiagnosticFix(
-            message=fix_message, text_edits=[make_diagnostic_text_edit(edit) for edit in applied_operation.edits]
+            message=fix_message,
+            text_edits=list(
+                make_diagnostic_text_edits(
+                    applied_operation=applied_operation, has_import=has_global_import_with_name(root, "typing")
+                )
+            ),
         )
-        if has_added_final and not has_global_import_with_name(root, "typing"):
-            fix["text_edits"].append(
-                {
-                    "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
-                    "new_text": "import typing\n",
-                }
-            )
 
         for applied_edit in applied_operation.edits:
             yield Diagnostic(
@@ -114,9 +120,13 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
 
 def make_text_edits_for_file(source: str) -> Iterable[TextEdit]:
-    for applied_operation in make_operations_from_root(SgRoot(source, "python").root()):
-        for applied_edit in applied_operation.edits:
-            yield TextEdit(range=make_range_from_edit(applied_edit), new_text=applied_edit.edit.inserted_text)
+    root = SgRoot(source, "python").root()
+
+    for applied_operation in make_operations_from_root(root):
+        for diagnostic_text_edit in make_diagnostic_text_edits(
+            applied_operation=applied_operation, has_import=has_global_import_with_name(root, "typing")
+        ):
+            yield cattrs.structure(diagnostic_text_edit, TextEdit)
 
 
 def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
