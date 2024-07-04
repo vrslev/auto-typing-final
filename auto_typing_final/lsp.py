@@ -35,8 +35,8 @@ from auto_typing_final.finder import find_definitions_in_module
 from auto_typing_final.transform import (
     AddFinal,
     Operation,
+    _make_operation_from_assignments_to_one_name,
     make_edits_from_operation,
-    make_operation_from_assignments_to_one_name,
 )
 
 LSP_SERVER = server.LanguageServer(
@@ -78,7 +78,7 @@ def make_diagnostic_edit(node: SgNode, edit: Edit) -> DiagnosticEdit:
 def make_operations(source: str) -> Iterable[tuple[type[Operation], list[tuple[SgNode, Edit]]]]:
     root = SgRoot(source, "python").root()
     for current_definitions in find_definitions_in_module(root):
-        operation = make_operation_from_assignments_to_one_name(current_definitions)
+        operation = _make_operation_from_assignments_to_one_name(current_definitions)
         yield type(operation), list(make_edits_from_operation(operation))
 
 
