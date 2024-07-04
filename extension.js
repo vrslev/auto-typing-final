@@ -6,6 +6,9 @@ const vscodeLanguageClient = require("vscode-languageclient/node");
 let languageClient;
 let outputChannel;
 
+const serverId = "auto-typing-final";
+const serverName = serverId;
+
 async function restartServer() {
   const serverOptions = {
     command: "/Users/lev/code/auto-typing-final/.venv/bin/python",
@@ -23,7 +26,7 @@ async function restartServer() {
   };
 
   await languageClient?.stop()
-  languageClient = new vscodeLanguageClient.LanguageClient("auto-typing-final", "auto-typing-final", serverOptions, clientOptions);
+  languageClient = new vscodeLanguageClient.LanguageClient(serverId, serverName, serverOptions, clientOptions);
   await languageClient.start()
 }
 
@@ -36,7 +39,7 @@ module.exports = {
     const pythonExtension = vscode.extensions.getExtension("ms-python.python");
     if (!pythonExtension?.isActive) await pythonExtension?.activate();
 
-    outputChannel = vscode.window.createOutputChannel("auto-typing.final", { log: true });
+    outputChannel = vscode.window.createOutputChannel(serverName, { log: true });
 
     context.subscriptions.push(
       outputChannel,
@@ -46,7 +49,7 @@ module.exports = {
       // vscode.workspace.onDidChangeConfiguration(async (event) => {
       //   if (["auto-typing-final.path"].some((s) => event.affectsConfiguration(s))) await restartServer();
       // }),
-      vscode.commands.registerCommand(`auto-typing-final.restart`, async () => {
+      vscode.commands.registerCommand(`${serverName}.restart`, async () => {
         await restartServer();
       }),
     );
