@@ -23,7 +23,6 @@ async function restartServer() {
     outputChannel: outputChannel,
     traceOutputChannel: outputChannel,
     revealOutputChannelOn: vscodeLanguageClient.RevealOutputChannelOn.Never,
-
   };
 
   lsClient = new vscodeLanguageClient.LanguageClient("auto-typing-final", "auto-typing-final", serverOptions, clientOptions);
