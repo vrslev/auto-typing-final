@@ -164,16 +164,7 @@ def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: Te
 )
 async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-
-    if params.context.only:
-        enabled_kinds = []
-        if CodeActionKind.QuickFix in params.context.only:
-            enabled_kinds.append(CodeActionKind.QuickFix)
-        if CodeActionKind.SourceFixAll in params.context.only:
-            enabled_kinds.append(CodeActionKind.SourceFixAll)
-    else:
-        enabled_kinds = [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
-
+    enabled_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
     our_diagnostics = [
         diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
     ]
