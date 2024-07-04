@@ -155,11 +155,10 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
 
     if CodeActionKind.QuickFix in requested_kinds:
         text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-        our_diagnostics = [
-            diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == LSP_SERVER.name
-        ]
         actions.extend(
-            make_quickfix_action(diagnostic=diagnostic, text_document=text_document) for diagnostic in our_diagnostics
+            make_quickfix_action(diagnostic=diagnostic, text_document=text_document)
+            for diagnostic in params.context.diagnostics
+            if diagnostic.source == LSP_SERVER.name
         )
 
     if CodeActionKind.SourceFixAll in requested_kinds:
