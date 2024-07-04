@@ -31,11 +31,7 @@ from pygls.workspace import TextDocument
 
 from auto_typing_final.transform import AddFinal, AppliedEdit, make_operations_from_source
 
-LSP_SERVER = server.LanguageServer(
-    name="auto-typing-final",
-    version="0",
-    max_workers=5,
-)
+LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
 
 
 class Location(TypedDict):
@@ -58,20 +54,20 @@ class DiagnosticData(TypedDict):
     fix: Fix
 
 
-def make_diagnostic_edit(applied_edit: AppliedEdit) -> DiagnosticEdit:
-    range_ = applied_edit.node.range()
-    return DiagnosticEdit(
-        new_text=applied_edit.edit.inserted_text,
-        start=Location(row=range_.start.line, column=range_.start.column),
-        end=Location(row=range_.end.line, column=range_.end.column),
-    )
-
-
 def make_range_from_edit(edit: AppliedEdit) -> Range:
     range_ = edit.node.range()
     return Range(
         start=Position(line=range_.start.line, character=range_.start.column),
         end=Position(line=range_.end.line, character=range_.end.column),
+    )
+
+
+def make_diagnostic_edit(edit: AppliedEdit) -> DiagnosticEdit:
+    range_ = edit.node.range()
+    return DiagnosticEdit(
+        new_text=edit.edit.inserted_text,
+        start=Location(row=range_.start.line, column=range_.start.column),
+        end=Location(row=range_.end.line, column=range_.end.column),
     )
 
 
