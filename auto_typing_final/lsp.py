@@ -138,27 +138,26 @@ def did_change(params: DidChangeTextDocumentParams) -> None:
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
 
 
-def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument) -> Iterable[CodeAction]:
-    for diagnostic in diagnostics:
-        data = cast(DiagnosticData, diagnostic.data)
-        fix = data["fix"]
+def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
+    data = cast(DiagnosticData, diagnostic.data)
+    fix = data["fix"]
 
-        yield CodeAction(
-            title=fix["message"],
-            kind=CodeActionKind.QuickFix,
-            data=text_document.uri,
-            edit=WorkspaceEdit(
-                document_changes=[
-                    TextDocumentEdit(
-                        text_document=OptionalVersionedTextDocumentIdentifier(
-                            uri=text_document.uri, version=text_document.version
-                        ),
-                        edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
-                    )
-                ],
-            ),
-            diagnostics=[diagnostic],
-        )
+    return CodeAction(
+        title=fix["message"],
+        kind=CodeActionKind.QuickFix,
+        data=text_document.uri,
+        edit=WorkspaceEdit(
+            document_changes=[
+                TextDocumentEdit(
+                    text_document=OptionalVersionedTextDocumentIdentifier(
+                        uri=text_document.uri, version=text_document.version
+                    ),
+                    edits=[make_text_edit_from_diagnostic_edit(edit) for edit in fix["edits"]],
+                )
+            ],
+        ),
+        diagnostics=[diagnostic],
+    )
 
 
 @LSP_SERVER.feature(
@@ -174,7 +173,9 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     actions: list[CodeAction] = []
 
     if CodeActionKind.QuickFix in enabled_kinds:
-        actions.extend(make_quick_fix_code_actions(diagnostics=our_diagnostics, text_document=text_document))
+        actions.extend(
+            make_quickfix_action(diagnostic=diagnostic, text_document=text_document) for diagnostic in our_diagnostics
+        )
 
     if CodeActionKind.SourceFixAll in enabled_kinds:
         actions.append(
