@@ -1,21 +1,13 @@
-//@ts-check
+// @ts-check
 
-"use strict";
-
-const path = require("path");
-
-//@ts-check
-/** @typedef {import('webpack').Configuration} WebpackConfig **/
-
-/** @type WebpackConfig */
+/** @type import('webpack').Configuration */
 const extensionConfig = {
   target: "node",
-  mode: "none", // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
+  mode: "none",
 
-  entry: "./extension.js", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+  entry: "./extension.js",
   output: {
-    // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
-    path: path.resolve(__dirname, "dist"),
+    path: require("path").resolve(__dirname, "dist"),
     filename: "extension.js",
     libraryTarget: "commonjs2",
   },
@@ -27,4 +19,5 @@ const extensionConfig = {
   },
   devtool: "nosources-source-map",
 };
+
 module.exports = [extensionConfig];
