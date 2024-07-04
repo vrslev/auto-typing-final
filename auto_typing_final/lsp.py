@@ -185,7 +185,7 @@ def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: Te
     TEXT_DOCUMENT_CODE_ACTION,
     CodeActionOptions(code_action_kinds=[CodeActionKind.QuickFix, CodeActionKind.SourceFixAll], resolve_provider=True),
 )
-async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
+def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     enabled_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
     our_diagnostics = [
@@ -230,7 +230,7 @@ def resolve_code_action(params: CodeAction) -> CodeAction:
 
 
 @LSP_SERVER.feature(INITIALIZE)
-def initialize(params: InitializeParams) -> None: ...
+def initialize(params: InitializeParams) -> None: ...  # noqa: ARG001
 
 
 if __name__ == "__main__":
