@@ -149,13 +149,13 @@ def did_close(params: DidCloseTextDocumentParams) -> None:
 )
 def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     requested_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
-    our_diagnostics = [
-        diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
-    ]
     actions: list[CodeAction] = []
 
     if CodeActionKind.QuickFix in requested_kinds:
         text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+        our_diagnostics = [
+            diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
+        ]
         actions.extend(
             make_quickfix_action(diagnostic=diagnostic, text_document=text_document) for diagnostic in our_diagnostics
         )
