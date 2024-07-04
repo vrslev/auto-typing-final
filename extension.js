@@ -7,14 +7,11 @@ let lsClient;
 let outputChannel = undefined;
 
 async function restartServer() {
-  await lsClient?.stop()
-
-  let serverOptions = {
+  const serverOptions = {
     command: "/Users/lev/code/auto-typing-final/.venv/bin/python",
     args: ["/Users/lev/code/auto-typing-final/auto_typing_final/lsp.py"],
     options: { env: process.env },
   };
-
   const clientOptions = {
     documentSelector: [
       { scheme: "file", language: "python" },
@@ -25,6 +22,7 @@ async function restartServer() {
     revealOutputChannelOn: vscodeLanguageClient.RevealOutputChannelOn.Never,
   };
 
+  await lsClient?.stop()
   lsClient = new vscodeLanguageClient.LanguageClient("auto-typing-final", "auto-typing-final", serverOptions, clientOptions);
   await lsClient.start()
 }
