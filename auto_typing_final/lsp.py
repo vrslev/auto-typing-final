@@ -27,6 +27,7 @@ from lsprotocol.types import (
     WorkspaceEdit,
 )
 from pygls import server
+from pygls.workspace import TextDocument
 
 from auto_typing_final.finder import find_definitions_in_module
 from auto_typing_final.transform import (
@@ -48,9 +49,9 @@ class Location(TypedDict):
 
 
 class DiagnosticEdit(TypedDict):
-    content: str
-    location: Location
-    end_location: Location
+    new_text: str
+    start: Location
+    end: Location
 
 
 class Fix(TypedDict):
@@ -66,9 +67,9 @@ def make_diagnostic_edits(nodes_and_edits: Iterable[tuple[SgNode, Edit]]) -> Ite
     for node, edit in nodes_and_edits:
         range_ = node.range()
         yield DiagnosticEdit(
-            content=edit.inserted_text,
-            location=Location(row=range_.start.line, column=range_.start.column),
-            end_location=Location(row=range_.end.line, column=range_.end.column),
+            new_text=edit.inserted_text,
+            start=Location(row=range_.start.line, column=range_.start.column),
+            end=Location(row=range_.end.line, column=range_.end.column),
         )
 
 
@@ -121,9 +122,39 @@ async def did_change(params: DidChangeTextDocumentParams) -> None:
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
 
 
-def make_code_actions(diagnostics: list[Diagnostic]) -> Iterable[CodeAction]:
-    for _diagnostic in diagnostics:
-        yield CodeAction()
+
+def make_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument) -> Iterable[CodeAction]:
+    for diagnostic in diagnostics:
+        if diagnostic.source != "auto-typing-final":
+            continue
+        data = cast(DiagnosticData, diagnostic.data)
+        fix = data["fix"]
+
+        yield CodeAction(
+            title=fix["message"],
+            kind=CodeActionKind.QuickFix,
+            data=text_document.uri,
+            edit=WorkspaceEdit(
+                document_changes=[
+                    TextDocumentEdit(
+                        text_document=OptionalVersionedTextDocumentIdentifier(
+                            uri=text_document.uri, version=text_document.version
+                        ),
+                        edits=[
+                            TextEdit(
+                                range=Range(
+                                    start=Position(line=edit["start"]["row"], character=edit["start"]["column"]),
+                                    end=Position(line=edit["end"]["row"], character=edit["end"]["column"]),
+                                ),
+                                new_text=edit["new_text"],
+                            )
+                            for edit in fix["edits"]
+                        ],
+                    )
+                ],
+            ),
+            diagnostics=[diagnostic],
+        )
 
 
 @LSP_SERVER.feature(
@@ -132,45 +163,7 @@ def make_code_actions(diagnostics: list[Diagnostic]) -> Iterable[CodeAction]:
 )
 async def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    code_actions = []
-    for diagnostic in params.context.diagnostics:
-        if diagnostic.source != "auto-typing-final":
-            continue
-        data = cast(DiagnosticData, diagnostic.data)
-        fix = data["fix"]
-        code_actions.append(
-            CodeAction(
-                title=fix["message"],
-                kind=CodeActionKind.QuickFix,
-                data=params.text_document.uri,
-                edit=WorkspaceEdit(
-                    document_changes=[
-                        TextDocumentEdit(
-                            text_document=OptionalVersionedTextDocumentIdentifier(
-                                uri=text_document.uri, version=text_document.version
-                            ),
-                            edits=[
-                                TextEdit(
-                                    range=Range(
-                                        start=Position(
-                                            line=edit["location"]["row"],
-                                            character=edit["location"]["column"],
-                                        ),
-                                        end=Position(
-                                            line=edit["end_location"]["row"],
-                                            character=edit["end_location"]["column"],
-                                        ),
-                                    ),
-                                    new_text=edit["content"],
-                                )
-                                for edit in fix["edits"]
-                            ],
-                        )
-                    ],
-                ),
-                diagnostics=[diagnostic],
-            )
-        )
+    code_actions = list(make_code_actions(diagnostics=params.context.diagnostics, text_document=text_document))
     return code_actions or None
 
 
