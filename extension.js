@@ -4,7 +4,7 @@ const vscodeLanguageClient = require("vscode-languageclient/node");
 
 /** @type {vscodeLanguageClient.LanguageClient | undefined} */
 let languageClient;
-let outputChannel = undefined;
+let outputChannel;
 
 async function restartServer() {
   const serverOptions = {
