@@ -211,3 +211,4 @@ def resolve_code_action(params: CodeAction) -> CodeAction:
 def main() -> int:
     LSP_SERVER.start_io()
     return 0
+# TODO: Add icon

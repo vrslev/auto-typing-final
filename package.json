@@ -1,24 +1,35 @@
 {
   "name": "auto-typing-final",
-  "publisher": "vrslev",
   "displayName": "auto-typing-final",
-  "description": "GitHub Copilot in 70 lines of JavaScript.",
+  "description": "VS Code extension for auto-typing-final auto-fixer",
+  "version": "0.1.0",
+  "publisher": "vrslev",
+  "license": "MIT",
   "repository": {
-    "url": "https://github.com/vrslev/auto-typing-final"
+    "type": "git",
+    "url": "https://github.com/vrslev/auto-typing-final.git"
   },
-  "version": "1.0.3",
+  "icon": "./icon.png",
+  "keywords": [
+    "python",
+    "linting",
+    "mypy"
+  ],
   "engines": {
     "vscode": "^1.90.0"
   },
   "categories": [
     "Programming Languages",
-    "Machine Learning",
-    "AI"
+    "Linters",
+    "Formatters"
+  ],
+  "extensionDependencies": [
+    "ms-python.python"
   ],
   "activationEvents": [
-    "*"
+    "onLanguage:python",
+    "workspaceContains:*.py"
   ],
-  "icon": "./icon.png",
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -27,12 +38,6 @@
         "category": "auto-typing-final",
         "command": "auto-typing-final.restart"
       }
-    ],
-    "configuration": [
-      {
-        "title": "auto-typing-final",
-        "properties": {}
-      }
     ]
   },
   "scripts": {
@@ -40,13 +45,12 @@
     "watch": "npm run build -- --watch",
     "package": "vsce package --allow-star-activation"
   },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
   "devDependencies": {
     "@types/vscode": "^1.90.0",
     "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^8.1.0",
-    "openai": "^4.52.0"
   }
 }
