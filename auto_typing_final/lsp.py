@@ -112,7 +112,11 @@ def make_text_edits_for_whole_document(source: str) -> Iterable[TextEdit]:
 
 
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_OPEN)
-def did_open(params: DidOpenTextDocumentParams) -> None:
+@LSP_SERVER.feature(TEXT_DOCUMENT_DID_SAVE)
+@LSP_SERVER.feature(TEXT_DOCUMENT_DID_CHANGE)
+def did_open_did_save_did_change(
+    params: DidOpenTextDocumentParams | DidSaveTextDocumentParams | DidChangeTextDocumentParams,
+) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     diagnostics = list(make_diagnostics(text_document.source))
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
@@ -120,22 +124,7 @@ def did_open(params: DidOpenTextDocumentParams) -> None:
 
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_CLOSE)
 def did_close(params: DidCloseTextDocumentParams) -> None:
-    text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    LSP_SERVER.publish_diagnostics(text_document.uri, [])
-
-
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_SAVE)
-def did_save(params: DidSaveTextDocumentParams) -> None:
-    text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    diagnostics = list(make_diagnostics(text_document.source))
-    LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
-
-
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_CHANGE)
-def did_change(params: DidChangeTextDocumentParams) -> None:
-    text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    diagnostics = list(make_diagnostics(text_document.source))
-    LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
+    LSP_SERVER.publish_diagnostics(params.text_document.uri, [])
 
 
 def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
