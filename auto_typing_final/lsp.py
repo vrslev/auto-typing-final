@@ -126,6 +126,10 @@ def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) ->
     )
 
 
+@LSP_SERVER.feature(INITIALIZE)
+def initialize(params: InitializeParams) -> None: ...  # noqa: ARG001
+
+
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_OPEN)
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_SAVE)
 @LSP_SERVER.feature(TEXT_DOCUMENT_DID_CHANGE)
@@ -189,10 +193,6 @@ def resolve_code_action(params: CodeAction) -> CodeAction:
         ],
     )
     return params
-
-
-@LSP_SERVER.feature(INITIALIZE)
-def initialize(params: InitializeParams) -> None: ...  # noqa: ARG001
 
 
 if __name__ == "__main__":
