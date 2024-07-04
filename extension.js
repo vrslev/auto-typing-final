@@ -3,7 +3,7 @@ const vscode = require("vscode");
 const vscodeLanguageClient = require("vscode-languageclient/node");
 
 /** @type {vscodeLanguageClient.LanguageClient | undefined} */
-let lsClient;
+let languageClient;
 let outputChannel = undefined;
 
 async function restartServer() {
@@ -22,9 +22,9 @@ async function restartServer() {
     revealOutputChannelOn: vscodeLanguageClient.RevealOutputChannelOn.Never,
   };
 
-  await lsClient?.stop()
-  lsClient = new vscodeLanguageClient.LanguageClient("auto-typing-final", "auto-typing-final", serverOptions, clientOptions);
-  await lsClient.start()
+  await languageClient?.stop()
+  languageClient = new vscodeLanguageClient.LanguageClient("auto-typing-final", "auto-typing-final", serverOptions, clientOptions);
+  await languageClient.start()
 }
 
 module.exports = {
@@ -54,6 +54,6 @@ module.exports = {
     await restartServer();
   },
   async deactivate() {
-    await lsClient?.stop()
+    await languageClient?.stop()
   }
 };
