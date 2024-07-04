@@ -61,33 +61,30 @@ class DiagnosticData(TypedDict):
     fix: DiagnosticFix
 
 
+def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:  # noqa: FBT001
+    for edit in applied_operation.edits:
+        node_range = edit.node.range()
+        yield DiagnosticTextEdit(
+            new_text=edit.edit.inserted_text,
+            range=DiagnosticRange(
+                start=DiagnosticPosition(line=node_range.start.line, character=node_range.start.column),
+                end=DiagnosticPosition(line=node_range.end.line, character=node_range.end.column),
+            ),
+        )
+
+    if isinstance(applied_operation.operation, AddFinal) and not has_import:
+        yield {
+            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+            "new_text": "import typing\n",
+        }
+
+
 def make_range_from_edit(edit: AppliedEdit) -> Range:
     node_range = edit.node.range()
     return Range(
         start=Position(line=node_range.start.line, character=node_range.start.column),
         end=Position(line=node_range.end.line, character=node_range.end.column),
     )
-
-
-def make_diagnostic_text_edit(edit: AppliedEdit) -> DiagnosticTextEdit:
-    node_range = edit.node.range()
-    return DiagnosticTextEdit(
-        new_text=edit.edit.inserted_text,
-        range=DiagnosticRange(
-            start=DiagnosticPosition(line=node_range.start.line, character=node_range.start.column),
-            end=DiagnosticPosition(line=node_range.end.line, character=node_range.end.column),
-        ),
-    )
-
-
-def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:  # noqa: FBT001
-    for edit in applied_operation.edits:
-        yield make_diagnostic_text_edit(edit)
-    if isinstance(applied_operation.operation, AddFinal) and not has_import:
-        yield {
-            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
-            "new_text": "import typing\n",
-        }
 
 
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
