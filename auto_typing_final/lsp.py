@@ -75,6 +75,16 @@ def make_range_from_edit(edit: AppliedEdit) -> Range:
     )
 
 
+def make_text_edit_from_diagnostic_edit(edit: DiagnosticEdit) -> TextEdit:
+    return TextEdit(
+        range=Range(
+            start=Position(line=edit["start"]["row"], character=edit["start"]["column"]),
+            end=Position(line=edit["end"]["row"], character=edit["end"]["column"]),
+        ),
+        new_text=edit["new_text"],
+    )
+
+
 def make_diagnostics(source: str) -> Iterable[Diagnostic]:
     for applied_operation in make_operations_from_source(source):
         if isinstance(applied_operation.operation, AddFinal):
@@ -128,20 +138,8 @@ def did_change(params: DidChangeTextDocumentParams) -> None:
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics)
 
 
-def make_text_edit_from_diagnostic_edit(edit: DiagnosticEdit) -> TextEdit:
-    return TextEdit(
-        range=Range(
-            start=Position(line=edit["start"]["row"], character=edit["start"]["column"]),
-            end=Position(line=edit["end"]["row"], character=edit["end"]["column"]),
-        ),
-        new_text=edit["new_text"],
-    )
-
-
 def make_quick_fix_code_actions(diagnostics: list[Diagnostic], text_document: TextDocument) -> Iterable[CodeAction]:
     for diagnostic in diagnostics:
-        if diagnostic.source != "auto-typing-final":
-            continue
         data = cast(DiagnosticData, diagnostic.data)
         fix = data["fix"]
 
