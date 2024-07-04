@@ -166,18 +166,18 @@ def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) ->
 )
 def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    enabled_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
+    requested_kinds = params.context.only or [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll]
     our_diagnostics = [
         diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == "auto-typing-final"
     ]
     actions: list[CodeAction] = []
 
-    if CodeActionKind.QuickFix in enabled_kinds:
+    if CodeActionKind.QuickFix in requested_kinds:
         actions.extend(
             make_quickfix_action(diagnostic=diagnostic, text_document=text_document) for diagnostic in our_diagnostics
         )
 
-    if CodeActionKind.SourceFixAll in enabled_kinds:
+    if CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
             CodeAction(
                 title="auto-typing-final: Fix All",
