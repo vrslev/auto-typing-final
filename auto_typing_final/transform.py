@@ -109,10 +109,10 @@ def make_expected_text_from_operation(operation: Operation) -> Iterable[tuple[Sg
                             yield node, f"{left}: {new_annotation[0]} = {right}"
 
 
-def make_edits_from_operation(operation: Operation) -> Iterable[Edit]:
+def make_edits_from_operation(operation: Operation) -> Iterable[tuple[SgNode, Edit]]:
     for node, new_text in make_expected_text_from_operation(operation):
         if node.text() != new_text:
-            yield node.replace(new_text)
+            yield node, node.replace(new_text)
 
 
 def make_edits_for_module(root: SgNode) -> str:
@@ -126,7 +126,7 @@ def make_edits_for_module(root: SgNode) -> str:
         if isinstance(operation, AddFinal) and current_edits:
             has_added_final = True
 
-        edits.extend(current_edits)
+        edits.extend(edit for _node, edit in current_edits)
 
     result = root.commit_edits(edits)
 
