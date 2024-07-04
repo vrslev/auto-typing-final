@@ -31,7 +31,7 @@ module.exports = {
   /**
    * @param context {vscode.ExtensionContext}
    **/
-  activate: async (context) => {
+  async activate(context) {
     /** @type {vscode.Extension<{environments: {onDidChangeActiveEnvironmentPath: ((event) => any)}}> | undefined} */
     const pythonExtension = vscode.extensions.getExtension("ms-python.python");
     if (!pythonExtension?.isActive) await pythonExtension?.activate();
@@ -53,7 +53,7 @@ module.exports = {
 
     await restartServer();
   },
-  deactivate: async () => {
+  async deactivate() {
     await lsClient?.stop()
   }
 };
