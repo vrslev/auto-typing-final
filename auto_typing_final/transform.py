@@ -117,7 +117,7 @@ def _strip_identifier_from_type_annotation(
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
                 if _attribute_is_exact_identifier(attribute, imports_result, identifier_name):
-                    return "".join(node.text() for kind, node in kinds_and_nodes)
+                    return "".join(node.text() for _, node in kinds_and_nodes)
     elif kind == "generic_type" and imports_result.has_from_import:
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("identifier", identifier), ("type_parameter", type_parameter)):
@@ -125,7 +125,7 @@ def _strip_identifier_from_type_annotation(
                     return None
                 match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
                     case (("[", _), *kinds_and_nodes, ("]", _)):
-                        return "".join(node.text() for kind, node in kinds_and_nodes)
+                        return "".join(node.text() for _, node in kinds_and_nodes)
     elif (kind == "identifier" and inner_type_node.text() == identifier_name) or (
         kind == "attribute" and _attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name)
     ):
