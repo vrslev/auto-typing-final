@@ -63,16 +63,15 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             has_node_inside_loop = True
 
         if node.kind() == "assignment":
-            children = node.children()
-            match tuple(child.kind() for child in children):
-                case ("identifier", "=", _):
+            match tuple((child.kind(), child) for child in node.children()):
+                case (("identifier", left), ("=", _), (_, right)):
                     value_assignments.append(
-                        AssignmentWithoutAnnotation(node=node, left=children[0].text(), right=children[2].text())
+                        AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
                     )
-                case ("identifier", ":", "type", "=", _):
+                case (("identifier", left), (":", _), ("type", annotation), ("=", _), (_, right)):
                     value_assignments.append(
                         AssignmentWithAnnotation(
-                            node=node, left=children[0].text(), annotation=children[2].text(), right=children[4].text()
+                            node=node, left=left.text(), annotation=annotation.text(), right=right.text()
                         )
                     )
                 case _:
@@ -107,9 +106,8 @@ def _make_changed_text_from_operation(operation: Operation, import_mode: ImportM
                 case AssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    if final_value in annotation:
-                        return
-                    yield node, f"{left}: {final_value}[{annotation}] = {right}"
+                    if final_value not in annotation:
+                        yield node, f"{left}: {final_value}[{annotation}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
