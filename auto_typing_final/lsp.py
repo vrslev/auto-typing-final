@@ -9,13 +9,7 @@ from ast_grep_py import SgRoot
 from pygls import server
 from pygls.workspace import TextDocument
 
-from auto_typing_final.transform import (
-    IMPORT_MODES_TO_IMPORT_CONFIGS,
-    AddFinal,
-    ImportMode,
-    Replacement,
-    make_replacements,
-)
+from auto_typing_final.transform import IMPORT_MODES_TO_IMPORT_CONFIGS, AddFinal, Edit, ImportMode, make_replacements
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 IMPORT_CONFIG = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
@@ -32,23 +26,22 @@ class DiagnosticData:
     fix: Fix
 
 
-def make_import_edit(import_text: str) -> lsp.TextEdit:
+def make_import_text_edit(import_text: str) -> lsp.TextEdit:
     return lsp.TextEdit(
         range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
         new_text=f"{import_text}\n",
     )
 
 
-def make_diagnostic_text_edits(replacement: Replacement) -> Iterable[lsp.TextEdit]:
-    for edit in replacement.edits:
-        node_range = edit.node.range()
-        yield lsp.TextEdit(
-            range=lsp.Range(
-                start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
-                end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
-            ),
-            new_text=edit.new_text,
-        )
+def make_text_edit(edit: Edit) -> lsp.TextEdit:
+    node_range = edit.node.range()
+    return lsp.TextEdit(
+        range=lsp.Range(
+            start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+            end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
+        ),
+        new_text=edit.new_text,
+    )
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
@@ -62,9 +55,9 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
             fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
-        fix = Fix(message=fix_message, text_edits=list(make_diagnostic_text_edits(replacement)))
+        fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
         if result.import_text:
-            fix.text_edits.append(make_import_edit(result.import_text))
+            fix.text_edits.append(make_import_text_edit(result.import_text))
 
         for applied_edit in replacement.edits:
             node_range = applied_edit.node.range()
@@ -84,10 +77,11 @@ def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
-        yield from make_diagnostic_text_edits(replacement)
+        for edit in replacement.edits:
+            yield make_text_edit(edit)
 
     if result.import_text:
-        yield make_import_edit(result.import_text)
+        yield make_import_text_edit(result.import_text)
 
 
 def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEdit]) -> lsp.WorkspaceEdit:
