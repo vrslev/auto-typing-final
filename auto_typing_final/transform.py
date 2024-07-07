@@ -157,11 +157,9 @@ def _make_changed_text_from_operation(  # noqa: C901
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
                         match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
-                            case None:
-                                pass
                             case "":
                                 yield node, f"{left} = {right}"
-                            case new_annotation:
+                            case str(new_annotation):
                                 yield node, f"{left}: {new_annotation} = {right}"
 
 
