@@ -25,9 +25,9 @@ def transform_file_content(source: str, import_mode: ImportMode) -> str:
 
     if has_added_final:
         if import_mode == ImportMode.typing_final and should_add_import_typing(root):
-            result = root.commit_edits([root.replace(f"import typing\n{result}")])
-        elif import_mode == ImportMode.final and should_add_from_typing_import_final(root):
-            result = root.commit_edits([root.replace(f"from typing import Final\n{result}")])
+            return root.commit_edits([root.replace(f"import typing\n{result}")])
+        if import_mode == ImportMode.final and should_add_from_typing_import_final(root):
+            return root.commit_edits([root.replace(f"from typing import Final\n{result}")])
 
     return result
 
