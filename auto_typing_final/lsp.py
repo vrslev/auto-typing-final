@@ -12,9 +12,9 @@ from pygls.workspace import TextDocument
 from auto_typing_final.transform import (
     IMPORT_MODES_TO_IMPORT_CONFIGS,
     AddFinal,
-    AppliedOperation,
     ImportMode,
-    make_operations_from_root,
+    Replacement,
+    make_replacements,
 )
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
@@ -39,7 +39,7 @@ def make_import_edit(import_string: str) -> lsp.TextEdit:
     )
 
 
-def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[lsp.TextEdit]:
+def make_diagnostic_text_edits(applied_operation: Replacement) -> Iterable[lsp.TextEdit]:
     for applied_edit in applied_operation.edits:
         node_range = applied_edit.node.range()
         yield lsp.TextEdit(
@@ -53,7 +53,7 @@ def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
     root = SgRoot(source, "python").root()
-    operations, import_string = make_operations_from_root(root, IMPORT_CONFIG)
+    operations, import_string = make_replacements(root, IMPORT_CONFIG)
 
     for applied_operation in operations:
         if isinstance(applied_operation.operation, AddFinal):
@@ -84,7 +84,7 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     root = SgRoot(source, "python").root()
-    operations, import_string = make_operations_from_root(root, IMPORT_CONFIG)
+    operations, import_string = make_replacements(root, IMPORT_CONFIG)
 
     for applied_operation in operations:
         yield from make_diagnostic_text_edits(applied_operation)

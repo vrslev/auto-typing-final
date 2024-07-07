@@ -10,15 +10,15 @@ from auto_typing_final.transform import (
     IMPORT_MODES_TO_IMPORT_CONFIGS,
     ImportConfig,
     ImportMode,
-    make_operations_from_root,
+    make_replacements,
 )
 
 
 def transform_file_content(source: str, import_config: ImportConfig) -> str:
     root = SgRoot(source, "python").root()
-    operations, import_string = make_operations_from_root(root, import_config)
+    operations, import_string = make_replacements(root, import_config)
     result = root.commit_edits(
-        [node.replace(new_text) for applied_operation in operations for node, new_text in applied_operation.edits]
+        [edit.node.replace(edit.new_text) for applied_operation in operations for edit in applied_operation.edits]
     )
     return root.commit_edits([root.replace(f"{import_string}\n{result}")]) if import_string else result
 

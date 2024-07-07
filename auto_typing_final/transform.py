@@ -133,19 +133,25 @@ def _make_changed_text_from_operation(  # noqa: C901
 
 
 @dataclass
-class AppliedOperation:
+class Edit:
+    node: SgNode
+    new_text: str
+
+
+@dataclass
+class Replacement:
     operation_type: type[Operation]
-    edits: list[tuple[SgNode, str]]
+    edits: list[Edit]
 
 
-def make_operations_from_root(root: SgNode, import_config: ImportConfig) -> tuple[list[AppliedOperation], str | None]:
+def make_replacements(root: SgNode, import_config: ImportConfig) -> tuple[list[Replacement], str | None]:
     applied_operations = []
     has_added_final = False
 
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         edits = [
-            (node, new_text)
+            Edit(node=node, new_text=new_text)
             for node, new_text in _make_changed_text_from_operation(
                 operation=operation,
                 final_value=import_config.value,
@@ -153,10 +159,11 @@ def make_operations_from_root(root: SgNode, import_config: ImportConfig) -> tupl
             )
             if node.text() != new_text
         ]
+
         if (operation_type := type(operation)) == AddFinal and edits:
             has_added_final = True
 
-        applied_operations.append(AppliedOperation(operation_type=operation_type, edits=edits))
+        applied_operations.append(Replacement(operation_type=operation_type, edits=edits))
 
     import_string = (
         import_config.import_text
