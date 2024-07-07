@@ -64,6 +64,7 @@ async function findExecutable() {
 		return;
 	}
 
+	outputChannel?.info(`using executable at ${lspServerPath}`);
 	return lspServerPath;
 }
 
@@ -74,11 +75,7 @@ async function restartServer() {
 	}
 
 	const executable = await findExecutable();
-	outputChannel?.info(`using executable at ${executable}`);
-	if (!executable) {
-		outputChannel?.info("not found executable");
-		return;
-	}
+	if (!executable) return;
 
 	const serverOptions = {
 		command: executable,
