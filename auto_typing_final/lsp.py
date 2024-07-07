@@ -62,7 +62,14 @@ class DiagnosticData(TypedDict):
     fix: DiagnosticFix
 
 
-def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: bool) -> Iterable[DiagnosticTextEdit]:  # noqa: FBT001
+def make_typing_import() -> DiagnosticTextEdit:
+    return {
+        "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+        "new_text": "import typing\n",
+    }
+
+
+def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[DiagnosticTextEdit]:
     for edit in applied_operation.edits:
         node_range = edit.node.range()
         yield {
@@ -71,12 +78,6 @@ def make_diagnostic_text_edits(applied_operation: AppliedOperation, has_import: 
                 "end": {"line": node_range.end.line, "character": node_range.end.column},
             },
             "new_text": edit.edit.inserted_text,
-        }
-
-    if isinstance(applied_operation.operation, AddFinal) and not has_import:
-        yield {
-            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
-            "new_text": "import typing\n",
         }
 
 
@@ -94,8 +95,11 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
         fix = DiagnosticFix(
             message=fix_message,
-            text_edits=list(make_diagnostic_text_edits(applied_operation=applied_operation, has_import=has_import)),
+            text_edits=list(make_diagnostic_text_edits(applied_operation=applied_operation)),
         )
+
+        if isinstance(applied_operation.operation, AddFinal) and not has_import:
+            fix["text_edits"].append(make_typing_import())
 
         for applied_edit in applied_operation.edits:
             node_range = applied_edit.node.range()
@@ -114,12 +118,17 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 def make_fixall_text_edits(source: str) -> Iterable[TextEdit]:
     root = SgRoot(source, "python").root()
     has_import = has_global_import_with_name(root, "typing")
+    has_add_final_operation = False
 
     for applied_operation in make_operations_from_root(root):
-        for diagnostic_text_edit in make_diagnostic_text_edits(
-            applied_operation=applied_operation, has_import=has_import
-        ):
+        if isinstance(applied_operation.operation, AddFinal):
+            has_add_final_operation = True
+
+        for diagnostic_text_edit in make_diagnostic_text_edits(applied_operation=applied_operation):
             yield cattrs.structure(diagnostic_text_edit, TextEdit)
+
+    if has_add_final_operation and not has_import:
+        yield cattrs.structure(make_typing_import(), TextEdit)
 
 
 def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
