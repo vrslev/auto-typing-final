@@ -180,7 +180,7 @@ class ImportsResult:
 def get_global_imports(root: SgNode) -> ImportsResult:
     result = ImportsResult(module_aliases=set(), has_from_import=False)
 
-    for node in root.find_all({"rule": {"any": [{"kind": "import_statement"}, {"kind": "import_from_statement"}]}}):
+    for node in root.find_all(any=[{"kind": "import_statement"}, {"kind": "import_from_statement"}]):
         if _is_inside_inner_function_or_class(root, node) or node == root:
             continue
 
@@ -213,7 +213,7 @@ def get_global_imports(root: SgNode) -> ImportsResult:
 
 
 def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
-    for child in node.find_all({"rule": {"any": [{"kind": "attribute"}, {"kind": "assignment"}]}}):
+    for child in node.find_all(any=[{"kind": "attribute"}, {"kind": "assignment"}]):
         match child.kind():
             case "attribute":
                 if (
