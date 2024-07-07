@@ -7,7 +7,7 @@ from pathlib import Path
 from ast_grep_py import Edit, SgRoot
 
 from auto_typing_final.finder import has_global_import_with_name
-from auto_typing_final.transform import AddFinal, make_operations_from_root
+from auto_typing_final.transform import AddFinal, ImportMode, make_operations_from_root
 
 
 def take_python_source_files(paths: Iterable[Path]) -> Iterable[Path]:
@@ -37,7 +37,7 @@ def transform_file_content(source: str) -> str:
     edits: list[Edit] = []
     has_added_final = False
 
-    for applied_operation in make_operations_from_root(root, "typing-final"):
+    for applied_operation in make_operations_from_root(root, ImportMode.final):
         if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
             has_added_final = True
 

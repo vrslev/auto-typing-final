@@ -1,7 +1,7 @@
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Literal
+from enum import Enum
 
 from ast_grep_py import Edit, SgNode
 
@@ -12,7 +12,10 @@ TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
 FINAL_VALUE = "Final"
 FINAL_OUTER_REGEX = re.compile(r"Final\[(.*)\]{1}")
 
-ImportMode = Literal["typing-final", "final"]
+
+class ImportMode(Enum):
+    typing_final = "typing-final"
+    final = "final"
 
 
 @dataclass
@@ -88,10 +91,10 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
 
 
 def _make_changed_text_from_operation(operation: Operation, import_mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901, PLR0912
-    if import_mode == "typing-final":
+    if import_mode == ImportMode.typing_final:
         final_value = TYPING_FINAL_VALUE
         final_outer_regex = TYPING_FINAL_OUTER_REGEX
-    elif import_mode == "final":
+    elif import_mode == ImportMode.final:
         final_value = FINAL_VALUE
         final_outer_regex = FINAL_OUTER_REGEX
     else:
