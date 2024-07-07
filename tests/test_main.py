@@ -1,3 +1,5 @@
+from typing import Final
+
 import pytest
 
 from auto_typing_final.main import transform_file_content
@@ -39,16 +41,18 @@ from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportC
     ],
 )
 def test_variants(import_config: ImportConfig, before: str, after: str) -> None:
-    source_function_content = "\n".join(f"    {line.format(import_config.value)}" for line in before.splitlines())
-    source = f"""
+    source_function_content: Final = "\n".join(
+        f"    {line.format(import_config.value)}" for line in before.splitlines()
+    )
+    source: Final = f"""
 {import_config.import_text}
 
 def foo():
 {source_function_content}
 """
 
-    after_function_content = "\n".join(f"    {line.format(import_config.value)}" for line in after.splitlines())
-    after_source = f"""
+    after_function_content: Final = "\n".join(f"    {line.format(import_config.value)}" for line in after.splitlines())
+    after_source: Final = f"""
 {import_config.import_text}
 
 def foo():
@@ -588,7 +592,7 @@ a.b = 1
     ],
 )
 def test_transform_file_content(case: str) -> None:
-    import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
     assert (
         transform_file_content(f"{import_config.import_text}\n" + before.strip(), import_config=import_config)
@@ -653,7 +657,7 @@ def f():
 )
 def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
-    import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
 
 

@@ -7,5 +7,6 @@
 	},
 	"[typescript]": {
 		"editor.defaultFormatter": "biomejs.biome"
-	}
+	},
+	"auto-typing-final.import-style": "final"
 }

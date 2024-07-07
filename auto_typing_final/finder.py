@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Final
 
 from ast_grep_py import Config, SgNode
 
@@ -178,7 +179,7 @@ class ImportsResult:
 
 
 def find_imports_of_identifier_in_scope(root: SgNode, module_name: str, identifier_name: str) -> ImportsResult:  # noqa: C901
-    result = ImportsResult(module_aliases={module_name}, has_from_import=False)
+    result: Final = ImportsResult(module_aliases={module_name}, has_from_import=False)
 
     for node in root.find_all(any=[{"kind": "import_statement"}, {"kind": "import_from_statement"}]):
         if _is_inside_inner_function_or_class(root, node) or node == root:
