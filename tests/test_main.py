@@ -665,13 +665,13 @@ def test_add_import(case: str) -> None:
 from typing import Final
 
 def f():
-    a: Final = 1
+    a: Final[int] = 1
 ---
 import typing
 from typing import Final
 
 def f():
-    a: typing.Final = 1
+    a: typing.Final[int] = 1
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"],
         ),
