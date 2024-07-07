@@ -68,8 +68,10 @@ async function findExecutable() {
 }
 
 async function restartServer() {
-	await languageClient?.stop();
-	outputChannel?.info("stopped server");
+	if (languageClient) {
+		await languageClient.stop();
+		outputChannel?.info("stopped server");
+	}
 
 	const executable = await findExecutable();
 	outputChannel?.info(`using executable at ${executable}`);
