@@ -55,7 +55,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", type=Path, nargs="*")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--import-mode")
+    parser.add_argument("--import-mode", choices={"typing-final", "final"}, default="typing-final")
     args = parser.parse_args()
 
     has_changes = False
