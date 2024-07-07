@@ -191,20 +191,4 @@ def has_import_import_typing(root: SgNode) -> bool:
 
 
 def should_add_from_typing_import_final(root: SgNode) -> bool:
-    find_definitions_in_functions_in_node(root)
-    # if module_definitions
-    for import_statement in root.find_all({"rule": {"any": [{"kind": "import_from_statement"}]}}):
-        if is_inside_inner_function_or_class(root, import_statement):
-            continue
-        match tuple((child.kind(), child) for child in import_statement.children()):
-            case (("from", _), _, ("import", _), *name_nodes) | (("import", _), *name_nodes):
-                for kind, name_node in name_nodes:
-                    match kind:
-                        case "dotted_name":
-                            if identifier := last_child_of_type(name_node, "identifier"):
-                                yield identifier
-                        case "aliased_import":
-                            if alias := name_node.field("alias"):
-                                yield alias
-
-    return False
+    return "Final" not in {identifier for identifier, _node in find_identifiers_in_scope(root)}
