@@ -6,12 +6,17 @@ from pathlib import Path
 
 from ast_grep_py import SgRoot
 
-from auto_typing_final.transform import ImportMode, make_operations_from_root
+from auto_typing_final.transform import (
+    IMPORT_MODES_TO_IMPORT_CONFIGS,
+    ImportConfig,
+    ImportMode,
+    make_operations_from_root,
+)
 
 
-def transform_file_content(source: str, import_mode: ImportMode) -> str:
+def transform_file_content(source: str, import_config: ImportConfig) -> str:
     root = SgRoot(source, "python").root()
-    operations, import_string = make_operations_from_root(root, import_mode)
+    operations, import_string = make_operations_from_root(root, import_config)
     result = root.commit_edits([edit.edit for applied_operation in operations for edit in applied_operation.edits])
     return root.commit_edits([root.replace(f"{import_string}\n{result}")]) if import_string else result
 
@@ -43,14 +48,16 @@ def main() -> int:
     parser.add_argument("files", type=Path, nargs="*")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--import-mode", type=ImportMode, default=ImportMode.typing_final)
+
     args = parser.parse_args()
+    import_config = IMPORT_MODES_TO_IMPORT_CONFIGS[args.import_mode]
 
     has_changes = False
 
     for path in find_all_source_files(args.files):
         with path.open("r+") as file:
             source = file.read()
-            transformed_content = transform_file_content(source=source, import_mode=args.import_mode)
+            transformed_content = transform_file_content(source=source, import_config=import_config)
             if source == transformed_content:
                 continue
 

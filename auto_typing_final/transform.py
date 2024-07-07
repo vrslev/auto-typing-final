@@ -7,20 +7,34 @@ from ast_grep_py import Edit, SgNode
 
 from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
 
-TYPING_FINAL_VALUE = "typing.Final"
-TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
-TYPING_FINAL_IMPORT_TEXT = "import typing"
-TYPING_FINAL_IMPORT_IDENTIFIER = "typing"
-
-FINAL_VALUE = "Final"
-FINAL_OUTER_REGEX = re.compile(r"Final\[(.*)\]{1}")
-FINAL_IMPORT_TEXT = "from typing import Final"
-FINAL_IMPORT_IDENTIFIER = "Final"
-
 
 class ImportMode(Enum):
     typing_final = "typing-final"
     final = "final"
+
+
+@dataclass
+class ImportConfig:
+    value: str
+    outer_regex: re.Pattern[str]
+    import_text: str
+    import_identifier: str
+
+
+IMPORT_MODES_TO_IMPORT_CONFIGS = {
+    ImportMode.typing_final: ImportConfig(
+        value="typing.Final",
+        outer_regex=re.compile(r"typing\.Final\[(.*)\]{1}"),
+        import_text="import typing",
+        import_identifier="typing",
+    ),
+    ImportMode.final: ImportConfig(
+        value="Final",
+        outer_regex=re.compile(r"Final\[(.*)\]{1}"),
+        import_text="from typing import Final",
+        import_identifier="Final",
+    ),
+}
 
 
 @dataclass
@@ -130,18 +144,7 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[list[AppliedOperation], str | None]:
-    if import_mode == ImportMode.typing_final:
-        final_value = TYPING_FINAL_VALUE
-        final_outer_regex = TYPING_FINAL_OUTER_REGEX
-        final_import_text = TYPING_FINAL_IMPORT_TEXT
-        final_import_identifier = TYPING_FINAL_IMPORT_IDENTIFIER
-    else:
-        final_value = FINAL_VALUE
-        final_outer_regex = FINAL_OUTER_REGEX
-        final_import_text = FINAL_IMPORT_TEXT
-        final_import_identifier = FINAL_IMPORT_IDENTIFIER
-
+def make_operations_from_root(root: SgNode, import_config: ImportConfig) -> tuple[list[AppliedOperation], str | None]:
     applied_operations = []
     has_added_final = False
 
@@ -150,7 +153,9 @@ def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[li
         edits = [
             AppliedEdit(node=node, edit=node.replace(new_text))
             for node, new_text in _make_changed_text_from_operation(
-                operation=operation, final_value=final_value, final_outer_regex=final_outer_regex
+                operation=operation,
+                final_value=import_config.value,
+                final_outer_regex=import_config.outer_regex,
             )
             if node.text() != new_text
         ]
@@ -160,8 +165,8 @@ def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[li
         applied_operations.append(AppliedOperation(operation=operation, edits=edits))
 
     import_string = (
-        final_import_text
-        if has_added_final and not has_global_identifier_with_name(root=root, name=final_import_identifier)
+        import_config.import_text
+        if has_added_final and not has_global_identifier_with_name(root=root, name=import_config.import_identifier)
         else None
     )
     return applied_operations, import_string

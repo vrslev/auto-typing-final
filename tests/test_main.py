@@ -2,15 +2,13 @@ import pytest
 
 from auto_typing_final.main import transform_file_content
 from auto_typing_final.transform import (
-    FINAL_IMPORT_TEXT,
-    FINAL_VALUE,
-    TYPING_FINAL_IMPORT_TEXT,
-    TYPING_FINAL_VALUE,
+    IMPORT_MODES_TO_IMPORT_CONFIGS,
+    ImportConfig,
     ImportMode,
 )
 
 
-@pytest.mark.parametrize("import_mode", list(ImportMode))
+@pytest.mark.parametrize("import_config", IMPORT_MODES_TO_IMPORT_CONFIGS.values())
 @pytest.mark.parametrize(
     ("before", "after"),
     [
@@ -43,30 +41,23 @@ from auto_typing_final.transform import (
         ("a = 1\nb = 2\nb: {}[int] = 3", "a: {} = 1\nb = 2\nb: int = 3"),
     ],
 )
-def test_variants(import_mode: ImportMode, before: str, after: str) -> None:
-    if import_mode == ImportMode.typing_final:
-        final_value = TYPING_FINAL_VALUE
-        final_import_text = TYPING_FINAL_IMPORT_TEXT
-    if import_mode == ImportMode.final:
-        final_value = FINAL_VALUE
-        final_import_text = FINAL_IMPORT_TEXT
-
-    source_function_content = "\n".join(f"    {line.format(final_value)}" for line in before.splitlines())
+def test_variants(import_config: ImportConfig, before: str, after: str) -> None:
+    source_function_content = "\n".join(f"    {line.format(import_config.value)}" for line in before.splitlines())
     source = f"""
-{final_import_text}
+{import_config.import_text}
 
 def foo():
 {source_function_content}
 """
 
-    after_function_content = "\n".join(f"    {line.format(final_value)}" for line in after.splitlines())
+    after_function_content = "\n".join(f"    {line.format(import_config.value)}" for line in after.splitlines())
     after_source = f"""
-{final_import_text}
+{import_config.import_text}
 
 def foo():
 {after_function_content}
 """
-    assert transform_file_content(source.strip(), import_mode=import_mode) == after_source.strip()
+    assert transform_file_content(source.strip(), import_config=import_config) == after_source.strip()
 
 
 @pytest.mark.parametrize(
@@ -600,10 +591,11 @@ a.b = 1
     ],
 )
 def test_transform_file_content(case: str) -> None:
+    import_config = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
     before, _, after = case.partition("---")
     assert (
-        transform_file_content("import typing\n" + before.strip(), import_mode=ImportMode.typing_final)
-        == "import typing\n" + after.strip()
+        transform_file_content(f"{import_config.import_text}\n" + before.strip(), import_config=import_config)
+        == f"{import_config.import_text}\n" + after.strip()
     )
 
 
@@ -664,4 +656,5 @@ def f():
 )
 def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
-    assert transform_file_content(before.strip(), import_mode=ImportMode.typing_final) == after.strip()
+    import_config = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
+    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
