@@ -132,6 +132,14 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, P
                 yield from left.find_all(kind="identifier")
 
 
+def find_identifiers_in_scope(root: SgNode) -> Iterable[tuple[str, SgNode]]:
+    for node in root.find_all(DEFINITION_RULE):
+        if is_inside_inner_function_or_class(root, node) or node == root:
+            continue
+        for identifier in find_identifiers_in_node(node):
+            yield identifier.text(), node
+
+
 def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
     match node.kind():
         case "default_parameter" | "typed_default_parameter":
@@ -152,11 +160,8 @@ def find_definitions_in_function_of_module(root: SgNode) -> Iterable[list[SgNode
                 for identifier in find_identifiers_in_function_parameter(parameter):
                     definition_map[identifier.text()].append(parameter)
 
-        for node in function.find_all(DEFINITION_RULE):
-            if is_inside_inner_function_or_class(function, node) or node == function:
-                continue
-            for identifier in find_identifiers_in_node(node):
-                definition_map[identifier.text()].append(node)
+        for identifier, node in find_identifiers_in_scope(function):
+            definition_map[identifier].append(node)
 
         yield from definition_map.values()
 
