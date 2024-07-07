@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from ast_grep_py import Config, SgNode
 
@@ -132,7 +133,7 @@ def _find_identifiers_made_by_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C
                 yield from left.find_all(kind="identifier")
 
 
-def _find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
+def _find_identifiers_in_current_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
     for child in node.find_all(DEFINITION_RULE):
         if _is_inside_inner_function_or_class(node, child) or child == node:
             continue
@@ -160,11 +161,52 @@ def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
                 for identifier in _find_identifiers_in_function_parameter(parameter):
                     definition_map[identifier.text()].append(parameter)
 
-        for identifier, node in _find_identifiers_in_scope(function):
+        for identifier, node in _find_identifiers_in_current_scope(function):
             definition_map[identifier.text()].append(node)
 
         yield from definition_map.values()
 
 
 def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
-    return name in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
+    return name in {identifier.text() for identifier, _ in _find_identifiers_in_current_scope(root)}
+
+
+@dataclass
+class ImportsResult:
+    module_aliases: set[str]
+    has_from_import: bool
+
+
+def find_imports_of_identifier_in_scope(root: SgNode, module_name: str, identifier_name: str) -> ImportsResult:  # noqa: C901
+    result = ImportsResult(module_aliases={module_name}, has_from_import=False)
+
+    for node in root.find_all(any=[{"kind": "import_statement"}, {"kind": "import_from_statement"}]):
+        if _is_inside_inner_function_or_class(root, node) or node == root:
+            continue
+
+        match tuple((child.kind(), child) for child in node.children()):
+            case (("from", _), (_, module), ("import", _), *name_nodes):
+                for kind, name_node in name_nodes:
+                    if (
+                        kind == "dotted_name"
+                        and (identifier := _get_last_child_of_type(name_node, "identifier"))
+                        and module.text() == module_name
+                        and identifier.text() == identifier_name
+                    ):
+                        result.has_from_import = True
+            case (("import", _), *name_nodes):
+                for kind, name_node in name_nodes:
+                    match kind:
+                        case "dotted_name":
+                            if (identifier := _get_last_child_of_type(name_node, "identifier")) and (
+                                identifier_text := identifier.text()
+                            ) == module_name:
+                                result.module_aliases.add(identifier_text)
+                        case "aliased_import":
+                            if (
+                                (name := name_node.field("name"))
+                                and (name.text() == module_name)
+                                and (alias := name_node.field("alias"))
+                            ):
+                                result.module_aliases.add(alias.text())
+    return result
