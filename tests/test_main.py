@@ -654,3 +654,23 @@ def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
     import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        """
+def f():
+    a: typing.Final = 1
+    a = 2
+---
+def f():
+    a = 1
+    a = 2
+""",
+    ],
+)
+def test_add_import_2(case: str) -> None:
+    before, _, after = case.partition("---")
+    import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()

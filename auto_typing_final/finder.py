@@ -178,7 +178,7 @@ class ImportsResult:
 
 
 def get_global_imports(root: SgNode) -> ImportsResult:
-    result = ImportsResult(module_aliases=set(), has_from_import=False)
+    result = ImportsResult(module_aliases={"typing"}, has_from_import=False)
 
     for node in root.find_all(any=[{"kind": "import_statement"}, {"kind": "import_from_statement"}]):
         if _is_inside_inner_function_or_class(root, node) or node == root:
@@ -271,11 +271,15 @@ def new_replace(node: SgNode, imports_result: ImportsResult) -> str | None:
             if not imports_result.has_from_import:
                 return None
             match tuple((child.kind(), child) for child in inner_type_node.children()):
-                case (("identifier", _), ("type_parameter", type_parameter)):
+                case (("identifier", identifier), ("type_parameter", type_parameter)):
+                    if identifier.text() != "Final":
+                        return None
                     match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
                         case (("[", _), *kinds_and_nodes, ("]", _)):
                             return "".join(node.text() for kind, node in kinds_and_nodes)
         case "identifier":
+            if inner_type_node.text() != "Final":
+                return None
             return ""
         case "attribute":
             if handle_attribute(inner_type_node, imports_result):
