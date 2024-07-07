@@ -5,10 +5,7 @@ from enum import Enum
 
 from ast_grep_py import Edit, SgNode
 
-from auto_typing_final.finder import (
-    find_all_definitions_in_functions,
-    has_global_identifier_with_name,
-)
+from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
 
 TYPING_FINAL_VALUE = "typing.Final"
 TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
