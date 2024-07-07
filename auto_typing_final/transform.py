@@ -132,7 +132,7 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def make_operations_from_root(root: SgNode, import_mode: ImportMode = "typing-final") -> Iterable[AppliedOperation]:
+def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> Iterable[AppliedOperation]:
     for current_definitions in find_definitions_in_module(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         yield AppliedOperation(
