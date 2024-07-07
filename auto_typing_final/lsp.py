@@ -59,11 +59,11 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
     for replacement in result.replacements:
         if replacement.operation_type == AddFinal:
-            fix_message = f"{LSP_SERVER.name}: Add typing.Final"
-            diagnostic_message = "Missing typing.Final"
+            fix_message = f"{LSP_SERVER.name}: Add {IMPORT_CONFIG.value}"
+            diagnostic_message = f"Missing {IMPORT_CONFIG.value}"
         else:
-            fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
-            diagnostic_message = "Unexpected typing.Final"
+            fix_message = f"{LSP_SERVER.name}: Remove {IMPORT_CONFIG.value}"
+            diagnostic_message = f"Unexpected {IMPORT_CONFIG.value}"
 
         fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
         if result.import_text:
