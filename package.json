@@ -33,7 +33,7 @@
 		"vscode:prepublish": "npm run compile"
 	},
 	"dependencies": {
-		"vscode-languageclient": "^8.1.0"
+		"vscode-languageclient": "^9.0.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",
