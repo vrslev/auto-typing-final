@@ -9,7 +9,6 @@ from auto_typing_final.finder import (
     find_all_definitions_in_functions,
     get_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
-    strip_identifier_from_type_annotation,
 )
 
 
@@ -96,6 +95,44 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
+def _attribute_is_exact_identifier(node: SgNode, imports_result: ImportsResult, identifier_name: str) -> bool:
+    match tuple((inner_child.kind(), inner_child) for inner_child in node.children()):
+        case (("identifier", first_identifier), (".", _), ("identifier", second_identifier)):
+            return (
+                first_identifier.text() in imports_result.module_aliases and second_identifier.text() == identifier_name
+            )
+    return False
+
+
+def _strip_identifier_from_type_annotation(
+    node: SgNode, imports_result: ImportsResult, identifier_name: str
+) -> str | None:
+    type_node_children = node.children()
+    if len(type_node_children) != 1:
+        return None
+    inner_type_node = type_node_children[0]
+    kind = inner_type_node.kind()
+
+    if kind == "subscript":
+        match tuple((child.kind(), child) for child in inner_type_node.children()):
+            case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
+                if _attribute_is_exact_identifier(attribute, imports_result, identifier_name):
+                    return "".join(node.text() for kind, node in kinds_and_nodes)
+    elif kind == "generic_type" and imports_result.has_from_import:
+        match tuple((child.kind(), child) for child in inner_type_node.children()):
+            case (("identifier", identifier), ("type_parameter", type_parameter)):
+                if identifier.text() != identifier_name:
+                    return None
+                match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
+                    case (("[", _), *kinds_and_nodes, ("]", _)):
+                        return "".join(node.text() for kind, node in kinds_and_nodes)
+    elif (kind == "identifier" and inner_type_node.text() == identifier_name) or (
+        kind == "attribute" and _attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name)
+    ):
+        return ""
+    return None
+
+
 def _make_changed_text_from_operation(  # noqa: C901
     operation: Operation, final_value: str, imports_result: ImportsResult, identifier_name: str
 ) -> Iterable[tuple[SgNode, str]]:
@@ -105,7 +142,7 @@ def _make_changed_text_from_operation(  # noqa: C901
                 case AssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    match strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
+                    match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                         case None:
                             yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
                         case "":
@@ -119,7 +156,7 @@ def _make_changed_text_from_operation(  # noqa: C901
                     case AssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
-                        match strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
+                        match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                             case "":
                                 yield node, f"{left} = {right}"
                             case new_annotation:
