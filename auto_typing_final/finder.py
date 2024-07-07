@@ -132,12 +132,12 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, P
                 yield from left.find_all(kind="identifier")
 
 
-def find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[str, SgNode]]:
+def find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
     for child in node.find_all(DEFINITION_RULE):
         if is_inside_inner_function_or_class(node, child) or child == node:
             continue
         for identifier in find_identifiers_in_node(child):
-            yield identifier.text(), child
+            yield identifier, child
 
 
 def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
@@ -161,7 +161,7 @@ def find_definitions_in_functions_in_node(root: SgNode) -> Iterable[list[SgNode]
                     definition_map[identifier.text()].append(parameter)
 
         for identifier, node in find_identifiers_in_scope(function):
-            definition_map[identifier].append(node)
+            definition_map[identifier.text()].append(node)
 
         yield from definition_map.values()
 
@@ -178,7 +178,7 @@ def has_global_import_with_name(root: SgNode, name: str) -> bool:
     return False
 
 
-def has_import_import_typing(root: SgNode) -> bool:
+def should_add_import_typing(root: SgNode) -> bool:
     for import_statement in root.find_all(
         {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
     ):
@@ -186,9 +186,9 @@ def has_import_import_typing(root: SgNode) -> bool:
             continue
         for identifier in find_identifiers_in_import(import_statement):
             if identifier.text() == "typing":
-                return True
-    return False
+                return False
+    return True
 
 
 def should_add_from_typing_import_final(root: SgNode) -> bool:
-    return "Final" not in {identifier for identifier, _node in find_identifiers_in_scope(root)}
+    return "Final" not in {identifier.text() for identifier, _node in find_identifiers_in_scope(root)}
