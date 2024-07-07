@@ -15,7 +15,7 @@ def transform_file_content(source: str) -> str:
     edits: list[Edit] = []
     has_added_final = False
 
-    for applied_operation in make_operations_from_root(root, ImportMode.final):
+    for applied_operation in make_operations_from_root(root, ImportMode.typing_final):
         if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
             has_added_final = True
 
