@@ -58,14 +58,14 @@ def make_typing_import() -> TextEdit:
 
 
 def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[TextEdit]:
-    for edit in applied_operation.edits:
-        node_range = edit.node.range()
+    for applied_edit in applied_operation.edits:
+        node_range = applied_edit.node.range()
         yield TextEdit(
             range=Range(
                 start=Position(line=node_range.start.line, character=node_range.start.column),
                 end=Position(line=node_range.end.line, character=node_range.end.column),
             ),
-            new_text=edit.edit.inserted_text,
+            new_text=applied_edit.edit.inserted_text,
         )
 
 
@@ -81,10 +81,7 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
             fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
-        fix = Fix(
-            message=fix_message,
-            text_edits=list(make_diagnostic_text_edits(applied_operation=applied_operation)),
-        )
+        fix = Fix(message=fix_message, text_edits=list(make_diagnostic_text_edits(applied_operation)))
 
         if isinstance(applied_operation.operation, AddFinal) and not has_import:
             fix.text_edits.append(make_typing_import())
