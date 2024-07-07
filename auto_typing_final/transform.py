@@ -7,17 +7,18 @@ from ast_grep_py import Edit, SgNode
 
 from auto_typing_final.finder import (
     find_all_definitions_in_functions,
-    should_add_from_typing_import_final,
-    should_add_import_typing,
+    has_global_identifier_with_name,
 )
 
 TYPING_FINAL_VALUE = "typing.Final"
 TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
+TYPING_FINAL_IMPORT_TEXT = "import typing"
+TYPING_FINAL_IMPORT_IDENTIFIER = "typing"
+
 FINAL_VALUE = "Final"
 FINAL_OUTER_REGEX = re.compile(r"Final\[(.*)\]{1}")
-
-TYPING_FINAL_IMPORT_TEXT = "import typing"
 FINAL_IMPORT_TEXT = "from typing import Final"
+FINAL_IMPORT_IDENTIFIER = "Final"
 
 
 class ImportMode(Enum):
@@ -96,14 +97,9 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _make_changed_text_from_operation(operation: Operation, import_mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
-    if import_mode == ImportMode.typing_final:
-        final_value = TYPING_FINAL_VALUE
-        final_outer_regex = TYPING_FINAL_OUTER_REGEX
-    else:
-        final_value = FINAL_VALUE
-        final_outer_regex = FINAL_OUTER_REGEX
-
+def _make_changed_text_from_operation(
+    operation: Operation, final_value: str, final_outer_regex: re.Pattern[str]
+) -> Iterable[tuple[SgNode, str]]:
     match operation:
         case AddFinal(assignment):
             match assignment:
@@ -137,7 +133,18 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[list[AppliedOperation], str, None]:
+def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[list[AppliedOperation], str | None]:
+    if import_mode == ImportMode.typing_final:
+        final_value = TYPING_FINAL_VALUE
+        final_outer_regex = TYPING_FINAL_OUTER_REGEX
+        final_import_text = TYPING_FINAL_IMPORT_TEXT
+        final_import_identifier = TYPING_FINAL_IMPORT_IDENTIFIER
+    else:
+        final_value = FINAL_VALUE
+        final_outer_regex = FINAL_OUTER_REGEX
+        final_import_text = FINAL_IMPORT_TEXT
+        final_import_identifier = FINAL_IMPORT_IDENTIFIER
+
     applied_operations = []
     has_added_final = False
 
@@ -145,7 +152,9 @@ def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[li
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         edits = [
             AppliedEdit(node=node, edit=node.replace(new_text))
-            for node, new_text in _make_changed_text_from_operation(operation, import_mode)
+            for node, new_text in _make_changed_text_from_operation(
+                operation=operation, final_value=final_value, final_outer_regex=final_outer_regex
+            )
             if node.text() != new_text
         ]
         if isinstance(operation, AddFinal) and edits:
@@ -153,12 +162,9 @@ def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[li
 
         applied_operations.append(AppliedOperation(operation=operation, edits=edits))
 
-    if has_added_final:
-        if import_mode == ImportMode.typing_final and should_add_import_typing(root):
-            import_string = "import typing"
-        elif import_mode == ImportMode.final and should_add_from_typing_import_final(root):
-            import_string = "from typing import Final"
-        else:
-            import_string = None
-
-    return applied_operations
+    import_string = (
+        final_import_text
+        if has_added_final and has_global_identifier_with_name(root=root, name=final_import_identifier)
+        else None
+    )
+    return applied_operations, import_string

@@ -166,6 +166,10 @@ def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
         yield from definition_map.values()
 
 
+def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
+    return name in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
+
+
 def should_add_import_typing(root: SgNode) -> bool:
     return "typing" not in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
 
