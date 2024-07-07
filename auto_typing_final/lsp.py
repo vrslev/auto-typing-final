@@ -32,43 +32,41 @@ class DiagnosticData:
     fix: Fix
 
 
-def make_import_edit(import_string: str) -> lsp.TextEdit:
+def make_import_edit(import_text: str) -> lsp.TextEdit:
     return lsp.TextEdit(
         range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
-        new_text=f"{import_string}\n",
+        new_text=f"{import_text}\n",
     )
 
 
-def make_diagnostic_text_edits(applied_operation: Replacement) -> Iterable[lsp.TextEdit]:
-    for applied_edit in applied_operation.edits:
-        node_range = applied_edit.node.range()
+def make_diagnostic_text_edits(replacement: Replacement) -> Iterable[lsp.TextEdit]:
+    for edit in replacement.edits:
+        node_range = edit.node.range()
         yield lsp.TextEdit(
             range=lsp.Range(
                 start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
                 end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
             ),
-            new_text=applied_edit.edit.inserted_text,
+            new_text=edit.new_text,
         )
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
-    root = SgRoot(source, "python").root()
-    operations, import_string = make_replacements(root, IMPORT_CONFIG)
+    result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
-    for applied_operation in operations:
-        if isinstance(applied_operation.operation, AddFinal):
+    for replacement in result.replacements:
+        if replacement.operation_type == AddFinal:
             fix_message = f"{LSP_SERVER.name}: Add typing.Final"
             diagnostic_message = "Missing typing.Final"
         else:
             fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
-        fix = Fix(message=fix_message, text_edits=list(make_diagnostic_text_edits(applied_operation)))
+        fix = Fix(message=fix_message, text_edits=list(make_diagnostic_text_edits(replacement)))
+        if result.import_text:
+            fix.text_edits.append(make_import_edit(result.import_text))
 
-        if import_string:
-            fix.text_edits.append(make_import_edit(import_string))
-
-        for applied_edit in applied_operation.edits:
+        for applied_edit in replacement.edits:
             node_range = applied_edit.node.range()
             yield lsp.Diagnostic(
                 range=lsp.Range(
@@ -83,14 +81,13 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
-    root = SgRoot(source, "python").root()
-    operations, import_string = make_replacements(root, IMPORT_CONFIG)
+    result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
-    for applied_operation in operations:
-        yield from make_diagnostic_text_edits(applied_operation)
+    for replacement in result.replacements:
+        yield from make_diagnostic_text_edits(replacement)
 
-    if import_string:
-        yield make_import_edit(import_string)
+    if result.import_text:
+        yield make_import_edit(result.import_text)
 
 
 def make_quickfix_action(diagnostic: lsp.Diagnostic, text_document: TextDocument) -> lsp.CodeAction:
