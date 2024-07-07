@@ -1,26 +1,21 @@
-// @ts-check
-const path = require("path");
-const fs = require("fs");
-const vscode = require("vscode");
-const vscodeLanguageClient = require("vscode-languageclient/node");
+import * as fs from "fs";
+import * as path from "path";
+import * as vscode from "vscode";
+import * as vscodeLanguageClient from "vscode-languageclient/node";
 
-/** @type {vscodeLanguageClient.LanguageClient | undefined} */
-let languageClient;
-let outputChannel;
+let languageClient: vscodeLanguageClient.LanguageClient | undefined;
+let outputChannel: vscode.LogOutputChannel | undefined;
 
 const serverId = "auto-typing-final";
 const serverName = serverId;
 
-/**
- * @returns {vscode.Extension<{
- *   environments: {
- *     onDidChangeActiveEnvironmentPath: ((event) => any),
- *     getActiveEnvironmentPath: () => { path: string },
- *     resolveEnvironment: (environment: { path: string }) => Promise<{ executable: { uri?: { fsPath: string } } } | undefined>,
- *   }
- * }> | undefined}
- **/
-function getPythonExtension() {
+function getPythonExtension(): vscode.Extension<{
+  environments: {
+    onDidChangeActiveEnvironmentPath: ((event: any) => any),
+    getActiveEnvironmentPath: () => { path: string },
+    resolveEnvironment: (environment: { path: string }) => Promise<{ executable: { uri?: { fsPath: string } } } | undefined>,
+  }
+}> | undefined {
   return vscode.extensions.getExtension("ms-python.python");
 }
 
@@ -75,34 +70,27 @@ async function restartServer() {
   await languageClient.start();
 }
 
-module.exports = {
-  /**
-   * @param context {vscode.ExtensionContext}
-   **/
-  async activate(context) {
-    /** @type {vscode.Extension<{environments: {onDidChangeActiveEnvironmentPath: ((event) => any)}}> | undefined} */
-    const pythonExtension = vscode.extensions.getExtension("ms-python.python");
-    if (!pythonExtension?.isActive) await pythonExtension?.activate();
+export async function activate(context: vscode.ExtensionContext) {
+  const pythonExtension = getPythonExtension();
+  if (!pythonExtension?.isActive) await pythonExtension?.activate();
 
-    outputChannel = vscode.window.createOutputChannel(serverName, {
-      log: true,
-    });
+  outputChannel = vscode.window.createOutputChannel(serverName, { log: true });
 
-    context.subscriptions.push(
-      outputChannel,
-      pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
-        async () => {
-          await restartServer();
-        },
-      ),
-      vscode.commands.registerCommand(`${serverName}.restart`, async () => {
+  context.subscriptions.push(
+    outputChannel,
+    pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
+      async () => {
         await restartServer();
-      }),
-    );
+      },
+    ),
+    vscode.commands.registerCommand(`${serverName}.restart`, async () => {
+      await restartServer();
+    }),
+  );
 
-    await restartServer();
-  },
-  async deactivate() {
-    await languageClient?.stop();
-  },
-};
+  await restartServer();
+}
+
+export async function deactivate() {
+  await languageClient?.stop();
+}

@@ -40,18 +40,19 @@
     ]
   },
   "scripts": {
-    "fmt": "prettier -w .",
-    "package": "webpack --mode production --devtool source-map --config ./webpack.config.js",
-    "watch": "webpack --watch",
-    "vscode:prepublish": "npm run package"
+    "fmt": "@biomejs/biome format --write .",
+    "package": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.8.3",
+    "@types/node": "^20.14.10",
     "@types/vscode": "^1.90.0",
     "prettier": "^3.3.2",
-    "webpack": "^5.92.1",
-    "webpack-cli": "^5.1.4"
+    "typescript": "^5.5.3"
   }
 }
