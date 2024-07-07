@@ -16,11 +16,11 @@ from auto_typing_final.transform import (
 
 def transform_file_content(source: str, import_config: ImportConfig) -> str:
     root = SgRoot(source, "python").root()
-    operations, import_string = make_replacements(root, import_config)
-    result = root.commit_edits(
-        [edit.node.replace(edit.new_text) for applied_operation in operations for edit in applied_operation.edits]
+    result = make_replacements(root, import_config)
+    new_text = root.commit_edits(
+        [edit.node.replace(edit.new_text) for replacement in result.replacements for edit in replacement.edits]
     )
-    return root.commit_edits([root.replace(f"{import_string}\n{result}")]) if import_string else result
+    return root.commit_edits([root.replace(f"{result.import_text}\n{new_text}")]) if result.import_text else new_text
 
 
 def take_python_source_files(paths: Iterable[Path]) -> Iterable[Path]:

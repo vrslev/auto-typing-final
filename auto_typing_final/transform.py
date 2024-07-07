@@ -144,8 +144,14 @@ class Replacement:
     edits: list[Edit]
 
 
-def make_replacements(root: SgNode, import_config: ImportConfig) -> tuple[list[Replacement], str | None]:
-    applied_operations = []
+@dataclass
+class MakeReplacementsResult:
+    replacements: list[Replacement]
+    import_text: str | None
+
+
+def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
+    replacements = []
     has_added_final = False
 
     for current_definitions in find_all_definitions_in_functions(root):
@@ -163,11 +169,13 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> tuple[list[R
         if (operation_type := type(operation)) == AddFinal and edits:
             has_added_final = True
 
-        applied_operations.append(Replacement(operation_type=operation_type, edits=edits))
+        replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
-    import_string = (
-        import_config.import_text
-        if has_added_final and not has_global_identifier_with_name(root=root, name=import_config.import_identifier)
-        else None
+    return MakeReplacementsResult(
+        replacements=replacements,
+        import_text=(
+            import_config.import_text
+            if has_added_final and not has_global_identifier_with_name(root=root, name=import_config.import_identifier)
+            else None
+        ),
     )
-    return applied_operations, import_string
