@@ -1,6 +1,7 @@
+import uuid
 from collections.abc import Iterable
 from importlib.metadata import version
-from typing import cast
+from typing import cast, get_args
 
 import attr
 import cattrs
@@ -9,10 +10,17 @@ from ast_grep_py import SgRoot
 from pygls import server
 from pygls.workspace import TextDocument
 
-from auto_typing_final.transform import IMPORT_MODES_TO_IMPORT_CONFIGS, AddFinal, Edit, ImportMode, make_replacements
+from auto_typing_final.transform import (
+    IMPORT_STYLES_TO_IMPORT_CONFIGS,
+    AddFinal,
+    Edit,
+    ImportConfig,
+    ImportStyle,
+    make_replacements,
+)
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
-IMPORT_CONFIG = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
+IMPORT_CONFIG: ImportConfig | None = None
 
 
 @attr.define
@@ -45,15 +53,17 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
+    if not IMPORT_CONFIG:
+        return
     result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
         if replacement.operation_type == AddFinal:
-            fix_message = f"{LSP_SERVER.name}: Add typing.Final"
-            diagnostic_message = "Missing typing.Final"
+            fix_message = f"{LSP_SERVER.name}: Add {IMPORT_CONFIG.value}"
+            diagnostic_message = f"Missing {IMPORT_CONFIG.value}"
         else:
-            fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
-            diagnostic_message = "Unexpected typing.Final"
+            fix_message = f"{LSP_SERVER.name}: Remove {IMPORT_CONFIG.value}"
+            diagnostic_message = f"Unexpected {IMPORT_CONFIG.value}"
 
         fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
         if result.import_text:
@@ -74,6 +84,8 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
+    if not IMPORT_CONFIG:
+        return
     result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
@@ -98,7 +110,35 @@ def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEd
 
 
 @LSP_SERVER.feature(lsp.INITIALIZE)
-def initialize(params: lsp.InitializeParams) -> None: ...  # noqa: ARG001
+async def initialize(_: lsp.InitializeParams) -> None: ...
+
+
+@LSP_SERVER.feature(lsp.INITIALIZED)
+async def initialized(_: lsp.InitializedParams) -> None:
+    await LSP_SERVER.register_capability_async(
+        params=lsp.RegistrationParams(
+            registrations=[
+                lsp.Registration(
+                    id=str(uuid.uuid4()),
+                    method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
+                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name),
+                )
+            ]
+        )
+    )
+
+
+@LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
+def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
+    if (
+        isinstance(params.settings, dict)
+        and (settings := params.settings.get(LSP_SERVER.name))
+        and isinstance(settings, dict)
+        and (import_style := settings.get("import-style"))
+        and (import_style in get_args(ImportStyle))
+    ):
+        global IMPORT_CONFIG  # noqa: PLW0603
+        IMPORT_CONFIG = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)

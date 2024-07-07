@@ -24,7 +24,21 @@
 				"category": "auto-typing-final",
 				"command": "auto-typing-final.restart"
 			}
-		]
+		],
+		"configuration": {
+			"properties": {
+				"auto-typing-final.import-style": {
+					"default": "typing-final",
+					"enum": ["typing-final", "final"],
+					"enumDescriptions": [
+						"Use `import typing` and `typing.Final`",
+						"Use `from typing import Final` and `Final`"
+					],
+					"description": "Import style",
+					"scope": "resource"
+				}
+			}
+		}
 	},
 	"scripts": {
 		"lint": "biome format --write .",

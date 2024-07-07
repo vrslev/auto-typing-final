@@ -1,16 +1,13 @@
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import Enum
+from typing import Literal
 
 from ast_grep_py import SgNode
 
 from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
 
-
-class ImportMode(Enum):
-    typing_final = "typing-final"
-    final = "final"
+ImportStyle = Literal["typing-final", "final"]
 
 
 @dataclass
@@ -21,14 +18,14 @@ class ImportConfig:
     import_identifier: str
 
 
-IMPORT_MODES_TO_IMPORT_CONFIGS = {
-    ImportMode.typing_final: ImportConfig(
+IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
+    "typing-final": ImportConfig(
         value="typing.Final",
         outer_regex=re.compile(r"typing\.Final\[(.*)\]{1}"),
         import_text="import typing",
         import_identifier="typing",
     ),
-    ImportMode.final: ImportConfig(
+    "final": ImportConfig(
         value="Final",
         outer_regex=re.compile(r"Final\[(.*)\]{1}"),
         import_text="from typing import Final",

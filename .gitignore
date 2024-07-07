@@ -9,3 +9,4 @@ uv.lock
 .pytest_cache
 .ruff_cache
 testing/*.py
+testing/.vscode
