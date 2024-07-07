@@ -3,33 +3,8 @@ from typing import cast
 
 import attr
 import cattrs
+import lsprotocol.types as lsp
 from ast_grep_py import SgRoot
-from lsprotocol.types import (
-    CODE_ACTION_RESOLVE,
-    INITIALIZE,
-    TEXT_DOCUMENT_CODE_ACTION,
-    TEXT_DOCUMENT_DID_CHANGE,
-    TEXT_DOCUMENT_DID_CLOSE,
-    TEXT_DOCUMENT_DID_OPEN,
-    TEXT_DOCUMENT_DID_SAVE,
-    CodeAction,
-    CodeActionKind,
-    CodeActionOptions,
-    CodeActionParams,
-    Diagnostic,
-    DiagnosticSeverity,
-    DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams,
-    InitializeParams,
-    OptionalVersionedTextDocumentIdentifier,
-    Position,
-    Range,
-    TextDocumentEdit,
-    TextEdit,
-    WorkspaceEdit,
-)
 from pygls import server
 from pygls.workspace import TextDocument
 
@@ -42,7 +17,7 @@ LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_wo
 @attr.define
 class Fix:
     message: str
-    text_edits: list[TextEdit]
+    text_edits: list[lsp.TextEdit]
 
 
 @attr.define
@@ -50,26 +25,26 @@ class DiagnosticData:
     fix: Fix
 
 
-def make_typing_import() -> TextEdit:
-    return TextEdit(
-        range=Range(start=Position(line=0, character=0), end=Position(line=0, character=0)),
+def make_typing_import() -> lsp.TextEdit:
+    return lsp.TextEdit(
+        range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
         new_text="import typing\n",
     )
 
 
-def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[TextEdit]:
+def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[lsp.TextEdit]:
     for applied_edit in applied_operation.edits:
         node_range = applied_edit.node.range()
-        yield TextEdit(
-            range=Range(
-                start=Position(line=node_range.start.line, character=node_range.start.column),
-                end=Position(line=node_range.end.line, character=node_range.end.column),
+        yield lsp.TextEdit(
+            range=lsp.Range(
+                start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+                end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
             ),
             new_text=applied_edit.edit.inserted_text,
         )
 
 
-def make_diagnostics(source: str) -> Iterable[Diagnostic]:
+def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
     root = SgRoot(source, "python").root()
     has_import = has_global_import_with_name(root, "typing")
 
@@ -88,19 +63,19 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
 
         for applied_edit in applied_operation.edits:
             node_range = applied_edit.node.range()
-            yield Diagnostic(
-                range=Range(
-                    start=Position(line=node_range.start.line, character=node_range.start.column),
-                    end=Position(line=node_range.end.line, character=node_range.end.column),
+            yield lsp.Diagnostic(
+                range=lsp.Range(
+                    start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+                    end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
                 ),
                 message=diagnostic_message,
-                severity=DiagnosticSeverity.Warning,
+                severity=lsp.DiagnosticSeverity.Warning,
                 source=LSP_SERVER.name,
                 data=cattrs.unstructure(DiagnosticData(fix=fix)),
             )
 
 
-def make_fixall_text_edits(source: str) -> Iterable[TextEdit]:
+def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     root = SgRoot(source, "python").root()
     has_import = has_global_import_with_name(root, "typing")
     has_add_final_operation = False
@@ -114,16 +89,16 @@ def make_fixall_text_edits(source: str) -> Iterable[TextEdit]:
         yield make_typing_import()
 
 
-def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
+def make_quickfix_action(diagnostic: lsp.Diagnostic, text_document: TextDocument) -> lsp.CodeAction:
     data = cattrs.structure(diagnostic.data, DiagnosticData)
-    return CodeAction(
+    return lsp.CodeAction(
         title=data.fix.message,
-        kind=CodeActionKind.QuickFix,
+        kind=lsp.CodeActionKind.QuickFix,
         data=text_document.uri,
-        edit=WorkspaceEdit(
+        edit=lsp.WorkspaceEdit(
             document_changes=[
-                TextDocumentEdit(
-                    text_document=OptionalVersionedTextDocumentIdentifier(
+                lsp.TextDocumentEdit(
+                    text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                         uri=text_document.uri, version=text_document.version
                     ),
                     edits=data.fix.text_edits,  # type: ignore[arg-type]
@@ -134,34 +109,36 @@ def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) ->
     )
 
 
-@LSP_SERVER.feature(INITIALIZE)
-def initialize(params: InitializeParams) -> None: ...  # noqa: ARG001
+@LSP_SERVER.feature(lsp.INITIALIZE)
+def initialize(params: lsp.InitializeParams) -> None: ...  # noqa: ARG001
 
 
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_OPEN)
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_SAVE)
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_CHANGE)
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_SAVE)
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CHANGE)
 def did_open_did_save_did_change(
-    params: DidOpenTextDocumentParams | DidSaveTextDocumentParams | DidChangeTextDocumentParams,
+    params: lsp.DidOpenTextDocumentParams | lsp.DidSaveTextDocumentParams | lsp.DidChangeTextDocumentParams,
 ) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
 
 
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(params: DidCloseTextDocumentParams) -> None:
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CLOSE)
+def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
     LSP_SERVER.publish_diagnostics(params.text_document.uri, [])
 
 
 @LSP_SERVER.feature(
-    TEXT_DOCUMENT_CODE_ACTION,
-    CodeActionOptions(code_action_kinds=[CodeActionKind.QuickFix, CodeActionKind.SourceFixAll], resolve_provider=True),
+    lsp.TEXT_DOCUMENT_CODE_ACTION,
+    lsp.CodeActionOptions(
+        code_action_kinds=[lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll], resolve_provider=True
+    ),
 )
-def code_action(params: CodeActionParams) -> list[CodeAction] | None:
-    requested_kinds = params.context.only or {CodeActionKind.QuickFix, CodeActionKind.SourceFixAll}
-    actions: list[CodeAction] = []
+def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
+    requested_kinds = params.context.only or {lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll}
+    actions: list[lsp.CodeAction] = []
 
-    if CodeActionKind.QuickFix in requested_kinds:
+    if lsp.CodeActionKind.QuickFix in requested_kinds:
         text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
         actions.extend(
             make_quickfix_action(diagnostic=diagnostic, text_document=text_document)
@@ -169,11 +146,11 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
             if diagnostic.source == LSP_SERVER.name
         )
 
-    if CodeActionKind.SourceFixAll in requested_kinds:
+    if lsp.CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
-            CodeAction(
+            lsp.CodeAction(
                 title=f"{LSP_SERVER.name}: Fix All",
-                kind=CodeActionKind.SourceFixAll,
+                kind=lsp.CodeActionKind.SourceFixAll,
                 data=params.text_document.uri,
                 edit=None,
                 diagnostics=[],
@@ -183,16 +160,16 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     return actions or None
 
 
-@LSP_SERVER.feature(CODE_ACTION_RESOLVE)
-def resolve_code_action(params: CodeAction) -> CodeAction:
-    if params.kind != CodeActionKind.SourceFixAll:
+@LSP_SERVER.feature(lsp.CODE_ACTION_RESOLVE)
+def resolve_code_action(params: lsp.CodeAction) -> lsp.CodeAction:
+    if params.kind != lsp.CodeActionKind.SourceFixAll:
         return params
 
     text_document = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
-    params.edit = WorkspaceEdit(
+    params.edit = lsp.WorkspaceEdit(
         document_changes=[
-            TextDocumentEdit(
-                text_document=OptionalVersionedTextDocumentIdentifier(
+            lsp.TextDocumentEdit(
+                text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                     uri=text_document.uri, version=text_document.version
                 ),
                 edits=list(make_fixall_text_edits(text_document.source)),
