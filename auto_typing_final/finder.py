@@ -132,12 +132,12 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, P
                 yield from left.find_all(kind="identifier")
 
 
-def find_identifiers_in_scope(root: SgNode) -> Iterable[tuple[str, SgNode]]:
-    for node in root.find_all(DEFINITION_RULE):
-        if is_inside_inner_function_or_class(root, node) or node == root:
+def find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[str, SgNode]]:
+    for child in node.find_all(DEFINITION_RULE):
+        if is_inside_inner_function_or_class(node, child) or child == node:
             continue
-        for identifier in find_identifiers_in_node(node):
-            yield identifier.text(), node
+        for identifier in find_identifiers_in_node(child):
+            yield identifier.text(), child
 
 
 def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
