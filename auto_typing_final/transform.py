@@ -87,11 +87,11 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _make_changed_text_from_operation(operation: Operation, mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901, PLR0912
-    if mode == "typing-final":
+def _make_changed_text_from_operation(operation: Operation, import_mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901, PLR0912
+    if import_mode == "typing-final":
         final_value = TYPING_FINAL_VALUE
         final_outer_regex = TYPING_FINAL_OUTER_REGEX
-    elif mode == "final":
+    elif import_mode == "final":
         final_value = FINAL_VALUE
         final_outer_regex = FINAL_OUTER_REGEX
     else:
@@ -132,14 +132,14 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def make_operations_from_root(root: SgNode, mode: ImportMode = "typing-final") -> Iterable[AppliedOperation]:
+def make_operations_from_root(root: SgNode, import_mode: ImportMode = "typing-final") -> Iterable[AppliedOperation]:
     for current_definitions in find_definitions_in_module(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         yield AppliedOperation(
             operation=operation,
             edits=[
                 AppliedEdit(node=node, edit=node.replace(new_text))
-                for node, new_text in _make_changed_text_from_operation(operation, mode)
+                for node, new_text in _make_changed_text_from_operation(operation, import_mode)
                 if node.text() != new_text
             ],
         )

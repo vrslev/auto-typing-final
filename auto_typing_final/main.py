@@ -33,6 +33,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", type=Path, nargs="*")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--import-mode")
     args = parser.parse_args()
 
     has_changes = False
