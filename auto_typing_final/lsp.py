@@ -90,23 +90,16 @@ def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
         yield make_import_edit(result.import_text)
 
 
-def make_quickfix_action(diagnostic: lsp.Diagnostic, text_document: TextDocument) -> lsp.CodeAction:
-    data = cattrs.structure(diagnostic.data, DiagnosticData)
-    return lsp.CodeAction(
-        title=data.fix.message,
-        kind=lsp.CodeActionKind.QuickFix,
-        data=text_document.uri,
-        edit=lsp.WorkspaceEdit(
-            document_changes=[
-                lsp.TextDocumentEdit(
-                    text_document=lsp.OptionalVersionedTextDocumentIdentifier(
-                        uri=text_document.uri, version=text_document.version
-                    ),
-                    edits=data.fix.text_edits,  # type: ignore[arg-type]
-                )
-            ]
-        ),
-        diagnostics=[diagnostic],
+def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEdit]) -> lsp.WorkspaceEdit:
+    return lsp.WorkspaceEdit(
+        document_changes=[
+            lsp.TextDocumentEdit(
+                text_document=lsp.OptionalVersionedTextDocumentIdentifier(
+                    uri=text_document.uri, version=text_document.version
+                ),
+                edits=text_edits,  # type: ignore[arg-type]
+            )
+        ]
     )
 
 
@@ -141,11 +134,19 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
 
     if lsp.CodeActionKind.QuickFix in requested_kinds:
         text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-        actions.extend(
-            make_quickfix_action(diagnostic=diagnostic, text_document=text_document)
-            for diagnostic in params.context.diagnostics
-            if diagnostic.source == LSP_SERVER.name
-        )
+
+        for diagnostic in params.context.diagnostics:
+            if diagnostic.source != LSP_SERVER.name:
+                continue
+            data = cattrs.structure(diagnostic.data, DiagnosticData)
+            actions.append(
+                lsp.CodeAction(
+                    title=data.fix.message,
+                    kind=lsp.CodeActionKind.QuickFix,
+                    edit=make_workspace_edit(text_document=text_document, text_edits=data.fix.text_edits),
+                    diagnostics=[diagnostic],
+                )
+            )
 
     if lsp.CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
