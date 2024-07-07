@@ -598,29 +598,53 @@ def test_transform_file_content(case: str) -> None:
     [
         """
 import typing
-a = 1
+
+def f():
+    a = 1
 ---
 import typing
-a = 1
+
+def f():
+    a: typing.Final = 1
 """,
         """
 import typing
-a: typing.Final = 1
+
+def f():
+    a: typing.Final = 1
 ---
 import typing
-a: typing.Final = 1
+
+def f():
+    a: typing.Final = 1
 """,
         """
-a: typing.Final = 1
+def f():
+    a = 1
 ---
-a: typing.Final = 1
+import typing
+def f():
+    a: typing.Final = 1
 """,
         """
-a: typing.Final = 1
-a = 2
+def f():
+    a: typing.Final = 1
+    a = 2
 ---
-a: typing.Final = 1
-a = 2
+def f():
+    a = 1
+    a = 2
+""",
+        """
+typing = 1
+
+def f():
+    a = 1
+---
+typing = 1
+
+def f():
+    a: typing.Final = 1
 """,
     ],
 )
