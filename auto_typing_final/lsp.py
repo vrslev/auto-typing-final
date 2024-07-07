@@ -1,87 +1,51 @@
 from collections.abc import Iterable
-from typing import TypedDict, cast
+from importlib.metadata import version
+from typing import cast
 
+import attr
 import cattrs
+import lsprotocol.types as lsp
 from ast_grep_py import SgRoot
-from lsprotocol.types import (
-    CODE_ACTION_RESOLVE,
-    INITIALIZE,
-    TEXT_DOCUMENT_CODE_ACTION,
-    TEXT_DOCUMENT_DID_CHANGE,
-    TEXT_DOCUMENT_DID_CLOSE,
-    TEXT_DOCUMENT_DID_OPEN,
-    TEXT_DOCUMENT_DID_SAVE,
-    CodeAction,
-    CodeActionKind,
-    CodeActionOptions,
-    CodeActionParams,
-    Diagnostic,
-    DiagnosticSeverity,
-    DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams,
-    InitializeParams,
-    OptionalVersionedTextDocumentIdentifier,
-    Position,
-    Range,
-    TextDocumentEdit,
-    TextEdit,
-    WorkspaceEdit,
-)
 from pygls import server
 from pygls.workspace import TextDocument
 
 from auto_typing_final.finder import has_global_import_with_name
 from auto_typing_final.transform import AddFinal, AppliedOperation, make_operations_from_root
 
-LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
+LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
-class DiagnosticPosition(TypedDict):
-    line: int
-    character: int
-
-
-class DiagnosticRange(TypedDict):
-    start: DiagnosticPosition
-    end: DiagnosticPosition
-
-
-class DiagnosticTextEdit(TypedDict):
-    range: DiagnosticRange
-    new_text: str
-
-
-class DiagnosticFix(TypedDict):
+@attr.define
+class Fix:
     message: str
-    text_edits: list[DiagnosticTextEdit]
+    text_edits: list[lsp.TextEdit]
 
 
-class DiagnosticData(TypedDict):
-    fix: DiagnosticFix
+@attr.define
+class DiagnosticData:
+    fix: Fix
 
 
-def make_typing_import() -> DiagnosticTextEdit:
-    return {
-        "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
-        "new_text": "import typing\n",
-    }
+def make_typing_import() -> lsp.TextEdit:
+    return lsp.TextEdit(
+        range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
+        new_text="import typing\n",
+    )
 
 
-def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[DiagnosticTextEdit]:
-    for edit in applied_operation.edits:
-        node_range = edit.node.range()
-        yield {
-            "range": {
-                "start": {"line": node_range.start.line, "character": node_range.start.column},
-                "end": {"line": node_range.end.line, "character": node_range.end.column},
-            },
-            "new_text": edit.edit.inserted_text,
-        }
+def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[lsp.TextEdit]:
+    for applied_edit in applied_operation.edits:
+        node_range = applied_edit.node.range()
+        yield lsp.TextEdit(
+            range=lsp.Range(
+                start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+                end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
+            ),
+            new_text=applied_edit.edit.inserted_text,
+        )
 
 
-def make_diagnostics(source: str) -> Iterable[Diagnostic]:
+def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
     root = SgRoot(source, "python").root()
     has_import = has_global_import_with_name(root, "typing")
 
@@ -93,29 +57,26 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
             fix_message = f"{LSP_SERVER.name}: Remove typing.Final"
             diagnostic_message = "Unexpected typing.Final"
 
-        fix = DiagnosticFix(
-            message=fix_message,
-            text_edits=list(make_diagnostic_text_edits(applied_operation=applied_operation)),
-        )
+        fix = Fix(message=fix_message, text_edits=list(make_diagnostic_text_edits(applied_operation)))
 
         if isinstance(applied_operation.operation, AddFinal) and not has_import:
-            fix["text_edits"].append(make_typing_import())
+            fix.text_edits.append(make_typing_import())
 
         for applied_edit in applied_operation.edits:
             node_range = applied_edit.node.range()
-            yield Diagnostic(
-                range=Range(
-                    start=Position(line=node_range.start.line, character=node_range.start.column),
-                    end=Position(line=node_range.end.line, character=node_range.end.column),
+            yield lsp.Diagnostic(
+                range=lsp.Range(
+                    start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+                    end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
                 ),
                 message=diagnostic_message,
-                severity=DiagnosticSeverity.Warning,
+                severity=lsp.DiagnosticSeverity.Warning,
                 source=LSP_SERVER.name,
-                data=DiagnosticData(fix=fix),
+                data=cattrs.unstructure(DiagnosticData(fix=fix)),
             )
 
 
-def make_fixall_text_edits(source: str) -> Iterable[TextEdit]:
+def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     root = SgRoot(source, "python").root()
     has_import = has_global_import_with_name(root, "typing")
     has_add_final_operation = False
@@ -123,27 +84,25 @@ def make_fixall_text_edits(source: str) -> Iterable[TextEdit]:
     for applied_operation in make_operations_from_root(root):
         if isinstance(applied_operation.operation, AddFinal):
             has_add_final_operation = True
-
-        for diagnostic_text_edit in make_diagnostic_text_edits(applied_operation=applied_operation):
-            yield cattrs.structure(diagnostic_text_edit, TextEdit)
+        yield from make_diagnostic_text_edits(applied_operation)
 
     if has_add_final_operation and not has_import:
-        yield cattrs.structure(make_typing_import(), TextEdit)
+        yield make_typing_import()
 
 
-def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) -> CodeAction:
-    fix = cast(DiagnosticData, diagnostic.data)["fix"]
-    return CodeAction(
-        title=fix["message"],
-        kind=CodeActionKind.QuickFix,
+def make_quickfix_action(diagnostic: lsp.Diagnostic, text_document: TextDocument) -> lsp.CodeAction:
+    data = cattrs.structure(diagnostic.data, DiagnosticData)
+    return lsp.CodeAction(
+        title=data.fix.message,
+        kind=lsp.CodeActionKind.QuickFix,
         data=text_document.uri,
-        edit=WorkspaceEdit(
+        edit=lsp.WorkspaceEdit(
             document_changes=[
-                TextDocumentEdit(
-                    text_document=OptionalVersionedTextDocumentIdentifier(
+                lsp.TextDocumentEdit(
+                    text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                         uri=text_document.uri, version=text_document.version
                     ),
-                    edits=[cattrs.structure(edit, TextEdit) for edit in fix["text_edits"]],
+                    edits=data.fix.text_edits,  # type: ignore[arg-type]
                 )
             ]
         ),
@@ -151,34 +110,36 @@ def make_quickfix_action(diagnostic: Diagnostic, text_document: TextDocument) ->
     )
 
 
-@LSP_SERVER.feature(INITIALIZE)
-def initialize(params: InitializeParams) -> None: ...  # noqa: ARG001
+@LSP_SERVER.feature(lsp.INITIALIZE)
+def initialize(params: lsp.InitializeParams) -> None: ...  # noqa: ARG001
 
 
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_OPEN)
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_SAVE)
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_CHANGE)
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_SAVE)
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CHANGE)
 def did_open_did_save_did_change(
-    params: DidOpenTextDocumentParams | DidSaveTextDocumentParams | DidChangeTextDocumentParams,
+    params: lsp.DidOpenTextDocumentParams | lsp.DidSaveTextDocumentParams | lsp.DidChangeTextDocumentParams,
 ) -> None:
     text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
 
 
-@LSP_SERVER.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(params: DidCloseTextDocumentParams) -> None:
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CLOSE)
+def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
     LSP_SERVER.publish_diagnostics(params.text_document.uri, [])
 
 
 @LSP_SERVER.feature(
-    TEXT_DOCUMENT_CODE_ACTION,
-    CodeActionOptions(code_action_kinds=[CodeActionKind.QuickFix, CodeActionKind.SourceFixAll], resolve_provider=True),
+    lsp.TEXT_DOCUMENT_CODE_ACTION,
+    lsp.CodeActionOptions(
+        code_action_kinds=[lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll], resolve_provider=True
+    ),
 )
-def code_action(params: CodeActionParams) -> list[CodeAction] | None:
-    requested_kinds = params.context.only or {CodeActionKind.QuickFix, CodeActionKind.SourceFixAll}
-    actions: list[CodeAction] = []
+def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
+    requested_kinds = params.context.only or {lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll}
+    actions: list[lsp.CodeAction] = []
 
-    if CodeActionKind.QuickFix in requested_kinds:
+    if lsp.CodeActionKind.QuickFix in requested_kinds:
         text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
         actions.extend(
             make_quickfix_action(diagnostic=diagnostic, text_document=text_document)
@@ -186,11 +147,11 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
             if diagnostic.source == LSP_SERVER.name
         )
 
-    if CodeActionKind.SourceFixAll in requested_kinds:
+    if lsp.CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
-            CodeAction(
+            lsp.CodeAction(
                 title=f"{LSP_SERVER.name}: Fix All",
-                kind=CodeActionKind.SourceFixAll,
+                kind=lsp.CodeActionKind.SourceFixAll,
                 data=params.text_document.uri,
                 edit=None,
                 diagnostics=[],
@@ -200,16 +161,16 @@ def code_action(params: CodeActionParams) -> list[CodeAction] | None:
     return actions or None
 
 
-@LSP_SERVER.feature(CODE_ACTION_RESOLVE)
-def resolve_code_action(params: CodeAction) -> CodeAction:
-    if params.kind != CodeActionKind.SourceFixAll:
+@LSP_SERVER.feature(lsp.CODE_ACTION_RESOLVE)
+def resolve_code_action(params: lsp.CodeAction) -> lsp.CodeAction:
+    if params.kind != lsp.CodeActionKind.SourceFixAll:
         return params
 
     text_document = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
-    params.edit = WorkspaceEdit(
+    params.edit = lsp.WorkspaceEdit(
         document_changes=[
-            TextDocumentEdit(
-                text_document=OptionalVersionedTextDocumentIdentifier(
+            lsp.TextDocumentEdit(
+                text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                     uri=text_document.uri, version=text_document.version
                 ),
                 edits=list(make_fixall_text_edits(text_document.source)),

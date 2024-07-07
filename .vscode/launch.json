@@ -7,10 +7,11 @@
 			"request": "launch",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"${workspaceFolder}/testing",
-				"${workspaceFolder}/testing/t.py"
+				"${workspaceFolder}/testing"
 			],
-			"outFiles": ["${workspaceFolder}/dist/*.js"],
+			"outFiles": [
+				"${workspaceFolder}/dist/*.js"
+			],
 			"preLaunchTask": "npm: watch"
 		}
 	]
