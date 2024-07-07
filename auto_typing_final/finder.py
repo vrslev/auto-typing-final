@@ -151,7 +151,7 @@ def _find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
             yield from _find_identifiers_in_children(node)
 
 
-def find_all_definitions(root: SgNode) -> Iterable[list[SgNode]]:
+def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         definition_map = defaultdict(list)
 
