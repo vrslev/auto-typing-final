@@ -10,6 +10,25 @@ from auto_typing_final.finder import has_global_import_with_name
 from auto_typing_final.transform import AddFinal, ImportMode, make_operations_from_root
 
 
+def transform_file_content(source: str) -> str:
+    root = SgRoot(source, "python").root()
+    edits: list[Edit] = []
+    has_added_final = False
+
+    for applied_operation in make_operations_from_root(root, ImportMode.final):
+        if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
+            has_added_final = True
+
+        edits.extend(edit.edit for edit in applied_operation.edits)
+
+    result = root.commit_edits(edits)
+
+    if has_added_final and not has_global_import_with_name(root, "typing"):
+        result = root.commit_edits([root.replace(f"import typing\n{result}")])
+
+    return result
+
+
 def take_python_source_files(paths: Iterable[Path]) -> Iterable[Path]:
     for path in paths:
         if path.suffix in {".py", ".pyi"}:
@@ -30,25 +49,6 @@ def find_source_files_from_one_path(path: Path) -> Iterable[Path]:
 def find_all_source_files(paths: list[Path]) -> Iterable[Path]:
     for path in paths:
         yield from find_source_files_from_one_path(path)
-
-
-def transform_file_content(source: str) -> str:
-    root = SgRoot(source, "python").root()
-    edits: list[Edit] = []
-    has_added_final = False
-
-    for applied_operation in make_operations_from_root(root, ImportMode.final):
-        if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
-            has_added_final = True
-
-        edits.extend(edit.edit for edit in applied_operation.edits)
-
-    result = root.commit_edits(edits)
-
-    if has_added_final and not has_global_import_with_name(root, "typing"):
-        result = root.commit_edits([root.replace(f"import typing\n{result}")])
-
-    return result
 
 
 def main() -> int:
