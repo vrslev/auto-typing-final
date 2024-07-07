@@ -28,7 +28,7 @@
 	},
 	"scripts": {
 		"fmt": "biome format --write .",
-		"package": "tsc -p ./",
+		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"vscode:prepublish": "npm run compile"
 	},
