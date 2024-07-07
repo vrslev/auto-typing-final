@@ -1,7 +1,13 @@
 import pytest
 
 from auto_typing_final.main import transform_file_content
-from auto_typing_final.transform import ImportMode, _resolve_import_mode  # noqa: PLC2701
+from auto_typing_final.transform import (
+    FINAL_IMPORT_TEXT,
+    FINAL_VALUE,
+    TYPING_FINAL_IMPORT_TEXT,
+    TYPING_FINAL_VALUE,
+    ImportMode,
+)
 
 
 @pytest.mark.parametrize("import_mode", list(ImportMode))
@@ -38,7 +44,13 @@ from auto_typing_final.transform import ImportMode, _resolve_import_mode  # noqa
     ],
 )
 def test_variants(import_mode: ImportMode, before: str, after: str) -> None:
-    final_value, _, final_import_text = _resolve_import_mode(import_mode)
+    if import_mode == ImportMode.typing_final:
+        final_value = TYPING_FINAL_VALUE
+        final_import_text = TYPING_FINAL_IMPORT_TEXT
+    if import_mode == ImportMode.final:
+        final_value = FINAL_VALUE
+        final_import_text = FINAL_IMPORT_TEXT
+
     source_function_content = "\n".join(f"    {line.format(final_value)}" for line in before.splitlines())
     source = f"""
 {final_import_text}
