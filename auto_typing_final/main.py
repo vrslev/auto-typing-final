@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ast_grep_py import Edit, SgRoot
 
-from auto_typing_final.finder import has_global_import_with_name
+from auto_typing_final.finder import should_add_from_typing_import_final, should_add_import_typing
 from auto_typing_final.transform import AddFinal, ImportMode, make_operations_from_root
 
 
@@ -23,8 +23,11 @@ def transform_file_content(source: str, import_mode: ImportMode) -> str:
 
     result = root.commit_edits(edits)
 
-    if has_added_final and not has_global_import_with_name(root, "typing"):
-        result = root.commit_edits([root.replace(f"import typing\n{result}")])
+    if has_added_final:
+        if import_mode == ImportMode.typing_final and should_add_import_typing(root):
+            result = root.commit_edits([root.replace(f"import typing\n{result}")])
+        elif import_mode == ImportMode.final and should_add_from_typing_import_final(root):
+            result = root.commit_edits([root.replace(f"from typing import Final\n{result}")])
 
     return result
 
