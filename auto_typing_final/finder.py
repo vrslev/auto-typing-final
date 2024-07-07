@@ -65,7 +65,7 @@ def find_identifiers_in_import(node: SgNode) -> Iterable[SgNode]:
                             yield alias
 
 
-def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912
+def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
             if not (left := node.field("left")):
@@ -155,7 +155,7 @@ def find_definitions_in_function_of_module(root: SgNode) -> Iterable[list[SgNode
         for node in function.find_all(DEFINITION_RULE):
             if is_inside_inner_function_or_class(function, node) or node == function:
                 continue
-            for identifier in find_identifiers_in_function_body(node):
+            for identifier in find_identifiers_in_node(node):
                 definition_map[identifier.text()].append(node)
 
         yield from definition_map.values()
