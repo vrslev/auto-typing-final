@@ -1,4 +1,3 @@
-import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
@@ -19,24 +18,13 @@ ImportStyle = Literal["typing-final", "final"]
 @dataclass
 class ImportConfig:
     value: str
-    outer_regex: re.Pattern[str]
     import_text: str
     import_identifier: str
 
 
 IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
-    "typing-final": ImportConfig(
-        value="typing.Final",
-        outer_regex=re.compile(r"typing\.Final\[(.*)\]{1}"),
-        import_text="import typing",
-        import_identifier="typing",
-    ),
-    "final": ImportConfig(
-        value="Final",
-        outer_regex=re.compile(r"Final\[(.*)\]{1}"),
-        import_text="from typing import Final",
-        import_identifier="Final",
-    ),
+    "typing-final": ImportConfig(value="typing.Final", import_text="import typing", import_identifier="typing"),
+    "final": ImportConfig(value="Final", import_text="from typing import Final", import_identifier="Final"),
 }
 
 
@@ -110,7 +98,7 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
 
 
 def _make_changed_text_from_operation(  # noqa: C901
-    operation: Operation, final_value: str, final_outer_regex: re.Pattern[str], imports_result: ImportsResult
+    operation: Operation, final_value: str, imports_result: ImportsResult
 ) -> Iterable[tuple[SgNode, str]]:
     match operation:
         case AddFinal(assignment):
@@ -169,10 +157,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacem
         edits = [
             Edit(node=node, new_text=new_text)
             for node, new_text in _make_changed_text_from_operation(
-                operation=operation,
-                final_value=import_config.value,
-                final_outer_regex=import_config.outer_regex,
-                imports_result=imports_result,
+                operation=operation, final_value=import_config.value, imports_result=imports_result
             )
             if node.text() != new_text
         ]
