@@ -29,23 +29,21 @@ function getPythonExtension():
 
 async function findExecutable() {
 	const extension = getPythonExtension();
-	if (!extension) return;
 	const environmentPath =
-		extension.exports.environments.getActiveEnvironmentPath();
+		extension?.exports.environments.getActiveEnvironmentPath();
 	if (!environmentPath) return;
-	const environment =
-		await extension.exports.environments.resolveEnvironment(environmentPath);
-	if (!environment) return;
-	const fsPath = environment.executable.uri?.fsPath;
+	const fsPath = (
+		await extension?.exports.environments.resolveEnvironment(environmentPath)
+	)?.executable.uri?.fsPath;
 	if (!fsPath) return;
+
 	const parsedPath = path.parse(fsPath);
 	const lspServerPath = path.format({
 		base: "auto-typing-final-lsp-server",
 		dir: parsedPath.dir,
 		root: parsedPath.root,
 	});
-	if (!fs.existsSync(lspServerPath)) return;
-	return lspServerPath;
+	if (fs.existsSync(lspServerPath)) return lspServerPath;
 }
 
 async function restartServer() {
@@ -53,7 +51,7 @@ async function restartServer() {
 	outputChannel?.info("stopped server");
 
 	const executable = await findExecutable();
-	outputChannel?.info(`found executable at ${executable}`);
+	outputChannel?.info(`using executable at ${executable}`);
 	if (!executable) {
 		outputChannel?.info("not found executable");
 		return;
