@@ -98,10 +98,10 @@ async function restartServer() {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
+	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
+
 	const pythonExtension = getPythonExtension();
 	if (!pythonExtension?.isActive) await pythonExtension?.activate();
-
-	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
 	context.subscriptions.push(
 		outputChannel,
