@@ -173,12 +173,12 @@ def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
 
 @dataclass
 class ImportsResult:
-    import_statement_module_aliases: list[str]
+    module_aliases: set[str]
     has_from_import: bool
 
 
-def get_imports(root: SgNode) -> ImportsResult:
-    result = ImportsResult(import_statement_module_aliases=[], has_from_import=False)
+def get_global_imports(root: SgNode) -> ImportsResult:
+    result = ImportsResult(module_aliases=set(), has_from_import=False)
 
     for node in root.find_all({"rule": {"any": [{"kind": "import_statement"}, {"kind": "import_from_statement"}]}}):
         if _is_inside_inner_function_or_class(root, node) or node == root:
@@ -198,17 +198,38 @@ def get_imports(root: SgNode) -> ImportsResult:
                 for kind, name_node in name_nodes:
                     match kind:
                         case "dotted_name":
-                            if identifier := _get_last_child_of_type(name_node, "identifier"):
-                                result.import_statement_module_aliases.append(identifier.text())
+                            if (identifier := _get_last_child_of_type(name_node, "identifier")) and (
+                                identifier_text := identifier.text()
+                            ) == "typing":
+                                result.module_aliases.add(identifier_text)
                         case "aliased_import":
                             if (
                                 (name := name_node.field("name"))
-                                and (alias := name_node.field("alias"))
                                 and (name.text() == "typing")
+                                and (alias := name_node.field("alias"))
                             ):
-                                result.import_statement_module_aliases.append(alias.text())
+                                result.module_aliases.add(alias.text())
     return result
 
 
+def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
+    for child in node.find_all({"rule": {"any": [{"kind": "attribute"}, {"kind": "assignment"}]}}):
+        match child.kind():
+            case "attribute":
+                if (
+                    (object_ := child.field("object"))
+                    and (attribute := child.field("attribute"))
+                    and object_.text() in imports_result.module_aliases
+                    and attribute.text() == "Final"
+                ):
+                    return True
+            case "assignment":
+                if (parent := child.parent()) and (parent.kind() == "attribute"):
+                    pass
+                elif imports_result.has_from_import and child.text() == "Final":
+                    return True
+    return False
+
+
 if __name__ == "__main__":
-    print(get_imports(SgRoot("from typing import Final\nimport typing\nimport typing as t", "python").root()))  # noqa: T201
+    print(get_global_imports(SgRoot("from typing import Final\nimport typing\nimport typing as t", "python").root()))  # noqa: T201
