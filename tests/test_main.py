@@ -1,14 +1,10 @@
 import pytest
 
 from auto_typing_final.main import transform_file_content
-from auto_typing_final.transform import (
-    IMPORT_MODES_TO_IMPORT_CONFIGS,
-    ImportConfig,
-    ImportMode,
-)
+from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportConfig
 
 
-@pytest.mark.parametrize("import_config", IMPORT_MODES_TO_IMPORT_CONFIGS.values())
+@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
 @pytest.mark.parametrize(
     ("before", "after"),
     [
@@ -591,7 +587,7 @@ a.b = 1
     ],
 )
 def test_transform_file_content(case: str) -> None:
-    import_config = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
+    import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
     assert (
         transform_file_content(f"{import_config.import_text}\n" + before.strip(), import_config=import_config)
@@ -656,5 +652,5 @@ def f():
 )
 def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
-    import_config = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
+    import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()

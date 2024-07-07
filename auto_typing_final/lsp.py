@@ -11,11 +11,11 @@ from pygls import server
 from pygls.workspace import TextDocument
 
 from auto_typing_final.transform import (
-    IMPORT_MODES_TO_IMPORT_CONFIGS,
+    IMPORT_STYLES_TO_IMPORT_CONFIGS,
     AddFinal,
     Edit,
     ImportConfig,
-    ImportMode,
+    ImportStyle,
     make_replacements,
 )
 
@@ -135,10 +135,10 @@ def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams)
         and (settings := params.settings.get(LSP_SERVER.name))
         and isinstance(settings, dict)
         and (import_style := settings.get("import-style"))
-        and (import_style in get_args(ImportMode))
+        and (import_style in get_args(ImportStyle))
     ):
         global IMPORT_CONFIG  # noqa: PLW0603
-        IMPORT_CONFIG = IMPORT_MODES_TO_IMPORT_CONFIGS[import_style]
+        IMPORT_CONFIG = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)

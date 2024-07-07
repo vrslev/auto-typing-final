@@ -7,7 +7,7 @@ from ast_grep_py import SgNode
 
 from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
 
-ImportMode = Literal["typing-final", "final"]
+ImportStyle = Literal["typing-final", "final"]
 
 
 @dataclass
@@ -18,7 +18,7 @@ class ImportConfig:
     import_identifier: str
 
 
-IMPORT_MODES_TO_IMPORT_CONFIGS: dict[ImportMode, ImportConfig] = {
+IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
     "typing-final": ImportConfig(
         value="typing.Final",
         outer_regex=re.compile(r"typing\.Final\[(.*)\]{1}"),
