@@ -17,7 +17,9 @@ from auto_typing_final.transform import (
 def transform_file_content(source: str, import_config: ImportConfig) -> str:
     root = SgRoot(source, "python").root()
     operations, import_string = make_operations_from_root(root, import_config)
-    result = root.commit_edits([edit.edit for applied_operation in operations for edit in applied_operation.edits])
+    result = root.commit_edits(
+        [node.replace(new_text) for applied_operation in operations for node, new_text in applied_operation.edits]
+    )
     return root.commit_edits([root.replace(f"{import_string}\n{result}")]) if import_string else result
 
 

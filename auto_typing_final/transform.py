@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
-from ast_grep_py import Edit, SgNode
+from ast_grep_py import SgNode
 
 from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
 
@@ -133,15 +133,9 @@ def _make_changed_text_from_operation(  # noqa: C901
 
 
 @dataclass
-class AppliedEdit:
-    node: SgNode
-    edit: Edit
-
-
-@dataclass
 class AppliedOperation:
-    operation: Operation
-    edits: list[AppliedEdit]
+    operation_type: type[Operation]
+    edits: list[tuple[SgNode, str]]
 
 
 def make_operations_from_root(root: SgNode, import_config: ImportConfig) -> tuple[list[AppliedOperation], str | None]:
@@ -151,7 +145,7 @@ def make_operations_from_root(root: SgNode, import_config: ImportConfig) -> tupl
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         edits = [
-            AppliedEdit(node=node, edit=node.replace(new_text))
+            (node, new_text)
             for node, new_text in _make_changed_text_from_operation(
                 operation=operation,
                 final_value=import_config.value,
@@ -159,10 +153,10 @@ def make_operations_from_root(root: SgNode, import_config: ImportConfig) -> tupl
             )
             if node.text() != new_text
         ]
-        if isinstance(operation, AddFinal) and edits:
+        if (operation_type := type(operation)) == AddFinal and edits:
             has_added_final = True
 
-        applied_operations.append(AppliedOperation(operation=operation, edits=edits))
+        applied_operations.append(AppliedOperation(operation_type=operation_type, edits=edits))
 
     import_string = (
         import_config.import_text
