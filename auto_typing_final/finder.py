@@ -45,14 +45,14 @@ def _is_inside_inner_function(root: SgNode, node: SgNode) -> bool:
     return False
 
 
-def is_inside_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
+def _is_inside_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     for ancestor in node.ancestors():
         if ancestor.kind() in {"function_definition", "class_definition"}:
             return ancestor != root
     return False
 
 
-def find_identifiers_in_import(node: SgNode) -> Iterable[SgNode]:
+def _find_identifiers_in_import_statement(node: SgNode) -> Iterable[SgNode]:
     match tuple((child.kind(), child) for child in node.children()):
         case (("from", _), _, ("import", _), *name_nodes) | (("import", _), *name_nodes):
             for kind, name_node in name_nodes:
@@ -65,7 +65,7 @@ def find_identifiers_in_import(node: SgNode) -> Iterable[SgNode]:
                             yield alias
 
 
-def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912
+def _find_identifiers_made_by_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, PLR0912
     match node.kind():
         case "assignment" | "augmented_assignment":
             if not (left := node.field("left")):
@@ -94,7 +94,7 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, P
                     continue
                 yield from _find_identifiers_in_children(nonlocal_statement)
         case "import_from_statement" | "import_statement":
-            yield from find_identifiers_in_import(node)
+            yield from _find_identifiers_in_import_statement(node)
         case "as_pattern":
             match tuple((child.kind(), child) for child in node.children()):
                 case (
@@ -132,15 +132,15 @@ def find_identifiers_in_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C901, P
                 yield from left.find_all(kind="identifier")
 
 
-def find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
+def _find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
     for child in node.find_all(DEFINITION_RULE):
-        if is_inside_inner_function_or_class(node, child) or child == node:
+        if _is_inside_inner_function_or_class(node, child) or child == node:
             continue
-        for identifier in find_identifiers_in_node(child):
+        for identifier in _find_identifiers_made_by_node(child):
             yield identifier, child
 
 
-def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
+def _find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
     match node.kind():
         case "default_parameter" | "typed_default_parameter":
             if name := node.field("name"):
@@ -151,16 +151,16 @@ def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
             yield from _find_identifiers_in_children(node)
 
 
-def find_definitions_in_functions_in_node(root: SgNode) -> Iterable[list[SgNode]]:
+def find_all_definitions(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         definition_map = defaultdict(list)
 
         if parameters := function.field("parameters"):
             for parameter in parameters.children():
-                for identifier in find_identifiers_in_function_parameter(parameter):
+                for identifier in _find_identifiers_in_function_parameter(parameter):
                     definition_map[identifier.text()].append(parameter)
 
-        for identifier, node in find_identifiers_in_scope(function):
+        for identifier, node in _find_identifiers_in_scope(function):
             definition_map[identifier.text()].append(node)
 
         yield from definition_map.values()
@@ -170,9 +170,9 @@ def has_global_import_with_name(root: SgNode, name: str) -> bool:
     for import_statement in root.find_all(
         {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
     ):
-        if is_inside_inner_function_or_class(root, import_statement):
+        if _is_inside_inner_function_or_class(root, import_statement):
             continue
-        for identifier in find_identifiers_in_import(import_statement):
+        for identifier in _find_identifiers_in_import_statement(import_statement):
             if identifier.text() == name:
                 return True
     return False
@@ -182,13 +182,13 @@ def should_add_import_typing(root: SgNode) -> bool:
     for import_statement in root.find_all(
         {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
     ):
-        if is_inside_inner_function_or_class(root, import_statement):
+        if _is_inside_inner_function_or_class(root, import_statement):
             continue
-        for identifier in find_identifiers_in_import(import_statement):
+        for identifier in _find_identifiers_in_import_statement(import_statement):
             if identifier.text() == "typing":
                 return False
     return True
 
 
 def should_add_from_typing_import_final(root: SgNode) -> bool:
-    return "Final" not in {identifier.text() for identifier, _ in find_identifiers_in_scope(root)}
+    return "Final" not in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}

@@ -5,7 +5,7 @@ from enum import Enum
 
 from ast_grep_py import Edit, SgNode
 
-from auto_typing_final.finder import find_definitions_in_functions_in_node
+from auto_typing_final.finder import find_all_definitions
 
 TYPING_FINAL_VALUE = "typing.Final"
 TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
@@ -137,7 +137,7 @@ class AppliedOperation:
 
 
 def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> Iterable[AppliedOperation]:
-    for current_definitions in find_definitions_in_functions_in_node(root):
+    for current_definitions in find_all_definitions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         yield AppliedOperation(
             operation=operation,
