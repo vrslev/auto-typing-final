@@ -52,17 +52,6 @@ def is_inside_inner_function_or_class(root: SgNode, node: SgNode) -> bool:
     return False
 
 
-def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
-    match node.kind():
-        case "default_parameter" | "typed_default_parameter":
-            if name := node.field("name"):
-                yield name
-        case "identifier":
-            yield node
-        case _:
-            yield from find_identifiers_in_children(node)
-
-
 def find_identifiers_in_import(node: SgNode) -> Iterable[SgNode]:
     match tuple((child.kind(), child) for child in node.children()):
         case (("from", _), _, ("import", _), *name_nodes) | (("import", _), *name_nodes):
@@ -143,26 +132,33 @@ def find_identifiers_in_function_body(node: SgNode) -> Iterable[SgNode]:  # noqa
                 yield from left.find_all(kind="identifier")
 
 
-def find_definitions_in_scope_grouped_by_name(root: SgNode) -> dict[str, list[SgNode]]:
-    definition_map = defaultdict(list)
-
-    if parameters := root.field("parameters"):
-        for parameter in parameters.children():
-            for identifier in find_identifiers_in_function_parameter(parameter):
-                definition_map[identifier.text()].append(parameter)
-
-    for node in root.find_all(DEFINITION_RULE):
-        if is_inside_inner_function_or_class(root, node) or node == root:
-            continue
-        for identifier in find_identifiers_in_function_body(node):
-            definition_map[identifier.text()].append(node)
-
-    return definition_map
+def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
+    match node.kind():
+        case "default_parameter" | "typed_default_parameter":
+            if name := node.field("name"):
+                yield name
+        case "identifier":
+            yield node
+        case _:
+            yield from find_identifiers_in_children(node)
 
 
-def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
+def find_definitions_in_function_of_module(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
-        yield from find_definitions_in_scope_grouped_by_name(function).values()
+        definition_map = defaultdict(list)
+
+        if parameters := function.field("parameters"):
+            for parameter in parameters.children():
+                for identifier in find_identifiers_in_function_parameter(parameter):
+                    definition_map[identifier.text()].append(parameter)
+
+        for node in function.find_all(DEFINITION_RULE):
+            if is_inside_inner_function_or_class(function, node) or node == function:
+                continue
+            for identifier in find_identifiers_in_function_body(node):
+                definition_map[identifier.text()].append(node)
+
+        yield from definition_map.values()
 
 
 def has_global_import_with_name(root: SgNode, name: str) -> bool:
@@ -174,4 +170,36 @@ def has_global_import_with_name(root: SgNode, name: str) -> bool:
         for identifier in find_identifiers_in_import(import_statement):
             if identifier.text() == name:
                 return True
+    return False
+
+
+def has_import_import_typing(root: SgNode) -> bool:
+    for import_statement in root.find_all(
+        {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
+    ):
+        if is_inside_inner_function_or_class(root, import_statement):
+            continue
+        for identifier in find_identifiers_in_import(import_statement):
+            if identifier.text() == "typing":
+                return True
+    return False
+
+
+def should_add_from_typing_import_final(root: SgNode) -> bool:
+    find_definitions_in_function_of_module(root)
+    # if module_definitions
+    for import_statement in root.find_all({"rule": {"any": [{"kind": "import_from_statement"}]}}):
+        if is_inside_inner_function_or_class(root, import_statement):
+            continue
+        match tuple((child.kind(), child) for child in import_statement.children()):
+            case (("from", _), _, ("import", _), *name_nodes) | (("import", _), *name_nodes):
+                for kind, name_node in name_nodes:
+                    match kind:
+                        case "dotted_name":
+                            if identifier := last_child_of_type(name_node, "identifier"):
+                                yield identifier
+                        case "aliased_import":
+                            if alias := name_node.field("alias"):
+                                yield alias
+
     return False
