@@ -12,6 +12,9 @@ TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
 FINAL_VALUE = "Final"
 FINAL_OUTER_REGEX = re.compile(r"Final\[(.*)\]{1}")
 
+TYPING_FINAL_IMPORT_TEXT = "import typing"
+FINAL_IMPORT_TEXT = "from typing import Final"
+
 
 class ImportMode(Enum):
     typing_final = "typing-final"
