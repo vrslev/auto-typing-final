@@ -1,6 +1,7 @@
+import uuid
 from collections.abc import Iterable
 from importlib.metadata import version
-from typing import cast
+from typing import Any, TypedDict, cast
 
 import attr
 import cattrs
@@ -13,6 +14,9 @@ from auto_typing_final.transform import IMPORT_MODES_TO_IMPORT_CONFIGS, AddFinal
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 IMPORT_CONFIG = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
+
+LSPSettings = TypedDict("LSPSettings", {"import-style": Any}, total=False)
+SETTINGS: LSPSettings = {"import-style": "typing-final"}
 
 
 @attr.define
@@ -98,7 +102,33 @@ def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEd
 
 
 @LSP_SERVER.feature(lsp.INITIALIZE)
-def initialize(params: lsp.InitializeParams) -> None: ...  # noqa: ARG001
+async def initialize(params: lsp.InitializeParams) -> None: ...  # noqa: ARG001
+
+
+@LSP_SERVER.feature(lsp.INITIALIZED)
+async def initialized(params: lsp.InitializedParams) -> None:  # noqa: ARG001
+    await LSP_SERVER.register_capability_async(
+        params=lsp.RegistrationParams(
+            registrations=[
+                lsp.Registration(
+                    id=str(uuid.uuid4()),
+                    method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
+                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section="auto-typing-final"),
+                )
+            ]
+        )
+    )
+
+
+@LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
+def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
+    if (
+        isinstance(params.settings, dict)
+        and (our_settings := params.settings.get("auto-typing-final"))
+        and isinstance(our_settings, dict)
+    ):
+        global SETTINGS  # noqa: PLW0603
+        SETTINGS = our_settings
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
