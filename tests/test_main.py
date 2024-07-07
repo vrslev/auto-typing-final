@@ -1,6 +1,7 @@
 import pytest
 
 from auto_typing_final.main import transform_file_content
+from auto_typing_final.transform import ImportMode
 
 
 @pytest.mark.parametrize(
@@ -51,7 +52,7 @@ import typing
 def foo():
 {after_function_content}
 """
-    assert transform_file_content(source.strip()) == after_source.strip()
+    assert transform_file_content(source.strip(), import_mode=ImportMode.typing_final) == after_source.strip()
 
 
 @pytest.mark.parametrize(
@@ -586,7 +587,7 @@ a.b = 1
 )
 def test_transform_file_content(case: str) -> None:
     before, _, after = case.partition("---")
-    assert transform_file_content("import typing\n" + before.strip()) == "import typing\n" + after.strip()
+    assert transform_file_content("import typing\n" + before.strip(), import_mode=ImportMode.typing_final) == "import typing\n" + after.strip()
 
 
 @pytest.mark.parametrize(
@@ -622,4 +623,4 @@ a = 2
 )
 def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
-    assert transform_file_content(before.strip()) == after.strip()
+    assert transform_file_content(before.strip(), import_mode=ImportMode.typing_final) == after.strip()

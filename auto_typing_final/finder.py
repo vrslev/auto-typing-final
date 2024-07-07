@@ -165,17 +165,12 @@ def find_definitions_in_module(root: SgNode) -> Iterable[list[SgNode]]:
         yield from find_definitions_in_scope_grouped_by_name(function).values()
 
 
-def find_global_imports(root: SgNode) -> Iterable[SgNode]:
+def has_global_import_with_name(root: SgNode, name: str) -> bool:
     for import_statement in root.find_all(
         {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
     ):
         if is_inside_inner_function_or_class(root, import_statement):
             continue
-        yield import_statement
-
-
-def has_global_import_with_name(root: SgNode, name: str) -> bool:
-    for import_statement in find_global_imports(root):
         for identifier in find_identifiers_in_import(import_statement):
             if identifier.text() == name:
                 return True
