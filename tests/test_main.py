@@ -587,7 +587,10 @@ a.b = 1
 )
 def test_transform_file_content(case: str) -> None:
     before, _, after = case.partition("---")
-    assert transform_file_content("import typing\n" + before.strip(), import_mode=ImportMode.typing_final) == "import typing\n" + after.strip()
+    assert (
+        transform_file_content("import typing\n" + before.strip(), import_mode=ImportMode.typing_final)
+        == "import typing\n" + after.strip()
+    )
 
 
 @pytest.mark.parametrize(
