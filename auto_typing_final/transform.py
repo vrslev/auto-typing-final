@@ -5,7 +5,11 @@ from enum import Enum
 
 from ast_grep_py import Edit, SgNode
 
-from auto_typing_final.finder import find_all_definitions_in_functions
+from auto_typing_final.finder import (
+    find_all_definitions_in_functions,
+    should_add_from_typing_import_final,
+    should_add_import_typing,
+)
 
 TYPING_FINAL_VALUE = "typing.Final"
 TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
@@ -92,16 +96,14 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _resolve_import_mode(import_mode: ImportMode) -> tuple[str, re.Pattern[str], str]:
-    if import_mode == ImportMode.typing_final:
-        return (TYPING_FINAL_VALUE, TYPING_FINAL_OUTER_REGEX, TYPING_FINAL_IMPORT_TEXT)
-    if import_mode == ImportMode.final:
-        return (FINAL_VALUE, FINAL_OUTER_REGEX, FINAL_IMPORT_TEXT)
-    raise AssertionError
-
-
 def _make_changed_text_from_operation(operation: Operation, import_mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
-    final_value, final_outer_regex, _ = _resolve_import_mode(import_mode)
+    if import_mode == ImportMode.typing_final:
+        final_value = TYPING_FINAL_VALUE
+        final_outer_regex = TYPING_FINAL_OUTER_REGEX
+    else:
+        final_value = FINAL_VALUE
+        final_outer_regex = FINAL_OUTER_REGEX
+
     match operation:
         case AddFinal(assignment):
             match assignment:
@@ -135,14 +137,28 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> Iterable[AppliedOperation]:
+def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[list[AppliedOperation], str, None]:
+    applied_operations = []
+    has_added_final = False
+
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
-        yield AppliedOperation(
-            operation=operation,
-            edits=[
-                AppliedEdit(node=node, edit=node.replace(new_text))
-                for node, new_text in _make_changed_text_from_operation(operation, import_mode)
-                if node.text() != new_text
-            ],
-        )
+        edits = [
+            AppliedEdit(node=node, edit=node.replace(new_text))
+            for node, new_text in _make_changed_text_from_operation(operation, import_mode)
+            if node.text() != new_text
+        ]
+        if isinstance(operation, AddFinal) and edits:
+            has_added_final = True
+
+        applied_operations.append(AppliedOperation(operation=operation, edits=edits))
+
+    if has_added_final:
+        if import_mode == ImportMode.typing_final and should_add_import_typing(root):
+            import_string = "import typing"
+        elif import_mode == ImportMode.final and should_add_from_typing_import_final(root):
+            import_string = "from typing import Final"
+        else:
+            import_string = None
+
+    return applied_operations
