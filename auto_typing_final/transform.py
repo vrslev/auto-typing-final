@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Literal
+from typing import Final, Literal
 
 from ast_grep_py import SgNode
 
@@ -63,7 +63,7 @@ Operation = AddFinal | RemoveFinal
 
 
 def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
-    value_assignments: list[Definition] = []
+    value_assignments: Final[list[Definition]] = []
     has_node_inside_loop = False
 
     for node in nodes:
@@ -107,11 +107,11 @@ def _attribute_is_exact_identifier(node: SgNode, imports_result: ImportsResult, 
 def _strip_identifier_from_type_annotation(
     node: SgNode, imports_result: ImportsResult, identifier_name: str
 ) -> str | None:
-    type_node_children = node.children()
+    type_node_children: Final = node.children()
     if len(type_node_children) != 1:
         return None
-    inner_type_node = type_node_children[0]
-    kind = inner_type_node.kind()
+    inner_type_node: Final = type_node_children[0]
+    kind: Final = inner_type_node.kind()
 
     if kind == "subscript":
         match tuple((child.kind(), child) for child in inner_type_node.children()):
@@ -182,9 +182,9 @@ class MakeReplacementsResult:
 
 
 def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
-    replacements = []
+    replacements: Final = []
     has_added_final = False
-    imports_result = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
+    imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
 
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)

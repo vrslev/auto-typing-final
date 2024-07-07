@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Iterable
 from importlib.metadata import version
-from typing import cast, get_args
+from typing import Final, cast, get_args
 
 import attr
 import cattrs
@@ -42,7 +42,7 @@ def make_import_text_edit(import_text: str) -> lsp.TextEdit:
 
 
 def make_text_edit(edit: Edit) -> lsp.TextEdit:
-    node_range = edit.node.range()
+    node_range: Final = edit.node.range()
     return lsp.TextEdit(
         range=lsp.Range(
             start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
@@ -55,7 +55,7 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
     if not IMPORT_CONFIG:
         return
-    result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
+    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
         if replacement.operation_type == AddFinal:
@@ -86,7 +86,7 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     if not IMPORT_CONFIG:
         return
-    result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
+    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
         for edit in replacement.edits:
@@ -147,7 +147,7 @@ def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams)
 def did_open_did_save_did_change(
     params: lsp.DidOpenTextDocumentParams | lsp.DidSaveTextDocumentParams | lsp.DidChangeTextDocumentParams,
 ) -> None:
-    text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+    text_document: Final = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
 
 
@@ -163,12 +163,12 @@ def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
     ),
 )
 def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
-    requested_kinds = params.context.only or {lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll}
-    actions: list[lsp.CodeAction] = []
+    requested_kinds: Final = params.context.only or {lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll}
+    actions: Final[list[lsp.CodeAction]] = []
 
     if lsp.CodeActionKind.QuickFix in requested_kinds:
-        text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-        our_diagnostics = [
+        text_document: Final = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+        our_diagnostics: Final = [
             diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == LSP_SERVER.name
         ]
 
@@ -210,7 +210,7 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
 
 @LSP_SERVER.feature(lsp.CODE_ACTION_RESOLVE)
 def resolve_code_action(params: lsp.CodeAction) -> lsp.CodeAction:
-    text_document = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
+    text_document: Final = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
     params.edit = lsp.WorkspaceEdit(
         document_changes=[
             lsp.TextDocumentEdit(
