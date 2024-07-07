@@ -1,13 +1,40 @@
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from enum import Enum
 
-from ast_grep_py import Edit, SgNode, SgRoot
+from ast_grep_py import SgNode
 
-from auto_typing_final.finder import find_definitions_in_module, has_global_import_with_name
+from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
 
-TYPING_FINAL = "typing.Final"
-TYPING_FINAL_ANNOTATION_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
+
+class ImportMode(Enum):
+    typing_final = "typing-final"
+    final = "final"
+
+
+@dataclass
+class ImportConfig:
+    value: str
+    outer_regex: re.Pattern[str]
+    import_text: str
+    import_identifier: str
+
+
+IMPORT_MODES_TO_IMPORT_CONFIGS = {
+    ImportMode.typing_final: ImportConfig(
+        value="typing.Final",
+        outer_regex=re.compile(r"typing\.Final\[(.*)\]{1}"),
+        import_text="import typing",
+        import_identifier="typing",
+    ),
+    ImportMode.final: ImportConfig(
+        value="Final",
+        outer_regex=re.compile(r"Final\[(.*)\]{1}"),
+        import_text="from typing import Final",
+        import_identifier="Final",
+    ),
+}
 
 
 @dataclass
@@ -55,16 +82,15 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             has_node_inside_loop = True
 
         if node.kind() == "assignment":
-            children = node.children()
-            match tuple(child.kind() for child in children):
-                case ("identifier", "=", _):
+            match tuple((child.kind(), child) for child in node.children()):
+                case (("identifier", left), ("=", _), (_, right)):
                     value_assignments.append(
-                        AssignmentWithoutAnnotation(node=node, left=children[0].text(), right=children[2].text())
+                        AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
                     )
-                case ("identifier", ":", "type", "=", _):
+                case (("identifier", left), (":", _), ("type", annotation), ("=", _), (_, right)):
                     value_assignments.append(
                         AssignmentWithAnnotation(
-                            node=node, left=children[0].text(), annotation=children[2].text(), right=children[4].text()
+                            node=node, left=left.text(), annotation=annotation.text(), right=right.text()
                         )
                     )
                 case _:
@@ -82,16 +108,17 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _make_changed_text_from_operation(operation: Operation) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
+def _make_changed_text_from_operation(  # noqa: C901
+    operation: Operation, final_value: str, final_outer_regex: re.Pattern[str]
+) -> Iterable[tuple[SgNode, str]]:
     match operation:
         case AddFinal(assignment):
             match assignment:
                 case AssignmentWithoutAnnotation(node, left, right):
-                    yield node, f"{left}: {TYPING_FINAL} = {right}"
+                    yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    if TYPING_FINAL in annotation:
-                        return
-                    yield node, f"{left}: {TYPING_FINAL}[{annotation}] = {right}"
+                    if final_value not in annotation:
+                        yield node, f"{left}: {final_value}[{annotation}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
@@ -99,55 +126,56 @@ def _make_changed_text_from_operation(operation: Operation) -> Iterable[tuple[Sg
                     case AssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
-                        if annotation == TYPING_FINAL:
+                        if annotation == final_value:
                             yield node, f"{left} = {right}"
-                        elif new_annotation := TYPING_FINAL_ANNOTATION_REGEX.findall(annotation):
+                        elif new_annotation := final_outer_regex.findall(annotation):
                             yield node, f"{left}: {new_annotation[0]} = {right}"
 
 
 @dataclass
-class AppliedEdit:
+class Edit:
     node: SgNode
-    edit: Edit
+    new_text: str
 
 
 @dataclass
-class AppliedOperation:
-    operation: Operation
-    edits: list[AppliedEdit]
+class Replacement:
+    operation_type: type[Operation]
+    edits: list[Edit]
 
 
-def _make_operations_from_current_definitions(definitions: list[SgNode]) -> AppliedOperation:
-    operation = _make_operation_from_assignments_to_one_name(definitions)
-    return AppliedOperation(
-        operation=operation,
-        edits=[
-            AppliedEdit(node=node, edit=node.replace(new_text))
-            for node, new_text in _make_changed_text_from_operation(operation)
-            if node.text() != new_text
-        ],
-    )
+@dataclass
+class MakeReplacementsResult:
+    replacements: list[Replacement]
+    import_text: str | None
 
 
-def make_operations_from_root(root: SgNode) -> Iterable[AppliedOperation]:
-    for current_definitions in find_definitions_in_module(root):
-        yield _make_operations_from_current_definitions(current_definitions)
-
-
-def transform_file_content(source: str) -> str:
-    root = SgRoot(source, "python").root()
-    edits: list[Edit] = []
+def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
+    replacements = []
     has_added_final = False
 
-    for applied_operation in make_operations_from_root(root):
-        if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
+    for current_definitions in find_all_definitions_in_functions(root):
+        operation = _make_operation_from_assignments_to_one_name(current_definitions)
+        edits = [
+            Edit(node=node, new_text=new_text)
+            for node, new_text in _make_changed_text_from_operation(
+                operation=operation,
+                final_value=import_config.value,
+                final_outer_regex=import_config.outer_regex,
+            )
+            if node.text() != new_text
+        ]
+
+        if (operation_type := type(operation)) == AddFinal and edits:
             has_added_final = True
 
-        edits.extend(edit.edit for edit in applied_operation.edits)
+        replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
-    result = root.commit_edits(edits)
-
-    if has_added_final and not has_global_import_with_name(root, "typing"):
-        result = root.commit_edits([root.replace(f"import typing\n{result}")])
-
-    return result
+    return MakeReplacementsResult(
+        replacements=replacements,
+        import_text=(
+            import_config.import_text
+            if has_added_final and not has_global_identifier_with_name(root=root, name=import_config.import_identifier)
+            else None
+        ),
+    )
