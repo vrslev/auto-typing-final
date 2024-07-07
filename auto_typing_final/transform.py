@@ -1,13 +1,18 @@
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Literal
 
 from ast_grep_py import Edit, SgNode, SgRoot
 
 from auto_typing_final.finder import find_definitions_in_module, has_global_import_with_name
 
-TYPING_FINAL = "typing.Final"
-TYPING_FINAL_ANNOTATION_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
+TYPING_FINAL_VALUE = "typing.Final"
+TYPING_FINAL_OUTER_REGEX = re.compile(r"typing\.Final\[(.*)\]{1}")
+FINAL_VALUE = "Final"
+FINAL_OUTER_REGEX = re.compile(r"Final\[(.*)\]{1}")
+
+ImportMode = Literal["typing-final", "final"]
 
 
 @dataclass
@@ -82,16 +87,26 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _make_changed_text_from_operation(operation: Operation) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
+def _make_changed_text_from_operation(operation: Operation, mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901, PLR0912
+    if mode == "typing-final":
+        final_value = TYPING_FINAL_VALUE
+        final_outer_regex = TYPING_FINAL_OUTER_REGEX
+    elif mode == "final":
+        final_value = FINAL_VALUE
+        final_outer_regex = FINAL_OUTER_REGEX
+    else:
+        msg = "unreachable"
+        raise AssertionError(msg)
+
     match operation:
         case AddFinal(assignment):
             match assignment:
                 case AssignmentWithoutAnnotation(node, left, right):
-                    yield node, f"{left}: {TYPING_FINAL} = {right}"
+                    yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    if TYPING_FINAL in annotation:
+                    if final_value in annotation:
                         return
-                    yield node, f"{left}: {TYPING_FINAL}[{annotation}] = {right}"
+                    yield node, f"{left}: {final_value}[{annotation}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
@@ -99,9 +114,9 @@ def _make_changed_text_from_operation(operation: Operation) -> Iterable[tuple[Sg
                     case AssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
-                        if annotation == TYPING_FINAL:
+                        if annotation == final_value:
                             yield node, f"{left} = {right}"
-                        elif new_annotation := TYPING_FINAL_ANNOTATION_REGEX.findall(annotation):
+                        elif new_annotation := final_outer_regex.findall(annotation):
                             yield node, f"{left}: {new_annotation[0]} = {right}"
 
 
@@ -117,21 +132,17 @@ class AppliedOperation:
     edits: list[AppliedEdit]
 
 
-def _make_operations_from_current_definitions(definitions: list[SgNode]) -> AppliedOperation:
-    operation = _make_operation_from_assignments_to_one_name(definitions)
-    return AppliedOperation(
-        operation=operation,
-        edits=[
-            AppliedEdit(node=node, edit=node.replace(new_text))
-            for node, new_text in _make_changed_text_from_operation(operation)
-            if node.text() != new_text
-        ],
-    )
-
-
-def make_operations_from_root(root: SgNode) -> Iterable[AppliedOperation]:
+def make_operations_from_root(root: SgNode, mode: ImportMode = "typing-final") -> Iterable[AppliedOperation]:
     for current_definitions in find_definitions_in_module(root):
-        yield _make_operations_from_current_definitions(current_definitions)
+        operation = _make_operation_from_assignments_to_one_name(current_definitions)
+        yield AppliedOperation(
+            operation=operation,
+            edits=[
+                AppliedEdit(node=node, edit=node.replace(new_text))
+                for node, new_text in _make_changed_text_from_operation(operation, mode)
+                if node.text() != new_text
+            ],
+        )
 
 
 def transform_file_content(source: str) -> str:
@@ -139,7 +150,7 @@ def transform_file_content(source: str) -> str:
     edits: list[Edit] = []
     has_added_final = False
 
-    for applied_operation in make_operations_from_root(root):
+    for applied_operation in make_operations_from_root(root, "typing-final"):
         if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
             has_added_final = True
 
