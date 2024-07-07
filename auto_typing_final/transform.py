@@ -12,8 +12,6 @@ from auto_typing_final.finder import (
     new_replace,
 )
 
-ImportStyle = Literal["typing-final", "final"]
-
 
 @dataclass
 class ImportConfig:
@@ -22,6 +20,7 @@ class ImportConfig:
     import_identifier: str
 
 
+ImportStyle = Literal["typing-final", "final"]
 IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
     "typing-final": ImportConfig(value="typing.Final", import_text="import typing", import_identifier="typing"),
     "final": ImportConfig(value="Final", import_text="from typing import Final", import_identifier="Final"),
