@@ -9,7 +9,6 @@ from ast_grep_py import SgRoot
 from pygls import server
 from pygls.workspace import TextDocument
 
-from auto_typing_final.finder import should_add_import_typing
 from auto_typing_final.transform import AddFinal, AppliedOperation, ImportMode, make_operations_from_root
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
@@ -27,10 +26,10 @@ class DiagnosticData:
     fix: Fix
 
 
-def make_typing_import() -> lsp.TextEdit:
+def make_import_edit(import_string: str) -> lsp.TextEdit:
     return lsp.TextEdit(
         range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
-        new_text="import typing\n",
+        new_text=f"{import_string}\n",
     )
 
 
@@ -48,9 +47,9 @@ def make_diagnostic_text_edits(applied_operation: AppliedOperation) -> Iterable[
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
     root = SgRoot(source, "python").root()
-    has_import = not should_add_import_typing(root)
+    operations, import_string = make_operations_from_root(root, IMPORT_MODE)
 
-    for applied_operation in make_operations_from_root(root, IMPORT_MODE):
+    for applied_operation in operations:
         if isinstance(applied_operation.operation, AddFinal):
             fix_message = f"{LSP_SERVER.name}: Add typing.Final"
             diagnostic_message = "Missing typing.Final"
@@ -60,8 +59,8 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
         fix = Fix(message=fix_message, text_edits=list(make_diagnostic_text_edits(applied_operation)))
 
-        if isinstance(applied_operation.operation, AddFinal) and not has_import:
-            fix.text_edits.append(make_typing_import())
+        if import_string:
+            fix.text_edits.append(make_import_edit(import_string))
 
         for applied_edit in applied_operation.edits:
             node_range = applied_edit.node.range()
@@ -79,16 +78,13 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     root = SgRoot(source, "python").root()
-    has_import = not should_add_import_typing(root)
-    has_add_final_operation = False
+    operations, import_string = make_operations_from_root(root, IMPORT_MODE)
 
-    for applied_operation in make_operations_from_root(root, IMPORT_MODE):
-        if isinstance(applied_operation.operation, AddFinal):
-            has_add_final_operation = True
+    for applied_operation in operations:
         yield from make_diagnostic_text_edits(applied_operation)
 
-    if has_add_final_operation and not has_import:
-        yield make_typing_import()
+    if import_string:
+        yield make_import_edit(import_string)
 
 
 def make_quickfix_action(diagnostic: lsp.Diagnostic, text_document: TextDocument) -> lsp.CodeAction:
