@@ -228,7 +228,7 @@ def strip_identifier_from_type_annotation(
     if len(type_node_children) != 1:
         return None
     inner_type_node = type_node_children[0]
-
+    kind = inner_type_node.kind()
     match inner_type_node.kind():
         case "subscript":
             match tuple((child.kind(), child) for child in inner_type_node.children()):
@@ -246,9 +246,8 @@ def strip_identifier_from_type_annotation(
                         case (("[", _), *kinds_and_nodes, ("]", _)):
                             return "".join(node.text() for kind, node in kinds_and_nodes)
         case "identifier":
-            if inner_type_node.text() != identifier_name:
-                return None
-            return ""
+            if inner_type_node.text() == identifier_name:
+                return ""
         case "attribute":
             if attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name):
                 return ""
