@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from difflib import unified_diff
 from pathlib import Path
 
-from ast_grep_py import Edit, SgRoot
+from ast_grep_py import SgRoot
 
 from auto_typing_final.transform import ImportMode, make_operations_from_root
 
@@ -12,12 +12,7 @@ from auto_typing_final.transform import ImportMode, make_operations_from_root
 def transform_file_content(source: str, import_mode: ImportMode) -> str:
     root = SgRoot(source, "python").root()
     operations, import_string = make_operations_from_root(root, import_mode)
-
-    edits: list[Edit] = []
-    for applied_operation in operations:
-        edits.extend(edit.edit for edit in applied_operation.edits)
-
-    result = root.commit_edits(edits)
+    result = root.commit_edits([edit.edit for applied_operation in operations for edit in applied_operation.edits])
     return root.commit_edits([root.replace(f"{import_string}\n{result}")]) if import_string else result
 
 
