@@ -19,6 +19,6 @@ jobs:
           key: publish-${{ hashFiles('pyproject.toml') }}
       - uses: extractions/setup-just@v2
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - run: just publish
+      - run: just publish-package
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}

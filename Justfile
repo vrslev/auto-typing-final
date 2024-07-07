@@ -4,15 +4,15 @@ install:
     uv lock
     uv sync
 
-test *args:
-    @.venv/bin/pytest -- {{ args }}
-
 lint:
     uv -q run ruff check .
     uv -q run ruff format .
 
 check-types:
     uv -q run mypy .
+
+test *args:
+    @.venv/bin/pytest -- {{ args }}
 
 publish-package:
     rm -rf dist/*
@@ -22,3 +22,14 @@ publish-package:
 
 run *args:
     @.venv/bin/auto-typing-final {{ args }}
+
+extension: install-ts check-types-ts lint-ts
+
+install-ts:
+    npm ci
+
+check-types-ts:
+    npm run compile
+
+lint-ts:
+    npm run lint
