@@ -5,7 +5,13 @@ from typing import Literal
 
 from ast_grep_py import SgNode
 
-from auto_typing_final.finder import find_all_definitions_in_functions, has_global_identifier_with_name
+from auto_typing_final.finder import (
+    ImportsResult,
+    find_all_definitions_in_functions,
+    get_global_imports,
+    has_global_identifier_with_name,
+    new_replace,
+)
 
 ImportStyle = Literal["typing-final", "final"]
 
@@ -104,7 +110,7 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
 
 
 def _make_changed_text_from_operation(  # noqa: C901
-    operation: Operation, final_value: str, final_outer_regex: re.Pattern[str]
+    operation: Operation, final_value: str, final_outer_regex: re.Pattern[str], imports_result: ImportsResult
 ) -> Iterable[tuple[SgNode, str]]:
     match operation:
         case AddFinal(assignment):
@@ -121,10 +127,13 @@ def _make_changed_text_from_operation(  # noqa: C901
                     case AssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
-                        if annotation.text() == final_value:
-                            yield node, f"{left} = {right}"
-                        elif new_annotation := final_outer_regex.findall(annotation.text()):
-                            yield node, f"{left}: {new_annotation[0]} = {right}"
+                        match new_replace(annotation, imports_result):
+                            case None:
+                                pass
+                            case "":
+                                yield node, f"{left} = {right}"
+                            case new_annotation:
+                                yield node, f"{left}: {new_annotation} = {right}"
 
 
 @dataclass
@@ -148,6 +157,7 @@ class MakeReplacementsResult:
 def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
     replacements = []
     has_added_final = False
+    imports_result = get_global_imports(root)
 
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
@@ -157,6 +167,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacem
                 operation=operation,
                 final_value=import_config.value,
                 final_outer_regex=import_config.outer_regex,
+                imports_result=imports_result,
             )
             if node.text() != new_text
         ]

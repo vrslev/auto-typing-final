@@ -212,7 +212,25 @@ def get_global_imports(root: SgNode) -> ImportsResult:
     return result
 
 
+# def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
+#     for child in node.find_all(any=[{"kind": "attribute"}, {"kind": "assignment"}]):
+#         match child.kind():
+#             case "attribute":
+#                 if (
+#                     (object_ := child.field("object"))
+#                     and (attribute := child.field("attribute"))
+#                     and object_.text() in imports_result.module_aliases
+#                     and attribute.text() == "Final"
+#                 ):
+#                     return True
+#             case "assignment":
+#                 if (parent := child.parent()) and (parent.kind() == "attribute"):
+#                     pass
+#                 elif imports_result.has_from_import and child.text() == "Final":
+#                     return True
+#     return False
 def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
+    node.children()
     for child in node.find_all(any=[{"kind": "attribute"}, {"kind": "assignment"}]):
         match child.kind():
             case "attribute":
@@ -231,5 +249,49 @@ def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
     return False
 
 
+def handle_attribute(node: SgNode, imports_result: ImportsResult) -> bool:
+    match tuple((inner_child.kind(), inner_child) for inner_child in node.children()):
+        case (("identifier", first_identifier), (".", _), ("identifier", second_identifier)):
+            return first_identifier.text() in imports_result.module_aliases and second_identifier.text() == "Final"
+    return False
+
+
+def new_replace(node: SgNode, imports_result: ImportsResult) -> str | None:
+    type_node_children = node.children()
+    if len(type_node_children) != 1:
+        return None
+    inner_type_node = type_node_children[0]
+    match inner_type_node.kind():
+        case "subscript":
+            match tuple((child.kind(), child) for child in inner_type_node.children()):
+                case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
+                    if handle_attribute(attribute, imports_result):
+                        return "".join(node.text() for kind, node in kinds_and_nodes)
+        case "generic_type":
+            if not imports_result.has_from_import:
+                return None
+            match tuple((child.kind(), child) for child in inner_type_node.children()):
+                case (("identifier", _), ("type_parameter", type_parameter)):
+                    match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
+                        case (("[", _), *kinds_and_nodes, ("]", _)):
+                            return "".join(node.text() for kind, node in kinds_and_nodes)
+        case "identifier":
+            return ""
+        case "attribute":
+            if handle_attribute(inner_type_node, imports_result):
+                return ""
+    return None
+
+
 if __name__ == "__main__":
-    print(get_global_imports(SgRoot("from typing import Final\nimport typing\nimport typing as t", "python").root()))  # noqa: T201
+    print(  # noqa: T201
+        [
+            t(tt.field("type"), ImportsResult(module_aliases={"typing"}, has_from_import=True))
+            for tt in SgRoot(
+                "t: typing.Final[1] = 1\nt: Final[1]\nt: Final\nt: typing.Final\nt: typing.Final[] = 1\nt: typing.ff[] = 1",
+                "python",
+            )
+            .root()
+            .find_all(kind="assignment")
+        ]
+    )
