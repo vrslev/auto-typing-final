@@ -15,18 +15,18 @@ const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 let languageClient: vscodeLanguageClient.LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 
-function getPythonExtension():
-	| vscode.Extension<{
-			environments: {
-				onDidChangeActiveEnvironmentPath: (event: any) => any;
-				getActiveEnvironmentPath: () => { path: string };
-				resolveEnvironment: (environment: { path: string }) => Promise<
-					{ executable: { uri?: { fsPath: string } } } | undefined
-				>;
-			};
-	  }>
-	| undefined {
-	return vscode.extensions.getExtension(PYTHON_EXTENSION_ID);
+function getPythonExtension() {
+	return vscode.extensions.getExtension(PYTHON_EXTENSION_ID) as
+		| vscode.Extension<{
+				environments: {
+					onDidChangeActiveEnvironmentPath: (event: any) => any;
+					getActiveEnvironmentPath: () => { path: string };
+					resolveEnvironment: (environment: { path: string }) => Promise<
+						{ executable: { uri?: { fsPath: string } } } | undefined
+					>;
+				};
+		  }>
+		| undefined;
 }
 
 async function findExecutable() {
@@ -111,7 +111,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 		),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
-			outputChannel?.info(`restarting from ${NAME}.restart`);
+			outputChannel?.info(`restarting on ${NAME}.restart`);
 			await restartServer();
 		}),
 	);
