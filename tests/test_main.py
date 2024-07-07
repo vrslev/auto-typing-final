@@ -36,18 +36,20 @@ from auto_typing_final.transform import transform_file_content
     ],
 )
 def test_variants(before: str, after: str) -> None:
+    source_function_content = "\n".join(f"    {line}" for line in before.splitlines())
     source = f"""
 import typing
 
 def foo():
-{"\n".join(f"    {line}" for line in before.splitlines())}
+{source_function_content}
 """
 
+    after_function_content = "\n".join(f"    {line}" for line in after.splitlines())
     after_source = f"""
 import typing
 
 def foo():
-{"\n".join(f"    {line}" for line in after.splitlines())}
+{after_function_content}
 """
     assert transform_file_content(source.strip()) == after_source.strip()
 
