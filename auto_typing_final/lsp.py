@@ -13,6 +13,7 @@ from auto_typing_final.finder import should_add_import_typing
 from auto_typing_final.transform import AddFinal, AppliedOperation, ImportMode, make_operations_from_root
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
+IMPORT_MODE = ImportMode.typing_final
 
 
 @attr.define
@@ -49,7 +50,7 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
     root = SgRoot(source, "python").root()
     has_import = not should_add_import_typing(root)
 
-    for applied_operation in make_operations_from_root(root, ImportMode.typing_final):
+    for applied_operation in make_operations_from_root(root, IMPORT_MODE):
         if isinstance(applied_operation.operation, AddFinal):
             fix_message = f"{LSP_SERVER.name}: Add typing.Final"
             diagnostic_message = "Missing typing.Final"
@@ -81,7 +82,7 @@ def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
     has_import = not should_add_import_typing(root)
     has_add_final_operation = False
 
-    for applied_operation in make_operations_from_root(root, ImportMode.typing_final):
+    for applied_operation in make_operations_from_root(root, IMPORT_MODE):
         if isinstance(applied_operation.operation, AddFinal):
             has_add_final_operation = True
         yield from make_diagnostic_text_edits(applied_operation)
