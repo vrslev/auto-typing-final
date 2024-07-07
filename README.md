@@ -34,15 +34,28 @@ or:
 pipx run auto-typing-final .
 ```
 
+
+### Options
+
 You can specify `--check` flag to check the files instead of actually fixing them:
 
 ```sh
 auto-typing-final . --check
 ```
 
-You also can install VS Code extension. It uses installation of `auto-typing-final` from the current Python environment and shows diagnostics and quick fixes.
+Also you can choose import style from two options: `typing-final` (default) and `final`:
 
-To get started, add `auto-typing-final` to your project:
+```sh
+auto-typing-final . --import-style typing-final
+```
+
+- `typing-final` enforces `import typing` and `typing.Final`,
+- `final` enforces `from typing import Final` and `Final`.
+
+
+## VS Code Extension
+
+The extension uses LSP bundled with the CLI. To get started, add `auto-typing-final` to your project:
 
 ```sh
 uv add auto-typing-final --dev
@@ -54,4 +67,6 @@ or:
 poetry add auto-typing-final --group=dev
 ```
 
-And install the extension: https://marketplace.visualstudio.com/items?itemName=vrslev.auto-typing-final.
+After that, install the extension: https://marketplace.visualstudio.com/items?itemName=vrslev.auto-typing-final. In Python environments that have `auto-typing-final` installed, extension will be activated automatically.
+
+Import style can be configured in settings: `"auto-typing-final.import-style": "typing-final"` or `"auto-typing-final.import-style": "final"`.
