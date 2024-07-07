@@ -9,6 +9,8 @@ import {
 } from "vscode-languageclient/node";
 
 const NAME = "auto-typing-final";
+const PYTHON_EXTENSION_ID = "ms-python.python";
+const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let languageClient: vscodeLanguageClient.LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -24,26 +26,45 @@ function getPythonExtension():
 			};
 	  }>
 	| undefined {
-	return vscode.extensions.getExtension("ms-python.python");
+	return vscode.extensions.getExtension(PYTHON_EXTENSION_ID);
 }
 
 async function findExecutable() {
 	const extension = getPythonExtension();
+	if (!extension) {
+		outputChannel?.info(`${PYTHON_EXTENSION_ID} not installed`);
+		return;
+	}
+
 	const environmentPath =
-		extension?.exports.environments.getActiveEnvironmentPath();
-	if (!environmentPath) return;
+		extension.exports.environments.getActiveEnvironmentPath();
+	if (!environmentPath) {
+		outputChannel?.info(`no active environment`);
+		return;
+	}
+
 	const fsPath = (
-		await extension?.exports.environments.resolveEnvironment(environmentPath)
+		await extension.exports.environments.resolveEnvironment(environmentPath)
 	)?.executable.uri?.fsPath;
-	if (!fsPath) return;
+	if (!fsPath) {
+		outputChannel?.info(`failed to resolve environment at ${environmentPath}`);
+		return;
+	}
 
 	const parsedPath = path.parse(fsPath);
 	const lspServerPath = path.format({
-		base: "auto-typing-final-lsp-server",
+		base: LSP_SERVER_EXECUTABLE_NAME,
 		dir: parsedPath.dir,
 		root: parsedPath.root,
 	});
-	if (fs.existsSync(lspServerPath)) return lspServerPath;
+	if (!fs.existsSync(lspServerPath)) {
+		outputChannel?.info(
+			`failed to find ${LSP_SERVER_EXECUTABLE_NAME} for ${fsPath}`,
+		);
+		return;
+	}
+
+	return lspServerPath;
 }
 
 async function restartServer() {
