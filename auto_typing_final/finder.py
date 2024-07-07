@@ -151,7 +151,7 @@ def find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
             yield from find_identifiers_in_children(node)
 
 
-def find_definitions_in_function_of_module(root: SgNode) -> Iterable[list[SgNode]]:
+def find_definitions_in_functions_in_node(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         definition_map = defaultdict(list)
 
@@ -191,7 +191,7 @@ def has_import_import_typing(root: SgNode) -> bool:
 
 
 def should_add_from_typing_import_final(root: SgNode) -> bool:
-    find_definitions_in_function_of_module(root)
+    find_definitions_in_functions_in_node(root)
     # if module_definitions
     for import_statement in root.find_all({"rule": {"any": [{"kind": "import_from_statement"}]}}):
         if is_inside_inner_function_or_class(root, import_statement):
