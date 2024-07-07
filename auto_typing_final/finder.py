@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from ast_grep_py import Config, SgNode, SgRoot
+from ast_grep_py import Config, SgNode
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
 DEFINITION_RULE: Config = {
@@ -177,8 +177,8 @@ class ImportsResult:
     has_from_import: bool
 
 
-def get_global_imports(root: SgNode) -> ImportsResult:
-    result = ImportsResult(module_aliases={"typing"}, has_from_import=False)
+def get_imports_of_identifier_in_scope(root: SgNode, module_name: str, identifier_name: str) -> ImportsResult:
+    result = ImportsResult(module_aliases={module_name}, has_from_import=False)
 
     for node in root.find_all(any=[{"kind": "import_statement"}, {"kind": "import_from_statement"}]):
         if _is_inside_inner_function_or_class(root, node) or node == root:
@@ -190,8 +190,8 @@ def get_global_imports(root: SgNode) -> ImportsResult:
                     if (
                         kind == "dotted_name"
                         and (identifier := _get_last_child_of_type(name_node, "identifier"))
-                        and module.text() == "typing"
-                        and identifier.text() == "Final"
+                        and module.text() == module_name
+                        and identifier.text() == identifier_name
                     ):
                         result.has_from_import = True
             case (("import", _), *name_nodes):
@@ -200,102 +200,56 @@ def get_global_imports(root: SgNode) -> ImportsResult:
                         case "dotted_name":
                             if (identifier := _get_last_child_of_type(name_node, "identifier")) and (
                                 identifier_text := identifier.text()
-                            ) == "typing":
+                            ) == module_name:
                                 result.module_aliases.add(identifier_text)
                         case "aliased_import":
                             if (
                                 (name := name_node.field("name"))
-                                and (name.text() == "typing")
+                                and (name.text() == module_name)
                                 and (alias := name_node.field("alias"))
                             ):
                                 result.module_aliases.add(alias.text())
     return result
 
 
-# def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
-#     for child in node.find_all(any=[{"kind": "attribute"}, {"kind": "assignment"}]):
-#         match child.kind():
-#             case "attribute":
-#                 if (
-#                     (object_ := child.field("object"))
-#                     and (attribute := child.field("attribute"))
-#                     and object_.text() in imports_result.module_aliases
-#                     and attribute.text() == "Final"
-#                 ):
-#                     return True
-#             case "assignment":
-#                 if (parent := child.parent()) and (parent.kind() == "attribute"):
-#                     pass
-#                 elif imports_result.has_from_import and child.text() == "Final":
-#                     return True
-#     return False
-def check_type(imports_result: ImportsResult, node: SgNode) -> bool:
-    node.children()
-    for child in node.find_all(any=[{"kind": "attribute"}, {"kind": "assignment"}]):
-        match child.kind():
-            case "attribute":
-                if (
-                    (object_ := child.field("object"))
-                    and (attribute := child.field("attribute"))
-                    and object_.text() in imports_result.module_aliases
-                    and attribute.text() == "Final"
-                ):
-                    return True
-            case "assignment":
-                if (parent := child.parent()) and (parent.kind() == "attribute"):
-                    pass
-                elif imports_result.has_from_import and child.text() == "Final":
-                    return True
-    return False
-
-
-def handle_attribute(node: SgNode, imports_result: ImportsResult) -> bool:
+def attribute_is_exact_identifier(node: SgNode, imports_result: ImportsResult, identifier_name: str) -> bool:
     match tuple((inner_child.kind(), inner_child) for inner_child in node.children()):
         case (("identifier", first_identifier), (".", _), ("identifier", second_identifier)):
-            return first_identifier.text() in imports_result.module_aliases and second_identifier.text() == "Final"
+            return (
+                first_identifier.text() in imports_result.module_aliases and second_identifier.text() == identifier_name
+            )
     return False
 
 
-def new_replace(node: SgNode, imports_result: ImportsResult) -> str | None:
+def strip_identifier_from_type_annotation(
+    node: SgNode, imports_result: ImportsResult, identifier_name: str
+) -> str | None:
     type_node_children = node.children()
     if len(type_node_children) != 1:
         return None
     inner_type_node = type_node_children[0]
+
     match inner_type_node.kind():
         case "subscript":
             match tuple((child.kind(), child) for child in inner_type_node.children()):
                 case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
-                    if handle_attribute(attribute, imports_result):
+                    if attribute_is_exact_identifier(attribute, imports_result, identifier_name):
                         return "".join(node.text() for kind, node in kinds_and_nodes)
         case "generic_type":
             if not imports_result.has_from_import:
                 return None
             match tuple((child.kind(), child) for child in inner_type_node.children()):
                 case (("identifier", identifier), ("type_parameter", type_parameter)):
-                    if identifier.text() != "Final":
+                    if identifier.text() != identifier_name:
                         return None
                     match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
                         case (("[", _), *kinds_and_nodes, ("]", _)):
                             return "".join(node.text() for kind, node in kinds_and_nodes)
         case "identifier":
-            if inner_type_node.text() != "Final":
+            if inner_type_node.text() != identifier_name:
                 return None
             return ""
         case "attribute":
-            if handle_attribute(inner_type_node, imports_result):
+            if attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name):
                 return ""
     return None
-
-
-if __name__ == "__main__":
-    print(  # noqa: T201
-        [
-            t(tt.field("type"), ImportsResult(module_aliases={"typing"}, has_from_import=True))
-            for tt in SgRoot(
-                "t: typing.Final[1] = 1\nt: Final[1]\nt: Final\nt: typing.Final\nt: typing.Final[] = 1\nt: typing.ff[] = 1",
-                "python",
-            )
-            .root()
-            .find_all(kind="assignment")
-        ]
-    )

@@ -7,9 +7,9 @@ from ast_grep_py import SgNode
 from auto_typing_final.finder import (
     ImportsResult,
     find_all_definitions_in_functions,
-    get_global_imports,
+    get_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
-    new_replace,
+    strip_identifier_from_type_annotation,
 )
 
 
@@ -97,7 +97,7 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
 
 
 def _make_changed_text_from_operation(  # noqa: C901
-    operation: Operation, final_value: str, imports_result: ImportsResult
+    operation: Operation, final_value: str, imports_result: ImportsResult, identifier_name: str
 ) -> Iterable[tuple[SgNode, str]]:
     match operation:
         case AddFinal(assignment):
@@ -105,7 +105,7 @@ def _make_changed_text_from_operation(  # noqa: C901
                 case AssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    match new_replace(annotation, imports_result):
+                    match strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                         case None:
                             yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
                         case "":
@@ -119,7 +119,7 @@ def _make_changed_text_from_operation(  # noqa: C901
                     case AssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
-                        match new_replace(annotation, imports_result):
+                        match strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                             case None:
                                 pass
                             case "":
@@ -149,14 +149,17 @@ class MakeReplacementsResult:
 def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
     replacements = []
     has_added_final = False
-    imports_result = get_global_imports(root)
+    imports_result = get_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
 
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
         edits = [
             Edit(node=node, new_text=new_text)
             for node, new_text in _make_changed_text_from_operation(
-                operation=operation, final_value=import_config.value, imports_result=imports_result
+                operation=operation,
+                final_value=import_config.value,
+                imports_result=imports_result,
+                identifier_name="Final",
             )
             if node.text() != new_text
         ]
