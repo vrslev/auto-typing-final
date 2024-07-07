@@ -134,10 +134,11 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
 
     if lsp.CodeActionKind.QuickFix in requested_kinds:
         text_document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+        our_diagnostics = [
+            diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == LSP_SERVER.name
+        ]
 
-        for diagnostic in params.context.diagnostics:
-            if diagnostic.source != LSP_SERVER.name:
-                continue
+        for diagnostic in our_diagnostics:
             data = cattrs.structure(diagnostic.data, DiagnosticData)
             actions.append(
                 lsp.CodeAction(
@@ -148,6 +149,17 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
                 )
             )
 
+        if our_diagnostics:
+            actions.append(
+                lsp.CodeAction(
+                    title=f"{LSP_SERVER.name}: Fix All",
+                    kind=lsp.CodeActionKind.QuickFix,
+                    data=params.text_document.uri,
+                    edit=None,
+                    diagnostics=params.context.diagnostics,
+                )
+            )
+
     if lsp.CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
             lsp.CodeAction(
@@ -155,7 +167,7 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
                 kind=lsp.CodeActionKind.SourceFixAll,
                 data=params.text_document.uri,
                 edit=None,
-                diagnostics=[],
+                diagnostics=params.context.diagnostics,
             ),
         )
 
@@ -164,9 +176,6 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
 
 @LSP_SERVER.feature(lsp.CODE_ACTION_RESOLVE)
 def resolve_code_action(params: lsp.CodeAction) -> lsp.CodeAction:
-    if params.kind != lsp.CodeActionKind.SourceFixAll:
-        return params
-
     text_document = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
     params.edit = lsp.WorkspaceEdit(
         document_changes=[
