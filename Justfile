@@ -1,8 +1,11 @@
-default: install lint check-types test
+default: install install-testing lint check-types test
 
 install:
     uv lock
     uv sync
+
+install-testing:
+    cd testing && uv lock && uv sync
 
 test *args:
     @.venv/bin/pytest -- {{ args }}

@@ -1,0 +1,11 @@
+[project]
+name = "auto-typing-final-testing"
+version = "0"
+requires-python = ">=3.10"
+dependencies = ["auto-typing-final"]
+
+[tool.uv.sources]
+auto-typing-final = { path = "../", editable = true }
+
+[tool.ruff]
+exclude = ["."]

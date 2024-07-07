@@ -16,6 +16,7 @@ from lsprotocol.types import (
     CodeActionOptions,
     CodeActionParams,
     Diagnostic,
+    DiagnosticSeverity,
     DidChangeTextDocumentParams,
     DidCloseTextDocumentParams,
     DidOpenTextDocumentParams,
@@ -104,6 +105,7 @@ def make_diagnostics(source: str) -> Iterable[Diagnostic]:
                     end=Position(line=node_range.end.line, character=node_range.end.column),
                 ),
                 message=diagnostic_message,
+                severity=DiagnosticSeverity.Warning,
                 source=LSP_SERVER.name,
                 data=DiagnosticData(fix=fix),
             )
