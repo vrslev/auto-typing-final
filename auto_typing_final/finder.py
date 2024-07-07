@@ -191,4 +191,4 @@ def should_add_import_typing(root: SgNode) -> bool:
 
 
 def should_add_from_typing_import_final(root: SgNode) -> bool:
-    return "Final" not in {identifier.text() for identifier, _node in find_identifiers_in_scope(root)}
+    return "Final" not in {identifier.text() for identifier, _ in find_identifiers_in_scope(root)}
