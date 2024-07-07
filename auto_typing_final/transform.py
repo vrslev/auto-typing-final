@@ -118,8 +118,13 @@ def _make_changed_text_from_operation(  # noqa: C901
                 case AssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    if final_value not in annotation.text():
-                        yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
+                    match new_replace(annotation, imports_result):
+                        case None:
+                            yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
+                        case "":
+                            yield node, f"{left}: {final_value} = {right}"
+                        case new_annotation:
+                            yield node, f"{left}: {final_value}[{new_annotation}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
