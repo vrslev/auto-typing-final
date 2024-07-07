@@ -1,6 +1,6 @@
 import pytest
 
-from auto_typing_final.transform import transform_file_content
+from auto_typing_final.main import transform_file_content
 
 
 @pytest.mark.parametrize(
