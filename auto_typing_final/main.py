@@ -6,30 +6,19 @@ from pathlib import Path
 
 from ast_grep_py import Edit, SgRoot
 
-from auto_typing_final.finder import should_add_from_typing_import_final, should_add_import_typing
-from auto_typing_final.transform import AddFinal, ImportMode, make_operations_from_root
+from auto_typing_final.transform import ImportMode, make_operations_from_root
 
 
 def transform_file_content(source: str, import_mode: ImportMode) -> str:
     root = SgRoot(source, "python").root()
+    operations, import_string = make_operations_from_root(root, import_mode)
+
     edits: list[Edit] = []
-    has_added_final = False
-
-    for applied_operation in make_operations_from_root(root, import_mode):
-        if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
-            has_added_final = True
-
+    for applied_operation in operations:
         edits.extend(edit.edit for edit in applied_operation.edits)
 
     result = root.commit_edits(edits)
-
-    if has_added_final:
-        if import_mode == ImportMode.typing_final and should_add_import_typing(root):
-            return root.commit_edits([root.replace(f"import typing\n{result}")])
-        if import_mode == ImportMode.final and should_add_from_typing_import_final(root):
-            return root.commit_edits([root.replace(f"from typing import Final\n{result}")])
-
-    return result
+    return root.commit_edits([root.replace(f"{import_string}\n{result}")]) if import_string else result
 
 
 def take_python_source_files(paths: Iterable[Path]) -> Iterable[Path]:

@@ -164,7 +164,7 @@ def make_operations_from_root(root: SgNode, import_mode: ImportMode) -> tuple[li
 
     import_string = (
         final_import_text
-        if has_added_final and has_global_identifier_with_name(root=root, name=final_import_identifier)
+        if has_added_final and not has_global_identifier_with_name(root=root, name=final_import_identifier)
         else None
     )
     return applied_operations, import_string
