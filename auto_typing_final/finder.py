@@ -229,26 +229,24 @@ def strip_identifier_from_type_annotation(
         return None
     inner_type_node = type_node_children[0]
     kind = inner_type_node.kind()
-    match inner_type_node.kind():
-        case "subscript":
-            match tuple((child.kind(), child) for child in inner_type_node.children()):
-                case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
-                    if attribute_is_exact_identifier(attribute, imports_result, identifier_name):
+    if kind == "subscript":
+        match tuple((child.kind(), child) for child in inner_type_node.children()):
+            case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
+                if attribute_is_exact_identifier(attribute, imports_result, identifier_name):
+                    return "".join(node.text() for kind, node in kinds_and_nodes)
+    elif kind == "generic_type":
+        if not imports_result.has_from_import:
+            return None
+        match tuple((child.kind(), child) for child in inner_type_node.children()):
+            case (("identifier", identifier), ("type_parameter", type_parameter)):
+                if identifier.text() != identifier_name:
+                    return None
+                match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
+                    case (("[", _), *kinds_and_nodes, ("]", _)):
                         return "".join(node.text() for kind, node in kinds_and_nodes)
-        case "generic_type":
-            if not imports_result.has_from_import:
-                return None
-            match tuple((child.kind(), child) for child in inner_type_node.children()):
-                case (("identifier", identifier), ("type_parameter", type_parameter)):
-                    if identifier.text() != identifier_name:
-                        return None
-                    match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
-                        case (("[", _), *kinds_and_nodes, ("]", _)):
-                            return "".join(node.text() for kind, node in kinds_and_nodes)
-        case "identifier":
-            if inner_type_node.text() == identifier_name:
-                return ""
-        case "attribute":
-            if attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name):
-                return ""
+    elif kind == "identifier":
+        if inner_type_node.text() == identifier_name:
+            return ""
+    elif kind == "attribute" and attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name):
+        return ""
     return None
