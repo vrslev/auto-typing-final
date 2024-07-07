@@ -1,14 +1,8 @@
-default: install install-testing lint check-types test
+default: install lint check-types test
 
 install:
     uv lock
     uv sync
-
-install-testing:
-    cd testing && uv lock && uv sync
-
-test *args:
-    @.venv/bin/pytest -- {{ args }}
 
 lint:
     uv -q run ruff check .
@@ -17,7 +11,10 @@ lint:
 check-types:
     uv -q run mypy .
 
-publish:
+test *args:
+    @.venv/bin/pytest -- {{ args }}
+
+publish-package:
     rm -rf dist/*
     uv tool run --from build python -m build --installer uv
     uv tool run twine check dist/*
@@ -25,3 +22,14 @@ publish:
 
 run *args:
     @.venv/bin/auto-typing-final {{ args }}
+
+extension: install-ts check-types-ts lint-ts
+
+install-ts:
+    npm ci
+
+check-types-ts:
+    npm run compile
+
+lint-ts:
+    npm run lint
