@@ -1,58 +1,45 @@
 {
-  "name": "auto-typing-final",
-  "displayName": "auto-typing-final",
-  "description": "VS Code extension for auto-typing-final auto-fixer",
-  "version": "0",
-  "publisher": "vrslev",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/vrslev/auto-typing-final.git"
-  },
-  "keywords": [
-    "python",
-    "linting",
-    "mypy"
-  ],
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Linters",
-    "Formatters"
-  ],
-  "extensionDependencies": [
-    "ms-python.python"
-  ],
-  "activationEvents": [
-    "onLanguage:python",
-    "workspaceContains:*.py"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "title": "Restart Server",
-        "category": "auto-typing-final",
-        "command": "auto-typing-final.restart"
-      }
-    ]
-  },
-  "scripts": {
-    "fmt": "@biomejs/biome format --write .",
-    "package": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "vscode:prepublish": "npm run compile"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^8.1.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "1.8.3",
-    "@types/node": "^20.14.10",
-    "@types/vscode": "^1.90.0",
-    "prettier": "^3.3.2",
-    "typescript": "^5.5.3"
-  }
+	"name": "auto-typing-final",
+	"displayName": "auto-typing-final",
+	"description": "VS Code extension for auto-typing-final auto-fixer",
+	"version": "0",
+	"publisher": "vrslev",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/vrslev/auto-typing-final.git"
+	},
+	"keywords": ["python", "linting", "mypy"],
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": ["Programming Languages", "Linters", "Formatters"],
+	"extensionDependencies": ["ms-python.python"],
+	"activationEvents": ["onLanguage:python", "workspaceContains:*.py"],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"title": "Restart Server",
+				"category": "auto-typing-final",
+				"command": "auto-typing-final.restart"
+			}
+		]
+	},
+	"scripts": {
+		"fmt": "biome format --write .",
+		"package": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"vscode:prepublish": "npm run compile"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^8.1.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.8.3",
+		"@types/node": "^20.14.10",
+		"@types/vscode": "^1.90.0",
+		"prettier": "^3.3.2",
+		"typescript": "^5.5.3"
+	}
 }
