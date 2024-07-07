@@ -168,11 +168,3 @@ def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
 
 def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
     return name in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
-
-
-def should_add_import_typing(root: SgNode) -> bool:
-    return "typing" not in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
-
-
-def should_add_from_typing_import_final(root: SgNode) -> bool:
-    return "Final" not in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
