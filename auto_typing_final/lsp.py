@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from importlib.metadata import version
 from typing import cast
 
 import attr
@@ -11,7 +12,7 @@ from pygls.workspace import TextDocument
 from auto_typing_final.finder import has_global_import_with_name
 from auto_typing_final.transform import AddFinal, AppliedOperation, make_operations_from_root
 
-LSP_SERVER = server.LanguageServer(name="auto-typing-final", version="0", max_workers=5)
+LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
 @attr.define
