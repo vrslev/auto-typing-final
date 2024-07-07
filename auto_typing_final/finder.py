@@ -1,7 +1,8 @@
 from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass
 
-from ast_grep_py import Config, SgNode
+from ast_grep_py import Config, SgNode, SgRoot
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
 DEFINITION_RULE: Config = {
@@ -132,7 +133,7 @@ def _find_identifiers_made_by_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C
                 yield from left.find_all(kind="identifier")
 
 
-def _find_identifiers_in_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
+def _find_identifiers_in_current_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
     for child in node.find_all(DEFINITION_RULE):
         if _is_inside_inner_function_or_class(node, child) or child == node:
             continue
@@ -160,11 +161,54 @@ def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
                 for identifier in _find_identifiers_in_function_parameter(parameter):
                     definition_map[identifier.text()].append(parameter)
 
-        for identifier, node in _find_identifiers_in_scope(function):
+        for identifier, node in _find_identifiers_in_current_scope(function):
             definition_map[identifier.text()].append(node)
 
         yield from definition_map.values()
 
 
 def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
-    return name in {identifier.text() for identifier, _ in _find_identifiers_in_scope(root)}
+    return name in {identifier.text() for identifier, _ in _find_identifiers_in_current_scope(root)}
+
+
+@dataclass
+class ImportsResult:
+    import_statement_module_aliases: list[str]
+    has_from_import: bool
+
+
+def get_imports(root: SgNode) -> ImportsResult:
+    result = ImportsResult(import_statement_module_aliases=[], has_from_import=False)
+
+    for node in root.find_all({"rule": {"any": [{"kind": "import_statement"}, {"kind": "import_from_statement"}]}}):
+        if _is_inside_inner_function_or_class(root, node) or node == root:
+            continue
+
+        match tuple((child.kind(), child) for child in node.children()):
+            case (("from", _), (_, module), ("import", _), *name_nodes):
+                for kind, name_node in name_nodes:
+                    if (
+                        kind == "dotted_name"
+                        and (identifier := _get_last_child_of_type(name_node, "identifier"))
+                        and module.text() == "typing"
+                        and identifier.text() == "Final"
+                    ):
+                        result.has_from_import = True
+            case (("import", _), *name_nodes):
+                for kind, name_node in name_nodes:
+                    match kind:
+                        case "dotted_name":
+                            if identifier := _get_last_child_of_type(name_node, "identifier"):
+                                result.import_statement_module_aliases.append(identifier.text())
+                        case "aliased_import":
+                            if (
+                                (name := name_node.field("name"))
+                                and (alias := name_node.field("alias"))
+                                and (name.text() == "typing")
+                            ):
+                                result.import_statement_module_aliases.append(alias.text())
+    return result
+
+
+if __name__ == "__main__":
+    print(get_imports(SgRoot("from typing import Final\nimport typing\nimport typing as t", "python").root()))  # noqa: T201

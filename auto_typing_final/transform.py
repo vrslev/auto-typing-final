@@ -45,7 +45,7 @@ class AssignmentWithoutAnnotation:
 class AssignmentWithAnnotation:
     node: SgNode
     left: str
-    annotation: str
+    annotation: SgNode
     right: str
 
 
@@ -86,9 +86,7 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
                     )
                 case (("identifier", left), (":", _), ("type", annotation), ("=", _), (_, right)):
                     value_assignments.append(
-                        AssignmentWithAnnotation(
-                            node=node, left=left.text(), annotation=annotation.text(), right=right.text()
-                        )
+                        AssignmentWithAnnotation(node=node, left=left.text(), annotation=annotation, right=right.text())
                     )
                 case _:
                     value_assignments.append(OtherDefinition(node))
@@ -114,8 +112,8 @@ def _make_changed_text_from_operation(  # noqa: C901
                 case AssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case AssignmentWithAnnotation(node, left, annotation, right):
-                    if final_value not in annotation:
-                        yield node, f"{left}: {final_value}[{annotation}] = {right}"
+                    if final_value not in annotation.text():
+                        yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
@@ -123,9 +121,9 @@ def _make_changed_text_from_operation(  # noqa: C901
                     case AssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
-                        if annotation == final_value:
+                        if annotation.text() == final_value:
                             yield node, f"{left} = {right}"
-                        elif new_annotation := final_outer_regex.findall(annotation):
+                        elif new_annotation := final_outer_regex.findall(annotation.text()):
                             yield node, f"{left}: {new_annotation[0]} = {right}"
 
 
