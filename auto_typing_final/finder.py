@@ -177,7 +177,7 @@ class ImportsResult:
     has_from_import: bool
 
 
-def get_imports_of_identifier_in_scope(root: SgNode, module_name: str, identifier_name: str) -> ImportsResult:  # noqa: C901
+def find_imports_of_identifier_in_scope(root: SgNode, module_name: str, identifier_name: str) -> ImportsResult:  # noqa: C901
     result = ImportsResult(module_aliases={module_name}, has_from_import=False)
 
     for node in root.find_all(any=[{"kind": "import_statement"}, {"kind": "import_from_statement"}]):

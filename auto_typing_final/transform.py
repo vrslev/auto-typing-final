@@ -7,7 +7,7 @@ from ast_grep_py import SgNode
 from auto_typing_final.finder import (
     ImportsResult,
     find_all_definitions_in_functions,
-    get_imports_of_identifier_in_scope,
+    find_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
 )
 
@@ -184,7 +184,7 @@ class MakeReplacementsResult:
 def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
     replacements = []
     has_added_final = False
-    imports_result = get_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
+    imports_result = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
 
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_assignments_to_one_name(current_definitions)
