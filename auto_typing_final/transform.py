@@ -97,7 +97,7 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _make_changed_text_from_operation(
+def _make_changed_text_from_operation(  # noqa: C901
     operation: Operation, final_value: str, final_outer_regex: re.Pattern[str]
 ) -> Iterable[tuple[SgNode, str]]:
     match operation:
