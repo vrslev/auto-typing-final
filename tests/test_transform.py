@@ -1,25 +1,26 @@
 import pytest
 
 from auto_typing_final.main import transform_file_content
-from auto_typing_final.transform import ImportMode
+from auto_typing_final.transform import ImportMode, _resolve_import_mode  # noqa: PLC2701
 
 
+@pytest.mark.parametrize("import_mode", list(ImportMode))
 @pytest.mark.parametrize(
     ("before", "after"),
     [
         # Add annotation
         ("a: int", "a: int"),
-        ("a = 1", "a: typing.Final = 1"),
-        ("a: typing.Final = 1", "a: typing.Final = 1"),
-        ("a: int = 1", "a: typing.Final[int] = 1"),
-        ("a: typing.Annotated[int, 'hello'] = 1", "a: typing.Final[typing.Annotated[int, 'hello']] = 1"),
-        ("b = 1\na = 2\nb = 3", "b = 1\na: typing.Final = 2\nb = 3"),
-        ("b = 1\nb = 2\na = 3", "b = 1\nb = 2\na: typing.Final = 3"),
-        ("a = 1\nb = 2\nb = 3", "a: typing.Final = 1\nb = 2\nb = 3"),
+        ("a = 1", "a: {} = 1"),
+        ("a: {} = 1", "a: {} = 1"),
+        ("a: int = 1", "a: {}[int] = 1"),
+        ("a: typing.Annotated[int, 'hello'] = 1", "a: {}[typing.Annotated[int, 'hello']] = 1"),
+        ("b = 1\na = 2\nb = 3", "b = 1\na: {} = 2\nb = 3"),
+        ("b = 1\nb = 2\na = 3", "b = 1\nb = 2\na: {} = 3"),
+        ("a = 1\nb = 2\nb = 3", "a: {} = 1\nb = 2\nb = 3"),
         ("a = 1\na = 2\nb: int", "a = 1\na = 2\nb: int"),
         ("a = 1\na: int", "a = 1\na: int"),
         ("a: int\na = 1", "a: int\na = 1"),
-        ("a: typing.Final\na = 1", "a: typing.Final\na = 1"),
+        ("a: {}\na = 1", "a: {}\na = 1"),
         ("a: int\na: int = 1", "a: int\na: int = 1"),
         ("a, b = 1, 2", "a, b = 1, 2"),
         ("(a, b) = 1, 2", "(a, b) = 1, 2"),
@@ -27,32 +28,33 @@ from auto_typing_final.transform import ImportMode
         ("[a, b] = t()", "[a, b] = t()"),
         ("[a] = t()", "[a] = t()"),
         # Remove annotation
-        ("a = 1\na: typing.Final[int] = 2", "a = 1\na: int = 2"),
-        ("a = 1\na: typing.Final = 2", "a = 1\na = 2"),
-        ("a: int = 1\na: typing.Final[int] = 2", "a: int = 1\na: int = 2"),
-        ("a: int = 1\na: typing.Final = 2", "a: int = 1\na = 2"),
-        ("a: typing.Final = 1\na: typing.Final = 2\na = 3\na: int = 4", "a = 1\na = 2\na = 3\na: int = 4"),
+        ("a = 1\na: {}[int] = 2", "a = 1\na: int = 2"),
+        ("a = 1\na: {} = 2", "a = 1\na = 2"),
+        ("a: int = 1\na: {}[int] = 2", "a: int = 1\na: int = 2"),
+        ("a: int = 1\na: {} = 2", "a: int = 1\na = 2"),
+        ("a: {} = 1\na: {} = 2\na = 3\na: int = 4", "a = 1\na = 2\na = 3\na: int = 4"),
         # Both
-        ("a = 1\nb = 2\nb: typing.Final[int] = 3", "a: typing.Final = 1\nb = 2\nb: int = 3"),
+        ("a = 1\nb = 2\nb: {}[int] = 3", "a: {} = 1\nb = 2\nb: int = 3"),
     ],
 )
-def test_variants(before: str, after: str) -> None:
-    source_function_content = "\n".join(f"    {line}" for line in before.splitlines())
+def test_variants(import_mode: ImportMode, before: str, after: str) -> None:
+    final_value, _, final_import_text = _resolve_import_mode(import_mode)
+    source_function_content = "\n".join(f"    {line.format(final_value)}" for line in before.splitlines())
     source = f"""
-import typing
+{final_import_text}
 
 def foo():
 {source_function_content}
 """
 
-    after_function_content = "\n".join(f"    {line}" for line in after.splitlines())
+    after_function_content = "\n".join(f"    {line.format(final_value)}" for line in after.splitlines())
     after_source = f"""
-import typing
+{final_import_text}
 
 def foo():
 {after_function_content}
 """
-    assert transform_file_content(source.strip(), import_mode=ImportMode.typing_final) == after_source.strip()
+    assert transform_file_content(source.strip(), import_mode=import_mode) == after_source.strip()
 
 
 @pytest.mark.parametrize(

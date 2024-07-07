@@ -92,17 +92,16 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _make_changed_text_from_operation(operation: Operation, import_mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901, PLR0912
+def _resolve_import_mode(import_mode: ImportMode) -> tuple[str, re.Pattern[str], str]:
     if import_mode == ImportMode.typing_final:
-        final_value = TYPING_FINAL_VALUE
-        final_outer_regex = TYPING_FINAL_OUTER_REGEX
-    elif import_mode == ImportMode.final:
-        final_value = FINAL_VALUE
-        final_outer_regex = FINAL_OUTER_REGEX
-    else:
-        msg = "unreachable"
-        raise AssertionError(msg)
+        return (TYPING_FINAL_VALUE, TYPING_FINAL_OUTER_REGEX, TYPING_FINAL_IMPORT_TEXT)
+    if import_mode == ImportMode.final:
+        return (FINAL_VALUE, FINAL_OUTER_REGEX, FINAL_IMPORT_TEXT)
+    raise AssertionError
 
+
+def _make_changed_text_from_operation(operation: Operation, import_mode: ImportMode) -> Iterable[tuple[SgNode, str]]:  # noqa: C901
+    final_value, final_outer_regex, _ = _resolve_import_mode(import_mode)
     match operation:
         case AddFinal(assignment):
             match assignment:
