@@ -10,12 +10,12 @@ from auto_typing_final.finder import has_global_import_with_name
 from auto_typing_final.transform import AddFinal, ImportMode, make_operations_from_root
 
 
-def transform_file_content(source: str) -> str:
+def transform_file_content(source: str, import_mode: ImportMode) -> str:
     root = SgRoot(source, "python").root()
     edits: list[Edit] = []
     has_added_final = False
 
-    for applied_operation in make_operations_from_root(root, ImportMode.typing_final):
+    for applied_operation in make_operations_from_root(root, import_mode):
         if isinstance(applied_operation.operation, AddFinal) and applied_operation.edits:
             has_added_final = True
 
@@ -55,16 +55,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", type=Path, nargs="*")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--import-mode", choices={"typing-final", "final"}, default="typing-final")
+    parser.add_argument("--import-mode", type=ImportMode, default=ImportMode.typing_final)
     args = parser.parse_args()
 
     has_changes = False
 
     for path in find_all_source_files(args.files):
         with path.open("r+") as file:
-            data = file.read()
-            transformed_content = transform_file_content(data)
-            if data == transformed_content:
+            source = file.read()
+            transformed_content = transform_file_content(source=source, import_mode=args.import_mode)
+            if source == transformed_content:
                 continue
 
             has_changes = True
@@ -72,7 +72,7 @@ def main() -> int:
             if args.check:
                 sys.stdout.writelines(
                     unified_diff(
-                        data.splitlines(keepends=True),
+                        source.splitlines(keepends=True),
                         transformed_content.splitlines(keepends=True),
                         fromfile=str(path),
                         tofile=str(path),
