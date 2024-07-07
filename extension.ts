@@ -1,7 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import type * as vscodeLanguageClient from "vscode-languageclient/node";
 import {
 	LanguageClient,
 	type LanguageClientOptions,
@@ -12,7 +11,7 @@ const NAME = "auto-typing-final";
 const PYTHON_EXTENSION_ID = "ms-python.python";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
-let languageClient: vscodeLanguageClient.LanguageClient | undefined;
+let languageClient: LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 
 function getPythonExtension() {
