@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Iterable
 from importlib.metadata import version
-from typing import Any, TypedDict, cast
+from typing import cast, get_args
 
 import attr
 import cattrs
@@ -10,13 +10,17 @@ from ast_grep_py import SgRoot
 from pygls import server
 from pygls.workspace import TextDocument
 
-from auto_typing_final.transform import IMPORT_MODES_TO_IMPORT_CONFIGS, AddFinal, Edit, ImportMode, make_replacements
+from auto_typing_final.transform import (
+    IMPORT_MODES_TO_IMPORT_CONFIGS,
+    AddFinal,
+    Edit,
+    ImportConfig,
+    ImportMode,
+    make_replacements,
+)
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
-IMPORT_CONFIG = IMPORT_MODES_TO_IMPORT_CONFIGS[ImportMode.typing_final]
-
-LSPSettings = TypedDict("LSPSettings", {"import-style": Any}, total=False)
-SETTINGS: LSPSettings = {"import-style": "typing-final"}
+IMPORT_CONFIG: ImportConfig | None = None
 
 
 @attr.define
@@ -49,6 +53,8 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
+    if not IMPORT_CONFIG:
+        return
     result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
@@ -78,6 +84,8 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
+    if not IMPORT_CONFIG:
+        return
     result = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
@@ -124,11 +132,13 @@ async def initialized(_: lsp.InitializedParams) -> None:
 def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
     if (
         isinstance(params.settings, dict)
-        and (our_settings := params.settings.get("auto-typing-final"))
-        and isinstance(our_settings, dict)
+        and (settings := params.settings.get("auto-typing-final"))
+        and isinstance(settings, dict)
+        and (import_style := settings.get("import-style"))
+        and (import_style in get_args(ImportMode))
     ):
-        global SETTINGS  # noqa: PLW0603
-        SETTINGS = our_settings
+        global IMPORT_CONFIG  # noqa: PLW0603
+        IMPORT_CONFIG = IMPORT_MODES_TO_IMPORT_CONFIGS[import_style]
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
