@@ -166,18 +166,6 @@ def find_all_definitions(root: SgNode) -> Iterable[list[SgNode]]:
         yield from definition_map.values()
 
 
-def has_global_import_with_name(root: SgNode, name: str) -> bool:
-    for import_statement in root.find_all(
-        {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
-    ):
-        if _is_inside_inner_function_or_class(root, import_statement):
-            continue
-        for identifier in _find_identifiers_in_import_statement(import_statement):
-            if identifier.text() == name:
-                return True
-    return False
-
-
 def should_add_import_typing(root: SgNode) -> bool:
     for import_statement in root.find_all(
         {"rule": {"any": [{"kind": "import_from_statement"}, {"kind": "import_statement"}]}}
