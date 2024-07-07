@@ -43,7 +43,7 @@ You can specify `--check` flag to check the files instead of actually fixing the
 auto-typing-final . --check
 ```
 
-Also you can choose import style from two options: `typing-final` (default) and `final`:
+Also, you can choose import style from two options: `typing-final` (default) and `final`:
 
 ```sh
 auto-typing-final . --import-style typing-final
@@ -55,7 +55,7 @@ auto-typing-final . --import-style typing-final
 
 ## VS Code Extension
 
-The extension uses LSP bundled with the CLI. To get started, add `auto-typing-final` to your project:
+The extension uses LSP server bundled with the CLI. To get started, add `auto-typing-final` to your project:
 
 ```sh
 uv add auto-typing-final --dev
