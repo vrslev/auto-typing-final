@@ -2,7 +2,7 @@
 	"name": "auto-typing-final",
 	"displayName": "auto-typing-final",
 	"description": "VS Code extension for auto-typing-final auto-fixer",
-	"version": "0",
+	"version": "0.0.0",
 	"publisher": "vrslev",
 	"license": "MIT",
 	"repository": {

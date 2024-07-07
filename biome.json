@@ -5,5 +5,6 @@
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
-	"linter": { "enabled": false }
+	"linter": { "enabled": false },
+	"formatter": { "ignore": ["package-lock.json"] }
 }
