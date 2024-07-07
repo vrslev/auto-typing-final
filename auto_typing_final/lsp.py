@@ -102,11 +102,11 @@ def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEd
 
 
 @LSP_SERVER.feature(lsp.INITIALIZE)
-async def initialize(params: lsp.InitializeParams) -> None: ...  # noqa: ARG001
+async def initialize(_: lsp.InitializeParams) -> None: ...
 
 
 @LSP_SERVER.feature(lsp.INITIALIZED)
-async def initialized(params: lsp.InitializedParams) -> None:  # noqa: ARG001
+async def initialized(_: lsp.InitializedParams) -> None:
     await LSP_SERVER.register_capability_async(
         params=lsp.RegistrationParams(
             registrations=[
