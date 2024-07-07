@@ -121,7 +121,7 @@ async def initialized(_: lsp.InitializedParams) -> None:
                 lsp.Registration(
                     id=str(uuid.uuid4()),
                     method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
-                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section="auto-typing-final"),
+                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name),
                 )
             ]
         )
@@ -132,7 +132,7 @@ async def initialized(_: lsp.InitializedParams) -> None:
 def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
     if (
         isinstance(params.settings, dict)
-        and (settings := params.settings.get("auto-typing-final"))
+        and (settings := params.settings.get(LSP_SERVER.name))
         and isinstance(settings, dict)
         and (import_style := settings.get("import-style"))
         and (import_style in get_args(ImportMode))
