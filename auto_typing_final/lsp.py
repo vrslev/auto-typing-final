@@ -51,6 +51,24 @@ ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle})
 FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
 
 
+@attr.define
+class Fix:
+    message: str
+    text_edits: list[lsp.TextEdit]
+
+
+@attr.define
+class DiagnosticData:
+    fix: Fix
+
+
+def make_import_text_edit(import_text: str) -> lsp.TextEdit:
+    return lsp.TextEdit(
+        range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
+        new_text=f"{import_text}\n",
+    )
+
+
 @dataclass(init=False)
 class Service:
     ls_name: str
@@ -152,24 +170,6 @@ def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.Did
     ls.service = Service(ls_name=ls.name, settings=params.settings)
     for text_document in ls.workspace.text_documents.values():
         ls.publish_diagnostics(text_document.uri, diagnostics=ls.service.make_diagnostics(text_document.source))
-
-
-@attr.define
-class Fix:
-    message: str
-    text_edits: list[lsp.TextEdit]
-
-
-@attr.define
-class DiagnosticData:
-    fix: Fix
-
-
-def make_import_text_edit(import_text: str) -> lsp.TextEdit:
-    return lsp.TextEdit(
-        range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
-        new_text=f"{import_text}\n",
-    )
 
 
 def make_text_edit(edit: Edit) -> lsp.TextEdit:
