@@ -35,6 +35,65 @@ class ClientState:
 STATE = ClientState(import_config=IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"], ignored_paths=[])
 
 
+# From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
+def path_from_uri(uri: str) -> Path | None:
+    if not uri.startswith("file:"):
+        return None
+    path = uri[5:]
+    if path[:3] == "///":
+        # Remove empty authority
+        path = path[2:]
+    elif path[:12] == "//localhost/":
+        # Remove 'localhost' authority
+        path = path[11:]
+    if path[:3] == "///" or (path[:1] == "/" and path[2:3] in ":|"):
+        # Remove slash before DOS device/UNC path
+        path = path[1:]
+    if path[1:2] == "|":
+        # Replace bar with colon in DOS drive
+        path = path[:1] + ":" + path[2:]
+
+    path_: Final = Path(os.fsdecode(unquote_to_bytes(path)))
+    if not path_.is_absolute():
+        return None
+    return path_
+
+
+@LSP_SERVER.feature(lsp.INITIALIZE)
+def initialize(_: lsp.InitializeParams) -> None:
+    executable_path: Final = Path(sys.executable)
+
+    if executable_path.parent.name == "bin":
+        STATE.ignored_paths = [executable_path.parent.parent]
+
+
+@LSP_SERVER.feature(lsp.INITIALIZED)
+async def initialized(_: lsp.InitializedParams) -> None:
+    await LSP_SERVER.register_capability_async(
+        params=lsp.RegistrationParams(
+            registrations=[
+                lsp.Registration(
+                    id=str(uuid.uuid4()),
+                    method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
+                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name),
+                )
+            ]
+        )
+    )
+
+
+@LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
+def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
+    if (
+        isinstance(params.settings, dict)
+        and (settings := params.settings.get(LSP_SERVER.name))
+        and isinstance(settings, dict)
+        and (import_style := settings.get("import-style"))
+        and (import_style in get_args(ImportStyle))
+    ):
+        STATE.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
+
+
 @attr.define
 class Fix:
     message: str
@@ -104,69 +163,10 @@ def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
         yield make_import_text_edit(result.import_text)
 
 
-# From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
-def path_from_uri(uri: str) -> Path | None:
-    if not uri.startswith("file:"):
-        return None
-    path = uri[5:]
-    if path[:3] == "///":
-        # Remove empty authority
-        path = path[2:]
-    elif path[:12] == "//localhost/":
-        # Remove 'localhost' authority
-        path = path[11:]
-    if path[:3] == "///" or (path[:1] == "/" and path[2:3] in ":|"):
-        # Remove slash before DOS device/UNC path
-        path = path[1:]
-    if path[1:2] == "|":
-        # Replace bar with colon in DOS drive
-        path = path[:1] + ":" + path[2:]
-
-    path_: Final = Path(os.fsdecode(unquote_to_bytes(path)))
-    if not path_.is_absolute():
-        return None
-    return path_
-
-
-@LSP_SERVER.feature(lsp.INITIALIZE)
-def initialize(_: lsp.InitializeParams) -> None:
-    executable_path: Final = Path(sys.executable)
-
-    if executable_path.parent.name == "bin":
-        STATE.ignored_paths = [executable_path.parent.parent]
-
-
 def path_is_ignored(uri: str) -> bool:
     if path := path_from_uri(uri):
         return any(path.is_relative_to(ignored_path) for ignored_path in STATE.ignored_paths)
     return False
-
-
-@LSP_SERVER.feature(lsp.INITIALIZED)
-async def initialized(_: lsp.InitializedParams) -> None:
-    await LSP_SERVER.register_capability_async(
-        params=lsp.RegistrationParams(
-            registrations=[
-                lsp.Registration(
-                    id=str(uuid.uuid4()),
-                    method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
-                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name),
-                )
-            ]
-        )
-    )
-
-
-@LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
-def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
-    if (
-        isinstance(params.settings, dict)
-        and (settings := params.settings.get(LSP_SERVER.name))
-        and isinstance(settings, dict)
-        and (import_style := settings.get("import-style"))
-        and (import_style in get_args(ImportStyle))
-    ):
-        STATE.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
