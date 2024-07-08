@@ -54,50 +54,59 @@ FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": Clien
 
 @dataclass(init=False)
 class Service:
-    _ignored_paths: list[Path]
-    _import_config: ImportConfig
+    ls_name: str
+    ignored_paths: list[Path]
+    import_config: ImportConfig
 
-    def __init__(self, settings: Any) -> None:  # noqa: ANN401
+    def __init__(self, ls_name: str, settings: Any) -> None:  # noqa: ANN401
+        self.ls_name = ls_name
+
         executable_path: Final = Path(sys.executable)
         if executable_path.parent.name == "bin":
-            self._ignored_paths = [executable_path.parent.parent]
+            self.ignored_paths = [executable_path.parent.parent]
 
         try:
             validated_settings: Final = cattrs.structure(settings, FullClientSettings)
         except cattrs.BaseValidationError:
             return
-        self._import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
+        self.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
 
-    def make_diagnostics(self, source: str, ls_name: str) -> Iterable[lsp.Diagnostic]:
-        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self._import_config)
+    def make_diagnostics(self, source: str) -> list[lsp.Diagnostic]:
+        replacement_result: Final = make_replacements(
+            root=SgRoot(source, "python").root(), import_config=self.import_config
+        )
+        result: Final = []
 
-        for replacement in result.replacements:
+        for replacement in replacement_result.replacements:
             if replacement.operation_type == AddFinal:
-                fix_message = f"{ls_name}: Add {self._import_config.value}"
-                diagnostic_message = f"Missing {self._import_config.value}"
+                fix_message = f"{self.ls_name}: Add {self.import_config.value}"
+                diagnostic_message = f"Missing {self.import_config.value}"
             else:
-                fix_message = f"{ls_name}: Remove {self._import_config.value}"
-                diagnostic_message = f"Unexpected {self._import_config.value}"
+                fix_message = f"{self.ls_name}: Remove {self.import_config.value}"
+                diagnostic_message = f"Unexpected {self.import_config.value}"
 
             fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
-            if result.import_text:
-                fix.text_edits.append(make_import_text_edit(result.import_text))
+            if replacement_result.import_text:
+                fix.text_edits.append(make_import_text_edit(replacement_result.import_text))
 
             for applied_edit in replacement.edits:
                 node_range = applied_edit.node.range()
-                yield lsp.Diagnostic(
-                    range=lsp.Range(
-                        start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
-                        end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
-                    ),
-                    message=diagnostic_message,
-                    severity=lsp.DiagnosticSeverity.Warning,
-                    source=ls_name,
-                    data=cattrs.unstructure(DiagnosticData(fix=fix)),
+                result.append(
+                    lsp.Diagnostic(
+                        range=lsp.Range(
+                            start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+                            end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
+                        ),
+                        message=diagnostic_message,
+                        severity=lsp.DiagnosticSeverity.Warning,
+                        source=self.ls_name,
+                        data=cattrs.unstructure(DiagnosticData(fix=fix)),
+                    )
                 )
+        return result
 
     def make_fixall_text_edits(self, source: str) -> Iterable[lsp.TextEdit]:
-        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self._import_config)
+        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self.import_config)
 
         for replacement in result.replacements:
             for edit in replacement.edits:
@@ -108,7 +117,7 @@ class Service:
 
     def path_is_ignored(self, uri: str) -> bool:
         if path := path_from_uri(uri):
-            return any(path.is_relative_to(ignored_path) for ignored_path in self._ignored_paths)
+            return any(path.is_relative_to(ignored_path) for ignored_path in self.ignored_paths)
         return False
 
 
@@ -140,12 +149,9 @@ async def initialized(ls: CustomLanguageServer, _: lsp.InitializedParams) -> Non
 
 @LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
 def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.DidChangeConfigurationParams) -> None:
-    ls.service = Service(params.settings)
+    ls.service = Service(ls_name=ls.name, settings=params.settings)
     for text_document in ls.workspace.text_documents.values():
-        ls.publish_diagnostics(
-            text_document.uri,
-            diagnostics=list(ls.service.make_diagnostics(source=text_document.source, ls_name=ls.name)),
-        )
+        ls.publish_diagnostics(text_document.uri, diagnostics=ls.service.make_diagnostics(text_document.source))
 
 
 @attr.define
@@ -189,9 +195,7 @@ def did_open_did_save_did_change(
     if ls.service.path_is_ignored(params.text_document.uri):
         return
     text_document: Final = ls.workspace.get_text_document(params.text_document.uri)
-    ls.publish_diagnostics(
-        text_document.uri, diagnostics=list(ls.service.make_diagnostics(source=text_document.source, ls_name=ls.name))
-    )
+    ls.publish_diagnostics(text_document.uri, diagnostics=ls.service.make_diagnostics(text_document.source))
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CLOSE)
