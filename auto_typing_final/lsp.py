@@ -28,11 +28,11 @@ LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("au
 
 @dataclass
 class ClientState:
-    import_config: ImportConfig
+    import_config: ImportConfig | None
     ignored_paths: list[Path]
 
 
-STATE = ClientState(import_config=IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"], ignored_paths=[])
+STATE = ClientState(import_config=None, ignored_paths=[])
 
 
 # From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
@@ -127,6 +127,8 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
+    if not STATE.import_config:
+        return
     result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=STATE.import_config)
 
     for replacement in result.replacements:
@@ -156,6 +158,8 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
+    if not STATE.import_config:
+        return
     result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=STATE.import_config)
 
     for replacement in result.replacements:
