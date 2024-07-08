@@ -62,7 +62,6 @@ def path_from_uri(uri: str) -> Path | None:
 @LSP_SERVER.feature(lsp.INITIALIZE)
 def initialize(_: lsp.InitializeParams) -> None:
     executable_path: Final = Path(sys.executable)
-
     if executable_path.parent.name == "bin":
         STATE.ignored_paths = [executable_path.parent.parent]
 
