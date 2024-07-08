@@ -23,6 +23,31 @@ from auto_typing_final.transform import (
     make_replacements,
 )
 
+
+# From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
+def path_from_uri(uri: str) -> Path | None:
+    if not uri.startswith("file:"):
+        return None
+    path = uri[5:]
+    if path[:3] == "///":
+        # Remove empty authority
+        path = path[2:]
+    elif path[:12] == "//localhost/":
+        # Remove 'localhost' authority
+        path = path[11:]
+    if path[:3] == "///" or (path[:1] == "/" and path[2:3] in ":|"):
+        # Remove slash before DOS device/UNC path
+        path = path[1:]
+    if path[1:2] == "|":
+        # Replace bar with colon in DOS drive
+        path = path[:1] + ":" + path[2:]
+
+    path_: Final = Path(os.fsdecode(unquote_to_bytes(path)))
+    if not path_.is_absolute():
+        return None
+    return path_
+
+
 ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle})
 FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
 
@@ -94,30 +119,6 @@ class CustomLanguageServer(LanguageServer):
 LSP_SERVER = CustomLanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
-# From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
-def path_from_uri(uri: str) -> Path | None:
-    if not uri.startswith("file:"):
-        return None
-    path = uri[5:]
-    if path[:3] == "///":
-        # Remove empty authority
-        path = path[2:]
-    elif path[:12] == "//localhost/":
-        # Remove 'localhost' authority
-        path = path[11:]
-    if path[:3] == "///" or (path[:1] == "/" and path[2:3] in ":|"):
-        # Remove slash before DOS device/UNC path
-        path = path[1:]
-    if path[1:2] == "|":
-        # Replace bar with colon in DOS drive
-        path = path[:1] + ":" + path[2:]
-
-    path_: Final = Path(os.fsdecode(unquote_to_bytes(path)))
-    if not path_.is_absolute():
-        return None
-    return path_
-
-
 @LSP_SERVER.feature(lsp.INITIALIZE)
 def initialize(_: lsp.InitializeParams) -> None: ...
 
@@ -137,7 +138,9 @@ async def initialized(ls: CustomLanguageServer, _: lsp.InitializedParams) -> Non
     )
 
 
-@LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
+@LSP_SERVER.feature(
+    lsp.WORKSPACE_DID_CHANGE_CONFIGURATION, lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name)
+)
 def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.DidChangeConfigurationParams) -> None:
     ls.service = Service(params.settings)
     for text_document in ls.workspace.text_documents.values():
