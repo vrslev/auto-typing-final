@@ -57,11 +57,6 @@ class Fix:
     text_edits: list[lsp.TextEdit]
 
 
-@attr.define
-class DiagnosticData:
-    fix: Fix
-
-
 def make_import_text_edit(import_text: str) -> lsp.TextEdit:
     return lsp.TextEdit(
         range=lsp.Range(start=lsp.Position(line=0, character=0), end=lsp.Position(line=0, character=0)),
@@ -128,7 +123,7 @@ class Service:
                         message=diagnostic_message,
                         severity=lsp.DiagnosticSeverity.Warning,
                         source=self.ls_name,
-                        data=cattrs.unstructure(DiagnosticData(fix=fix)),
+                        data=cattrs.unstructure(fix),
                     )
                 )
         return result
@@ -220,10 +215,10 @@ def code_action(ls: CustomLanguageServer, params: lsp.CodeActionParams) -> list[
         ]
 
         for diagnostic in our_diagnostics:
-            data = cattrs.structure(diagnostic.data, DiagnosticData)
+            fix = cattrs.structure(diagnostic.data, Fix)
             actions.append(
                 lsp.CodeAction(
-                    title=data.fix.message,
+                    title=fix.message,
                     kind=lsp.CodeActionKind.QuickFix,
                     edit=lsp.WorkspaceEdit(
                         document_changes=[
@@ -231,7 +226,7 @@ def code_action(ls: CustomLanguageServer, params: lsp.CodeActionParams) -> list[
                                 text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                                     uri=text_document.uri, version=text_document.version
                                 ),
-                                edits=data.fix.text_edits,  # type: ignore[arg-type]
+                                edits=fix.text_edits,  # type: ignore[arg-type]
                             )
                         ]
                     ),
