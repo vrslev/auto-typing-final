@@ -192,15 +192,15 @@ def did_open_did_save_did_change(
         return
     if ls.service.path_is_ignored(params.text_document.uri):
         return
-    text_document: Final = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    LSP_SERVER.publish_diagnostics(
+    text_document: Final = ls.workspace.get_text_document(params.text_document.uri)
+    ls.publish_diagnostics(
         text_document.uri, diagnostics=list(ls.service.make_diagnostics(source=text_document.source, ls_name=ls.name))
     )
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CLOSE)
-def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
-    LSP_SERVER.publish_diagnostics(params.text_document.uri, [])
+def did_close(ls: CustomLanguageServer, params: lsp.DidCloseTextDocumentParams) -> None:
+    ls.publish_diagnostics(params.text_document.uri, [])
 
 
 @LSP_SERVER.feature(
@@ -209,14 +209,14 @@ def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
         code_action_kinds=[lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll], resolve_provider=True
     ),
 )
-def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
+def code_action(ls: CustomLanguageServer, params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
     requested_kinds: Final = params.context.only or {lsp.CodeActionKind.QuickFix, lsp.CodeActionKind.SourceFixAll}
     actions: Final[list[lsp.CodeAction]] = []
 
     if lsp.CodeActionKind.QuickFix in requested_kinds:
-        text_document: Final = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+        text_document: Final = ls.workspace.get_text_document(params.text_document.uri)
         our_diagnostics: Final = [
-            diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == LSP_SERVER.name
+            diagnostic for diagnostic in params.context.diagnostics if diagnostic.source == ls.name
         ]
 
         for diagnostic in our_diagnostics:
@@ -242,7 +242,7 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
         if our_diagnostics:
             actions.append(
                 lsp.CodeAction(
-                    title=f"{LSP_SERVER.name}: Fix All",
+                    title=f"{ls.name}: Fix All",
                     kind=lsp.CodeActionKind.QuickFix,
                     data=params.text_document.uri,
                     edit=None,
@@ -253,7 +253,7 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
     if lsp.CodeActionKind.SourceFixAll in requested_kinds:
         actions.append(
             lsp.CodeAction(
-                title=f"{LSP_SERVER.name}: Fix All",
+                title=f"{ls.name}: Fix All",
                 kind=lsp.CodeActionKind.SourceFixAll,
                 data=params.text_document.uri,
                 edit=None,
