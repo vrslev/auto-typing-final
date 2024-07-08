@@ -2,6 +2,7 @@ import os
 import sys
 import uuid
 from collections.abc import Iterable
+from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
 from typing import Final, cast, get_args
@@ -23,8 +24,15 @@ from auto_typing_final.transform import (
 )
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
-IMPORT_CONFIG: ImportConfig = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
-IGNORED_PATHS: list[Path] = []
+
+
+@dataclass
+class ClientState:
+    import_config: ImportConfig
+    ignored_paths: list[Path]
+
+
+STATE = ClientState(import_config=IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"], ignored_paths=[])
 
 
 @attr.define
@@ -57,15 +65,15 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
-    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
+    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=STATE.import_config)
 
     for replacement in result.replacements:
         if replacement.operation_type == AddFinal:
-            fix_message = f"{LSP_SERVER.name}: Add {IMPORT_CONFIG.value}"
-            diagnostic_message = f"Missing {IMPORT_CONFIG.value}"
+            fix_message = f"{LSP_SERVER.name}: Add {STATE.import_config.value}"
+            diagnostic_message = f"Missing {STATE.import_config.value}"
         else:
-            fix_message = f"{LSP_SERVER.name}: Remove {IMPORT_CONFIG.value}"
-            diagnostic_message = f"Unexpected {IMPORT_CONFIG.value}"
+            fix_message = f"{LSP_SERVER.name}: Remove {STATE.import_config.value}"
+            diagnostic_message = f"Unexpected {STATE.import_config.value}"
 
         fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
         if result.import_text:
@@ -86,7 +94,7 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
-    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
+    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=STATE.import_config)
 
     for replacement in result.replacements:
         for edit in replacement.edits:
@@ -125,13 +133,12 @@ def initialize(_: lsp.InitializeParams) -> None:
     executable_path: Final = Path(sys.executable)
 
     if executable_path.parent.name == "bin":
-        global IGNORED_PATHS  # noqa: PLW0603
-        IGNORED_PATHS = [executable_path.parent.parent]
+        STATE.ignored_paths = [executable_path.parent.parent]
 
 
 def path_is_ignored(uri: str) -> bool:
     if path := path_from_uri(uri):
-        return any(path.is_relative_to(ignored_path) for ignored_path in IGNORED_PATHS)
+        return any(path.is_relative_to(ignored_path) for ignored_path in STATE.ignored_paths)
     return False
 
 
@@ -159,8 +166,7 @@ def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams)
         and (import_style := settings.get("import-style"))
         and (import_style in get_args(ImportStyle))
     ):
-        global IMPORT_CONFIG  # noqa: PLW0603
-        IMPORT_CONFIG = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
+        STATE.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
