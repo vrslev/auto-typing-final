@@ -260,20 +260,18 @@ def code_action(ls: CustomLanguageServer, params: lsp.CodeActionParams) -> list[
 
 @LSP_SERVER.feature(lsp.CODE_ACTION_RESOLVE)
 def resolve_code_action(ls: CustomLanguageServer, params: lsp.CodeAction) -> lsp.CodeAction:
-    if not ls.service:
-        return params
-
-    text_document: Final = ls.workspace.get_text_document(cast(str, params.data))
-    params.edit = lsp.WorkspaceEdit(
-        document_changes=[
-            lsp.TextDocumentEdit(
-                text_document=lsp.OptionalVersionedTextDocumentIdentifier(
-                    uri=text_document.uri, version=text_document.version
-                ),
-                edits=list(ls.service.make_fix_all_text_edits(text_document.source)),
-            )
-        ],
-    )
+    if ls.service:
+        text_document: Final = ls.workspace.get_text_document(cast(str, params.data))
+        params.edit = lsp.WorkspaceEdit(
+            document_changes=[
+                lsp.TextDocumentEdit(
+                    text_document=lsp.OptionalVersionedTextDocumentIdentifier(
+                        uri=text_document.uri, version=text_document.version
+                    ),
+                    edits=list(ls.service.make_fix_all_text_edits(text_document.source)),
+                )
+            ],
+        )
     return params
 
 
