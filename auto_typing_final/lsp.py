@@ -54,7 +54,7 @@ FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": Clien
 @attr.define
 class Fix:
     message: str
-    text_edits: list[lsp.TextEdit]
+    text_edits: list[lsp.TextEdit | lsp.AnnotatedTextEdit]
 
 
 def make_import_text_edit(import_text: str) -> lsp.TextEdit:
@@ -128,11 +128,11 @@ class Service:
                 )
         return result
 
-    def make_fix_all_text_edits(self, source: str) -> list[lsp.TextEdit]:
+    def make_fix_all_text_edits(self, source: str) -> list[lsp.TextEdit | lsp.AnnotatedTextEdit]:
         replacement_result: Final = make_replacements(
             root=SgRoot(source, "python").root(), import_config=self.import_config
         )
-        result: Final = [
+        result: Final[list[lsp.TextEdit | lsp.AnnotatedTextEdit]] = [
             make_text_edit(edit) for replacement in replacement_result.replacements for edit in replacement.edits
         ]
         if replacement_result.import_text:
@@ -226,7 +226,7 @@ def code_action(ls: CustomLanguageServer, params: lsp.CodeActionParams) -> list[
                                 text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                                     uri=text_document.uri, version=text_document.version
                                 ),
-                                edits=fix.text_edits,  # type: ignore[arg-type]
+                                edits=fix.text_edits,
                             )
                         ]
                     ),
@@ -268,7 +268,7 @@ def resolve_code_action(ls: CustomLanguageServer, params: lsp.CodeAction) -> lsp
                     text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                         uri=text_document.uri, version=text_document.version
                     ),
-                    edits=list(ls.service.make_fix_all_text_edits(text_document.source)),
+                    edits=ls.service.make_fix_all_text_edits(text_document.source),
                 )
             ],
         )
