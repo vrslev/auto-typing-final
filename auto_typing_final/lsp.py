@@ -58,8 +58,6 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
 
 
 def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
-    if not IMPORT_CONFIG:
-        return
     result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
@@ -89,8 +87,6 @@ def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
 
 
 def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
-    if not IMPORT_CONFIG:
-        return
     result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=IMPORT_CONFIG)
 
     for replacement in result.replacements:
