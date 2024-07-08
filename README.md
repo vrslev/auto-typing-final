@@ -55,6 +55,8 @@ auto-typing-final . --import-style typing-final
 
 ## VS Code Extension
 
+<img width="768" alt="image" src="https://github.com/vrslev/auto-typing-final/assets/75225148/f1541056-06f5-4caa-8c94-0a5eaf98ba15">
+
 The extension uses LSP server bundled with the CLI. To get started, add `auto-typing-final` to your project:
 
 ```sh
