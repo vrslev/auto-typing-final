@@ -1,7 +1,6 @@
 import os
 import sys
 import uuid
-from collections.abc import Iterable
 from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
@@ -105,15 +104,16 @@ class Service:
                 )
         return result
 
-    def make_fixall_text_edits(self, source: str) -> Iterable[lsp.TextEdit]:
-        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self.import_config)
-
-        for replacement in result.replacements:
-            for edit in replacement.edits:
-                yield make_text_edit(edit)
-
-        if result.import_text:
-            yield make_import_text_edit(result.import_text)
+    def make_fix_all_text_edits(self, source: str) -> list[lsp.TextEdit]:
+        replacement_result: Final = make_replacements(
+            root=SgRoot(source, "python").root(), import_config=self.import_config
+        )
+        result: Final = [
+            make_text_edit(edit) for replacement in replacement_result.replacements for edit in replacement.edits
+        ]
+        if replacement_result.import_text:
+            result.append(make_import_text_edit(replacement_result.import_text))
+        return result
 
     def path_is_ignored(self, uri: str) -> bool:
         if path := path_from_uri(uri):
@@ -276,7 +276,7 @@ def resolve_code_action(ls: CustomLanguageServer, params: lsp.CodeAction) -> lsp
                 text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                     uri=text_document.uri, version=text_document.version
                 ),
-                edits=list(ls.service.make_fixall_text_edits(text_document.source)),
+                edits=list(ls.service.make_fix_all_text_edits(text_document.source)),
             )
         ],
     )
