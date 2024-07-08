@@ -256,7 +256,6 @@ def code_action(ls: CustomLanguageServer, params: lsp.CodeActionParams) -> list[
                 title=f"{ls.name}: Fix All",
                 kind=lsp.CodeActionKind.SourceFixAll,
                 data=params.text_document.uri,
-                edit=None,
                 diagnostics=params.context.diagnostics,
             ),
         )
