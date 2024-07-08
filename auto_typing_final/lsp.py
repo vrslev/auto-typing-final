@@ -1,7 +1,11 @@
+import os
+import sys
 import uuid
 from collections.abc import Iterable
 from importlib.metadata import version
+from pathlib import Path
 from typing import Final, cast, get_args
+from urllib.parse import unquote_to_bytes
 
 import attr
 import cattrs
@@ -20,7 +24,8 @@ from auto_typing_final.transform import (
 )
 
 LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
-IMPORT_CONFIG: ImportConfig | None = None
+IMPORT_CONFIG: ImportConfig = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+IGNORED_PATHS: list[Path] = []
 
 
 @attr.define
@@ -109,8 +114,44 @@ def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEd
     )
 
 
+# From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
+def path_from_uri(uri: str) -> Path | None:
+    if not uri.startswith("file:"):
+        return None
+    path = uri[5:]
+    if path[:3] == "///":
+        # Remove empty authority
+        path = path[2:]
+    elif path[:12] == "//localhost/":
+        # Remove 'localhost' authority
+        path = path[11:]
+    if path[:3] == "///" or (path[:1] == "/" and path[2:3] in ":|"):
+        # Remove slash before DOS device/UNC path
+        path = path[1:]
+    if path[1:2] == "|":
+        # Replace bar with colon in DOS drive
+        path = path[:1] + ":" + path[2:]
+
+    path_: Final = Path(os.fsdecode(unquote_to_bytes(path)))
+    if not path_.is_absolute():
+        return None
+    return path_
+
+
 @LSP_SERVER.feature(lsp.INITIALIZE)
-async def initialize(_: lsp.InitializeParams) -> None: ...
+def initialize(_: lsp.InitializeParams) -> None:
+    executable_path: Final = Path(sys.executable)
+
+    if executable_path.parent.name == "bin":
+        global IGNORED_PATHS  # noqa: PLW0603
+        IGNORED_PATHS = [executable_path.parent.parent]
+    # logging.error(path_from_uri(_.root_uri))
+
+
+def path_is_ignored(uri: str) -> bool:
+    if path := path_from_uri(uri):
+        return any(path.is_relative_to(ignored_path) for ignored_path in IGNORED_PATHS)
+    return False
 
 
 @LSP_SERVER.feature(lsp.INITIALIZED)
@@ -147,6 +188,8 @@ def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams)
 def did_open_did_save_did_change(
     params: lsp.DidOpenTextDocumentParams | lsp.DidSaveTextDocumentParams | lsp.DidChangeTextDocumentParams,
 ) -> None:
+    if path_is_ignored(params.text_document.uri):
+        return
     text_document: Final = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
 
