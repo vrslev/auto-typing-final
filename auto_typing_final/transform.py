@@ -95,18 +95,18 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
             return RemoveFinal(assignments)
 
 
-def _attribute_is_exact_identifier(node: SgNode, imports_result: ImportsResult, identifier_name: str) -> bool:
+def _match_exact_identifier(node: SgNode, imports_result: ImportsResult, identifier_name: str) -> str | None:
     match tuple((inner_child.kind(), inner_child) for inner_child in node.children()):
         case (("identifier", first_identifier), (".", _), ("identifier", second_identifier)):
-            return (
-                first_identifier.text() in imports_result.module_aliases and second_identifier.text() == identifier_name
-            )
-    return False
+            for alias in imports_result.module_aliases:
+                if alias == first_identifier.text() and second_identifier.text() == identifier_name:
+                    return node.text()
+    return None
 
 
-def _strip_identifier_from_type_annotation(
+def _strip_identifier_from_type_annotation(  # noqa: C901, PLR0911
     node: SgNode, imports_result: ImportsResult, identifier_name: str
-) -> str | None:
+) -> tuple[str, str] | None:
     type_node_children: Final = node.children()
     if len(type_node_children) != 1:
         return None
@@ -116,8 +116,8 @@ def _strip_identifier_from_type_annotation(
     if kind == "subscript":
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
-                if _attribute_is_exact_identifier(attribute, imports_result, identifier_name):
-                    return "".join(node.text() for _, node in kinds_and_nodes)
+                if existing_final := _match_exact_identifier(attribute, imports_result, identifier_name):
+                    return existing_final, "".join(node.text() for _, node in kinds_and_nodes)
     elif kind == "generic_type" and imports_result.has_from_import:
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("identifier", identifier), ("type_parameter", type_parameter)):
@@ -125,11 +125,13 @@ def _strip_identifier_from_type_annotation(
                     return None
                 match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
                     case (("[", _), *kinds_and_nodes, ("]", _)):
-                        return "".join(node.text() for _, node in kinds_and_nodes)
-    elif (kind == "identifier" and inner_type_node.text() == identifier_name) or (
-        kind == "attribute" and _attribute_is_exact_identifier(inner_type_node, imports_result, identifier_name)
+                        return identifier_name, "".join(node.text() for _, node in kinds_and_nodes)
+    elif kind == "identifier" and inner_type_node.text() == identifier_name:
+        return identifier_name, ""
+    elif kind == "attribute" and (
+        existing_final := _match_exact_identifier(inner_type_node, imports_result, identifier_name)
     ):
-        return ""
+        return existing_final, ""
     return None
 
 
@@ -145,10 +147,10 @@ def _make_changed_text_from_operation(  # noqa: C901
                     match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                         case None:
                             yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
-                        case "":
-                            yield node, f"{left}: {final_value} = {right}"
-                        case new_annotation:
-                            yield node, f"{left}: {final_value}[{new_annotation}] = {right}"
+                        case existing_final, "":
+                            yield node, f"{left}: {existing_final} = {right}"
+                        case existing_final, new_annotation:
+                            yield node, f"{left}: {existing_final}[{new_annotation}] = {right}"
 
         case RemoveFinal(assignments):
             for assignment in assignments:
@@ -157,9 +159,9 @@ def _make_changed_text_from_operation(  # noqa: C901
                         yield node, f"{left} = {right}"
                     case AssignmentWithAnnotation(node, left, annotation, right):
                         match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
-                            case "":
+                            case _, "":
                                 yield node, f"{left} = {right}"
-                            case str(new_annotation):
+                            case _, new_annotation:
                                 yield node, f"{left}: {new_annotation} = {right}"
 
 

@@ -671,11 +671,10 @@ from typing import Final
 def f():
     a: Final[int] = 1
 ---
-import typing
 from typing import Final
 
 def f():
-    a: typing.Final[int] = 1
+    a: Final[int] = 1
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"],
         ),
@@ -686,11 +685,10 @@ def f():
     b: typing.Final = 2
     c: Final = 3
 ---
-import typing
 def f():
-    a: typing.Final = 1
+    a: Final = 1
     b: typing.Final = 2
-    c: typing.Final = 3
+    c: Final = 3
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"],
         ),
@@ -703,12 +701,11 @@ def f():
     b: typing.Final = 2
     c: Final = 3
 ---
-from typing import Final
 import typing
 
 def f():
     a: Final = 1
-    b: Final = 2
+    b: typing.Final = 2
     c: Final = 3
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
@@ -720,11 +717,10 @@ import typing as tp
 def f():
     a: tp.Final = 1
 ---
-import typing
 import typing as tp
 
 def f():
-    a: typing.Final = 1
+    a: tp.Final = 1
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"],
         ),
@@ -735,11 +731,10 @@ import typing as tp
 def f():
     a: tp.Final = 1
 ---
-from typing import Final
 import typing as tp
 
 def f():
-    a: Final = 1
+    a: tp.Final = 1
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
