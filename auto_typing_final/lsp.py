@@ -29,32 +29,32 @@ FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": Clien
 
 @dataclass(init=False)
 class Service:
-    ignored_paths: list[Path]
-    import_config: ImportConfig
+    _ignored_paths: list[Path]
+    _import_config: ImportConfig
 
     def __init__(self, settings: Any) -> None:  # noqa: ANN401
         executable_path: Final = Path(sys.executable)
         if executable_path.parent.name == "bin":
-            self.ignored_paths = [executable_path.parent.parent]
+            self._ignored_paths = [executable_path.parent.parent]
 
         try:
             validated_settings: Final = cattrs.structure(settings, FullClientSettings)
         except cattrs.BaseValidationError:
             return
-        self.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
+        self._import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
 
     def make_diagnostics(self, source: str, ls_name: str) -> Iterable[lsp.Diagnostic]:
-        if not self.import_config:
+        if not self._import_config:
             return
-        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self.import_config)
+        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self._import_config)
 
         for replacement in result.replacements:
             if replacement.operation_type == AddFinal:
-                fix_message = f"{ls_name}: Add {self.import_config.value}"
-                diagnostic_message = f"Missing {self.import_config.value}"
+                fix_message = f"{ls_name}: Add {self._import_config.value}"
+                diagnostic_message = f"Missing {self._import_config.value}"
             else:
-                fix_message = f"{ls_name}: Remove {self.import_config.value}"
-                diagnostic_message = f"Unexpected {self.import_config.value}"
+                fix_message = f"{ls_name}: Remove {self._import_config.value}"
+                diagnostic_message = f"Unexpected {self._import_config.value}"
 
             fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
             if result.import_text:
@@ -74,10 +74,10 @@ class Service:
                 )
 
     def make_fixall_text_edits(self, source: str) -> Iterable[lsp.TextEdit]:
-        if not self.import_config:
+        if not self._import_config:
             return
 
-        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self.import_config)
+        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self._import_config)
 
         for replacement in result.replacements:
             for edit in replacement.edits:
@@ -88,7 +88,7 @@ class Service:
 
     def path_is_ignored(self, uri: str) -> bool:
         if path := path_from_uri(uri):
-            return any(path.is_relative_to(ignored_path) for ignored_path in self.ignored_paths)
+            return any(path.is_relative_to(ignored_path) for ignored_path in self._ignored_paths)
         return False
 
 
