@@ -138,9 +138,7 @@ async def initialized(ls: CustomLanguageServer, _: lsp.InitializedParams) -> Non
     )
 
 
-@LSP_SERVER.feature(
-    lsp.WORKSPACE_DID_CHANGE_CONFIGURATION, lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name)
-)
+@LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
 def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.DidChangeConfigurationParams) -> None:
     ls.service = Service(params.settings)
     for text_document in ls.workspace.text_documents.values():
