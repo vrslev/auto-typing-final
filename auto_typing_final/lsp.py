@@ -12,7 +12,6 @@ import cattrs
 import lsprotocol.types as lsp
 from ast_grep_py import SgRoot
 from pygls import server
-from pygls.workspace import TextDocument
 
 from auto_typing_final.transform import (
     IMPORT_STYLES_TO_IMPORT_CONFIGS,
@@ -97,19 +96,6 @@ def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
         yield make_import_text_edit(result.import_text)
 
 
-def make_workspace_edit(text_document: TextDocument, text_edits: list[lsp.TextEdit]) -> lsp.WorkspaceEdit:
-    return lsp.WorkspaceEdit(
-        document_changes=[
-            lsp.TextDocumentEdit(
-                text_document=lsp.OptionalVersionedTextDocumentIdentifier(
-                    uri=text_document.uri, version=text_document.version
-                ),
-                edits=text_edits,  # type: ignore[arg-type]
-            )
-        ]
-    )
-
-
 # From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
 def path_from_uri(uri: str) -> Path | None:
     if not uri.startswith("file:"):
@@ -141,7 +127,6 @@ def initialize(_: lsp.InitializeParams) -> None:
     if executable_path.parent.name == "bin":
         global IGNORED_PATHS  # noqa: PLW0603
         IGNORED_PATHS = [executable_path.parent.parent]
-    # logging.error(path_from_uri(_.root_uri))
 
 
 def path_is_ignored(uri: str) -> bool:
@@ -217,7 +202,16 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
                 lsp.CodeAction(
                     title=data.fix.message,
                     kind=lsp.CodeActionKind.QuickFix,
-                    edit=make_workspace_edit(text_document=text_document, text_edits=data.fix.text_edits),
+                    edit=lsp.WorkspaceEdit(
+                        document_changes=[
+                            lsp.TextDocumentEdit(
+                                text_document=lsp.OptionalVersionedTextDocumentIdentifier(
+                                    uri=text_document.uri, version=text_document.version
+                                ),
+                                edits=data.fix.text_edits,  # type: ignore[arg-type]
+                            )
+                        ]
+                    ),
                     diagnostics=[diagnostic],
                 )
             )
