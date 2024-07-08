@@ -69,6 +69,17 @@ def make_import_text_edit(import_text: str) -> lsp.TextEdit:
     )
 
 
+def make_text_edit(edit: Edit) -> lsp.TextEdit:
+    node_range: Final = edit.node.range()
+    return lsp.TextEdit(
+        range=lsp.Range(
+            start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+            end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
+        ),
+        new_text=edit.new_text,
+    )
+
+
 @dataclass(init=False)
 class Service:
     ls_name: str
@@ -170,17 +181,6 @@ def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.Did
     ls.service = Service(ls_name=ls.name, settings=params.settings)
     for text_document in ls.workspace.text_documents.values():
         ls.publish_diagnostics(text_document.uri, diagnostics=ls.service.make_diagnostics(text_document.source))
-
-
-def make_text_edit(edit: Edit) -> lsp.TextEdit:
-    node_range: Final = edit.node.range()
-    return lsp.TextEdit(
-        range=lsp.Range(
-            start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
-            end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
-        ),
-        new_text=edit.new_text,
-    )
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
