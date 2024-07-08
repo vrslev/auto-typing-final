@@ -12,7 +12,7 @@ import attr
 import cattrs
 import lsprotocol.types as lsp
 from ast_grep_py import SgRoot
-from pygls import server
+from pygls.server import LanguageServer
 
 from auto_typing_final.transform import (
     IMPORT_STYLES_TO_IMPORT_CONFIGS,
@@ -43,8 +43,60 @@ class Service:
             return
         self.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
 
+    def make_diagnostics(self, source: str, ls_name: str) -> Iterable[lsp.Diagnostic]:
+        if not self.import_config:
+            return
+        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self.import_config)
 
-LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
+        for replacement in result.replacements:
+            if replacement.operation_type == AddFinal:
+                fix_message = f"{ls_name}: Add {self.import_config.value}"
+                diagnostic_message = f"Missing {self.import_config.value}"
+            else:
+                fix_message = f"{ls_name}: Remove {self.import_config.value}"
+                diagnostic_message = f"Unexpected {self.import_config.value}"
+
+            fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
+            if result.import_text:
+                fix.text_edits.append(make_import_text_edit(result.import_text))
+
+            for applied_edit in replacement.edits:
+                node_range = applied_edit.node.range()
+                yield lsp.Diagnostic(
+                    range=lsp.Range(
+                        start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
+                        end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
+                    ),
+                    message=diagnostic_message,
+                    severity=lsp.DiagnosticSeverity.Warning,
+                    source=ls_name,
+                    data=cattrs.unstructure(DiagnosticData(fix=fix)),
+                )
+
+    def make_fixall_text_edits(self, source: str) -> Iterable[lsp.TextEdit]:
+        if not self.import_config:
+            return
+
+        result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self.import_config)
+
+        for replacement in result.replacements:
+            for edit in replacement.edits:
+                yield make_text_edit(edit)
+
+        if result.import_text:
+            yield make_import_text_edit(result.import_text)
+
+    def path_is_ignored(self, uri: str) -> bool:
+        if path := path_from_uri(uri):
+            return any(path.is_relative_to(ignored_path) for ignored_path in self.ignored_paths)
+        return False
+
+
+class CustomLanguageServer(LanguageServer):
+    service: Service | None = None
+
+
+LSP_SERVER = CustomLanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
 # From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
@@ -76,7 +128,7 @@ def initialize(_: lsp.InitializeParams) -> None: ...
 
 
 @LSP_SERVER.feature(lsp.INITIALIZED)
-async def initialized(ls: server.LanguageServer, _: lsp.InitializedParams) -> None:
+async def initialized(ls: CustomLanguageServer, _: lsp.InitializedParams) -> None:
     await ls.register_capability_async(
         params=lsp.RegistrationParams(
             registrations=[
@@ -91,15 +143,13 @@ async def initialized(ls: server.LanguageServer, _: lsp.InitializedParams) -> No
 
 
 @LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
-async def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
-    try:
-        validated_settings: Final = cattrs.structure(params.settings, FullClientSettings)
-    except cattrs.BaseValidationError:
-        return
-    STATE.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
-
-    for text_document in LSP_SERVER.workspace.text_documents.values():
-        LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
+def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.DidChangeConfigurationParams) -> None:
+    ls.service = Service(params.settings)
+    for text_document in ls.workspace.text_documents.values():
+        ls.publish_diagnostics(
+            text_document.uri,
+            diagnostics=list(ls.service.make_diagnostics(source=text_document.source, ls_name=ls.name)),
+        )
 
 
 @attr.define
@@ -131,66 +181,21 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
     )
 
 
-def make_diagnostics(source: str) -> Iterable[lsp.Diagnostic]:
-    if not STATE.import_config:
-        return
-    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=STATE.import_config)
-
-    for replacement in result.replacements:
-        if replacement.operation_type == AddFinal:
-            fix_message = f"{LSP_SERVER.name}: Add {STATE.import_config.value}"
-            diagnostic_message = f"Missing {STATE.import_config.value}"
-        else:
-            fix_message = f"{LSP_SERVER.name}: Remove {STATE.import_config.value}"
-            diagnostic_message = f"Unexpected {STATE.import_config.value}"
-
-        fix = Fix(message=fix_message, text_edits=[make_text_edit(edit) for edit in replacement.edits])
-        if result.import_text:
-            fix.text_edits.append(make_import_text_edit(result.import_text))
-
-        for applied_edit in replacement.edits:
-            node_range = applied_edit.node.range()
-            yield lsp.Diagnostic(
-                range=lsp.Range(
-                    start=lsp.Position(line=node_range.start.line, character=node_range.start.column),
-                    end=lsp.Position(line=node_range.end.line, character=node_range.end.column),
-                ),
-                message=diagnostic_message,
-                severity=lsp.DiagnosticSeverity.Warning,
-                source=LSP_SERVER.name,
-                data=cattrs.unstructure(DiagnosticData(fix=fix)),
-            )
-
-
-def make_fixall_text_edits(source: str) -> Iterable[lsp.TextEdit]:
-    if not STATE.import_config:
-        return
-    result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=STATE.import_config)
-
-    for replacement in result.replacements:
-        for edit in replacement.edits:
-            yield make_text_edit(edit)
-
-    if result.import_text:
-        yield make_import_text_edit(result.import_text)
-
-
-def path_is_ignored(uri: str) -> bool:
-    if path := path_from_uri(uri):
-        return any(path.is_relative_to(ignored_path) for ignored_path in STATE.ignored_paths)
-    return False
-
-
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_SAVE)
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CHANGE)
 def did_open_did_save_did_change(
+    ls: CustomLanguageServer,
     params: lsp.DidOpenTextDocumentParams | lsp.DidSaveTextDocumentParams | lsp.DidChangeTextDocumentParams,
 ) -> None:
-    if path_is_ignored(params.text_document.uri):
+    if not ls.service:
+        return
+    if ls.service.path_is_ignored(params.text_document.uri):
         return
     text_document: Final = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
-    LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
+    LSP_SERVER.publish_diagnostics(
+        text_document.uri, diagnostics=list(ls.service.make_diagnostics(source=text_document.source, ls_name=ls.name))
+    )
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CLOSE)
@@ -260,15 +265,18 @@ def code_action(params: lsp.CodeActionParams) -> list[lsp.CodeAction] | None:
 
 
 @LSP_SERVER.feature(lsp.CODE_ACTION_RESOLVE)
-def resolve_code_action(params: lsp.CodeAction) -> lsp.CodeAction:
-    text_document: Final = LSP_SERVER.workspace.get_text_document(cast(str, params.data))
+def resolve_code_action(ls: CustomLanguageServer, params: lsp.CodeAction) -> lsp.CodeAction:
+    if not ls.service:
+        return params
+
+    text_document: Final = ls.workspace.get_text_document(cast(str, params.data))
     params.edit = lsp.WorkspaceEdit(
         document_changes=[
             lsp.TextDocumentEdit(
                 text_document=lsp.OptionalVersionedTextDocumentIdentifier(
                     uri=text_document.uri, version=text_document.version
                 ),
-                edits=list(make_fixall_text_edits(text_document.source)),
+                edits=list(ls.service.make_fixall_text_edits(text_document.source)),
             )
         ],
     )
