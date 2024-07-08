@@ -44,8 +44,6 @@ class Service:
         self._import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
 
     def make_diagnostics(self, source: str, ls_name: str) -> Iterable[lsp.Diagnostic]:
-        if not self._import_config:
-            return
         result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self._import_config)
 
         for replacement in result.replacements:
@@ -74,9 +72,6 @@ class Service:
                 )
 
     def make_fixall_text_edits(self, source: str) -> Iterable[lsp.TextEdit]:
-        if not self._import_config:
-            return
-
         result: Final = make_replacements(root=SgRoot(source, "python").root(), import_config=self._import_config)
 
         for replacement in result.replacements:
