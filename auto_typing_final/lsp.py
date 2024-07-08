@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
-from typing import Final, TypedDict, cast
+from typing import Any, Final, TypedDict, cast
 from urllib.parse import unquote_to_bytes
 
 import attr
@@ -23,16 +23,28 @@ from auto_typing_final.transform import (
     make_replacements,
 )
 
-LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
+ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle})
+FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
 
 
-@dataclass
-class ClientState:
-    import_config: ImportConfig | None
+@dataclass(init=False)
+class Service:
     ignored_paths: list[Path]
+    import_config: ImportConfig
+
+    def __init__(self, settings: Any) -> None:  # noqa: ANN401
+        executable_path: Final = Path(sys.executable)
+        if executable_path.parent.name == "bin":
+            self.ignored_paths = [executable_path.parent.parent]
+
+        try:
+            validated_settings: Final = cattrs.structure(settings, FullClientSettings)
+        except cattrs.BaseValidationError:
+            return
+        self.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
 
 
-STATE = ClientState(import_config=None, ignored_paths=[])
+LSP_SERVER = server.LanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
 # From Python 3.13: https://github.com/python/cpython/blob/0790418a0406cc5419bfd9d718522a749542bbc8/Lib/pathlib/_local.py#L815
@@ -60,29 +72,22 @@ def path_from_uri(uri: str) -> Path | None:
 
 
 @LSP_SERVER.feature(lsp.INITIALIZE)
-def initialize(_: lsp.InitializeParams) -> None:
-    executable_path: Final = Path(sys.executable)
-    if executable_path.parent.name == "bin":
-        STATE.ignored_paths = [executable_path.parent.parent]
+def initialize(_: lsp.InitializeParams) -> None: ...
 
 
 @LSP_SERVER.feature(lsp.INITIALIZED)
-async def initialized(_: lsp.InitializedParams) -> None:
-    await LSP_SERVER.register_capability_async(
+async def initialized(ls: server.LanguageServer, _: lsp.InitializedParams) -> None:
+    await ls.register_capability_async(
         params=lsp.RegistrationParams(
             registrations=[
                 lsp.Registration(
                     id=str(uuid.uuid4()),
                     method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
-                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name),
+                    register_options=lsp.DidChangeConfigurationRegistrationOptions(section=ls.name),
                 ),
             ]
         )
     )
-
-
-ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle})
-FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
 
 
 @LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
