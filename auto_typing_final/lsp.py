@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
-from typing import Final, cast, get_args
+from typing import Final, TypedDict, cast
 from urllib.parse import unquote_to_bytes
 
 import attr
@@ -76,22 +76,26 @@ async def initialized(_: lsp.InitializedParams) -> None:
                     id=str(uuid.uuid4()),
                     method=lsp.WORKSPACE_DID_CHANGE_CONFIGURATION,
                     register_options=lsp.DidChangeConfigurationRegistrationOptions(section=LSP_SERVER.name),
-                )
+                ),
             ]
         )
     )
 
 
+ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle})
+FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
+
+
 @LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
-def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
-    if (
-        isinstance(params.settings, dict)
-        and (settings := params.settings.get(LSP_SERVER.name))
-        and isinstance(settings, dict)
-        and (import_style := settings.get("import-style"))
-        and (import_style in get_args(ImportStyle))
-    ):
-        STATE.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[import_style]
+async def workspace_did_change_configuration(params: lsp.DidChangeConfigurationParams) -> None:
+    try:
+        validated_settings: Final = cattrs.structure(params.settings, FullClientSettings)
+    except cattrs.BaseValidationError:
+        return
+    STATE.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
+
+    for text_document in LSP_SERVER.workspace.text_documents.values():
+        LSP_SERVER.publish_diagnostics(text_document.uri, diagnostics=list(make_diagnostics(text_document.source)))
 
 
 @attr.define
