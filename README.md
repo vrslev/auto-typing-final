@@ -70,3 +70,5 @@ poetry add auto-typing-final --group=dev
 After that, install the extension: https://marketplace.visualstudio.com/items?itemName=vrslev.auto-typing-final. In Python environments that have `auto-typing-final` installed, extension will be activated automatically.
 
 Import style can be configured in settings: `"auto-typing-final.import-style": "typing-final"` or `"auto-typing-final.import-style": "final"`.
+
+Library code of currently activated environment will be ignored (for example, `.venv/bin/python` is active interpreter, all code inside `.venv` will be ignored).
