@@ -27,14 +27,14 @@ IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
 
 
 @dataclass
-class AssignmentWithoutAnnotation:  # TODO: Rename to EditableAssignment
+class EditableAssignmentWithoutAnnotation:  # TODO: Rename to EditableAssignment
     node: SgNode
     left: str
     right: str
 
 
 @dataclass
-class AssignmentWithAnnotation:
+class EditableAssignmentWithAnnotation:
     node: SgNode
     left: str
     annotation: SgNode
@@ -46,12 +46,12 @@ class OtherDefinition:
     node: SgNode
 
 
-Definition = AssignmentWithoutAnnotation | AssignmentWithAnnotation | OtherDefinition
+Definition = EditableAssignmentWithoutAnnotation | EditableAssignmentWithAnnotation | OtherDefinition
 
 
 @dataclass
 class AddFinal:
-    definition: Definition
+    node: Definition
 
 
 @dataclass
@@ -67,7 +67,7 @@ def _is_inside_assignment(node: SgNode) -> bool:
 
 
 def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
-    value_assignments: Final[list[Definition]] = []
+    value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
 
     for node in nodes:
@@ -81,8 +81,8 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
                     ("=", _),
                     (_, right),
                 ) if right.kind() != "assignment" and not _is_inside_assignment(node):
-                    value_assignments.append(
-                        AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
+                    value_definitions.append(
+                        EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
                     )
                 case (
                     ("identifier", left),
@@ -91,22 +91,22 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
                     ("=", _),
                     (_, right),
                 ) if right.kind() != "assignment" and not _is_inside_assignment(node):
-                    value_assignments.append(
-                        AssignmentWithAnnotation(node=node, left=left.text(), annotation=annotation, right=right.text())
+                    value_definitions.append(
+                        EditableAssignmentWithAnnotation(node=node, left=left.text(), annotation=annotation, right=right.text())
                     )
                 case _:
-                    value_assignments.append(OtherDefinition(node))
+                    value_definitions.append(OtherDefinition(node))
         else:
-            value_assignments.append(OtherDefinition(node))
+            value_definitions.append(OtherDefinition(node))
 
     if has_node_inside_loop:
-        return RemoveFinal(value_assignments)
+        return RemoveFinal(value_definitions)
 
-    match value_assignments:
-        case [assignment]:
-            return AddFinal(assignment)
-        case assignments:
-            return RemoveFinal(assignments)
+    match value_definitions:
+        case [definition]:
+            return AddFinal(definition)
+        case definitions:
+            return RemoveFinal(definitions)
 
 
 def _match_exact_identifier(node: SgNode, imports_result: ImportsResult, identifier_name: str) -> str | None:
@@ -157,9 +157,9 @@ def _make_changed_text_from_operation(  # noqa: C901
     match operation:
         case AddFinal(assignment):
             match assignment:
-                case AssignmentWithoutAnnotation(node, left, right):
+                case EditableAssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
-                case AssignmentWithAnnotation(node, left, annotation, right):
+                case EditableAssignmentWithAnnotation(node, left, annotation, right):
                     match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                         case None:
                             yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
@@ -171,9 +171,9 @@ def _make_changed_text_from_operation(  # noqa: C901
         case RemoveFinal(assignments):
             for assignment in assignments:
                 match assignment:
-                    case AssignmentWithoutAnnotation(node, left, right):
+                    case EditableAssignmentWithoutAnnotation(node, left, right):
                         yield node, f"{left} = {right}"
-                    case AssignmentWithAnnotation(node, left, annotation, right):
+                    case EditableAssignmentWithAnnotation(node, left, annotation, right):
                         match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                             case _, "":
                                 yield node, f"{left} = {right}"
