@@ -66,38 +66,40 @@ def _is_inside_assignment(node: SgNode) -> bool:
     return bool((parent := node.parent()) and parent.kind() == "assignment")
 
 
-def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
+def _make_definition_from_definition_node(node: SgNode) -> Definition:
+    if node.kind() == "assignment":
+        match tuple((child.kind(), child) for child in node.children()):
+            case (
+                ("identifier", left),
+                ("=", _),
+                (_, right),
+            ) if right.kind() != "assignment" and not _is_inside_assignment(node):
+                return EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
+
+            case (
+                ("identifier", left),
+                (":", _),
+                ("type", annotation),
+                ("=", _),
+                (_, right),
+            ) if right.kind() != "assignment" and not _is_inside_assignment(node):
+                return EditableAssignmentWithAnnotation(
+                    node=node, left=left.text(), annotation=annotation, right=right.text()
+                )
+            case _:
+                return OtherDefinition(node)
+    else:
+        return OtherDefinition(node)
+
+
+def _make_operation_from_definitions_of_one_name(nodes: list[SgNode]) -> Operation:
     value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
 
     for node in nodes:
         if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
             has_node_inside_loop = True
-
-        if node.kind() == "assignment":
-            match tuple((child.kind(), child) for child in node.children()):
-                case (
-                    ("identifier", left),
-                    ("=", _),
-                    (_, right),
-                ) if right.kind() != "assignment" and not _is_inside_assignment(node):
-                    value_definitions.append(
-                        EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
-                    )
-                case (
-                    ("identifier", left),
-                    (":", _),
-                    ("type", annotation),
-                    ("=", _),
-                    (_, right),
-                ) if right.kind() != "assignment" and not _is_inside_assignment(node):
-                    value_definitions.append(
-                        EditableAssignmentWithAnnotation(node=node, left=left.text(), annotation=annotation, right=right.text())
-                    )
-                case _:
-                    value_definitions.append(OtherDefinition(node))
-        else:
-            value_definitions.append(OtherDefinition(node))
+        value_definitions.append(_make_definition_from_definition_node(node))
 
     if has_node_inside_loop:
         return RemoveFinal(value_definitions)
@@ -206,7 +208,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacem
     # t = find_all_definitions_in_functions(root)
     # breakpoint()
     for current_definitions in find_all_definitions_in_functions(root):
-        operation = _make_operation_from_assignments_to_one_name(current_definitions)
+        operation = _make_operation_from_definitions_of_one_name(current_definitions)
         edits = [
             Edit(node=node, new_text=new_text)
             for node, new_text in _make_changed_text_from_operation(
