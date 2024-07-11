@@ -27,7 +27,7 @@ IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
 
 
 @dataclass
-class EditableAssignmentWithoutAnnotation:  # TODO: Rename to EditableAssignment
+class EditableAssignmentWithoutAnnotation:
     node: SgNode
     left: str
     right: str
