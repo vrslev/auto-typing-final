@@ -70,8 +70,8 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
         case (
             ("identifier", left),
             ("=", _),
-            (_, right),
-        ) if right.kind() != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
+            (right_kind, right),
+        ) if right_kind != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
             return EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
 
         case (
@@ -79,8 +79,8 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
             (":", _),
             ("type", annotation),
             ("=", _),
-            (_, right),
-        ) if right.kind() != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
+            (right_kind, right),
+        ) if right_kind != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
             return EditableAssignmentWithAnnotation(
                 node=node, left=left.text(), annotation=annotation, right=right.text()
             )
