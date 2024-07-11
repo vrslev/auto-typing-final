@@ -66,7 +66,6 @@ def _is_inside_assignment(node: SgNode) -> bool:
     return bool((parent := node.parent()) and parent.kind() == "assignment")
 
 
-
 def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operation:
     value_assignments: Final[list[Definition]] = []
     has_node_inside_loop = False
@@ -78,12 +77,11 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
         if node.kind() == "assignment":
             match tuple((child.kind(), child) for child in node.children()):
                 case (("identifier", left), ("=", _), (_, right)):
-                    if right.kind() == "assignment" or _is_inside_assignment(node):
-                        value_assignments.append(OtherDefinition(node))
-                    else:
-                        value_assignments.append(
-                            AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
-                        )
+                    value_assignments.append(
+                        OtherDefinition(node)
+                        if right.kind() == "assignment" or _is_inside_assignment(node)
+                        else AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
+                    )
                 case (("identifier", left), (":", _), ("type", annotation), ("=", _), (_, right)):
                     if right.kind() == "assignment" or _is_inside_assignment(node):
                         value_assignments.append(OtherDefinition(node))
