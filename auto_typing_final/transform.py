@@ -76,21 +76,24 @@ def _make_operation_from_assignments_to_one_name(nodes: list[SgNode]) -> Operati
 
         if node.kind() == "assignment":
             match tuple((child.kind(), child) for child in node.children()):
-                case (("identifier", left), ("=", _), (_, right)):
+                case (
+                    ("identifier", left),
+                    ("=", _),
+                    (_, right),
+                ) if right.kind() != "assignment" and not _is_inside_assignment(node):
                     value_assignments.append(
-                        OtherDefinition(node)
-                        if right.kind() == "assignment" or _is_inside_assignment(node)
-                        else AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
+                        AssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
                     )
-                case (("identifier", left), (":", _), ("type", annotation), ("=", _), (_, right)):
-                    if right.kind() == "assignment" or _is_inside_assignment(node):
-                        value_assignments.append(OtherDefinition(node))
-                    else:
-                        value_assignments.append(
-                            AssignmentWithAnnotation(
-                                node=node, left=left.text(), annotation=annotation, right=right.text()
-                            )
-                        )
+                case (
+                    ("identifier", left),
+                    (":", _),
+                    ("type", annotation),
+                    ("=", _),
+                    (_, right),
+                ) if right.kind() != "assignment" and not _is_inside_assignment(node):
+                    value_assignments.append(
+                        AssignmentWithAnnotation(node=node, left=left.text(), annotation=annotation, right=right.text())
+                    )
                 case _:
                     value_assignments.append(OtherDefinition(node))
         else:
