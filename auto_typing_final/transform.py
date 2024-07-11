@@ -73,7 +73,6 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
             (right_kind, right),
         ) if right_kind != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
             return EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
-
         case (
             ("identifier", left),
             (":", _),
@@ -150,8 +149,6 @@ def _strip_identifier_from_type_annotation(  # noqa: C901, PLR0911
 def _make_changed_text_from_operation(  # noqa: C901
     operation: Operation, final_value: str, imports_result: ImportsResult, identifier_name: str
 ) -> Iterable[tuple[SgNode, str]]:
-    # print(operation)
-    # breakpoint()
     match operation:
         case AddFinal(assignment):
             match assignment:
@@ -201,8 +198,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacem
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
-    # t = find_all_definitions_in_functions(root)
-    # breakpoint()
+
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_definitions_of_one_name(current_definitions)
         edits = [
