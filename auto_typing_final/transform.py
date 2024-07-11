@@ -62,34 +62,30 @@ class RemoveFinal:
 Operation = AddFinal | RemoveFinal
 
 
-def _is_inside_assignment(node: SgNode) -> bool:
-    return bool((parent := node.parent()) and parent.kind() == "assignment")
-
-
 def _make_definition_from_definition_node(node: SgNode) -> Definition:
-    if node.kind() == "assignment":
-        match tuple((child.kind(), child) for child in node.children()):
-            case (
-                ("identifier", left),
-                ("=", _),
-                (_, right),
-            ) if right.kind() != "assignment" and not _is_inside_assignment(node):
-                return EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
-
-            case (
-                ("identifier", left),
-                (":", _),
-                ("type", annotation),
-                ("=", _),
-                (_, right),
-            ) if right.kind() != "assignment" and not _is_inside_assignment(node):
-                return EditableAssignmentWithAnnotation(
-                    node=node, left=left.text(), annotation=annotation, right=right.text()
-                )
-            case _:
-                return OtherDefinition(node)
-    else:
+    if node.kind() != "assignment":
         return OtherDefinition(node)
+
+    match tuple((child.kind(), child) for child in node.children()):
+        case (
+            ("identifier", left),
+            ("=", _),
+            (_, right),
+        ) if right.kind() != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
+            return EditableAssignmentWithoutAnnotation(node=node, left=left.text(), right=right.text())
+
+        case (
+            ("identifier", left),
+            (":", _),
+            ("type", annotation),
+            ("=", _),
+            (_, right),
+        ) if right.kind() != "assignment" and not ((parent := node.parent()) and parent.kind() == "assignment"):
+            return EditableAssignmentWithAnnotation(
+                node=node, left=left.text(), annotation=annotation, right=right.text()
+            )
+        case _:
+            return OtherDefinition(node)
 
 
 def _make_operation_from_definitions_of_one_name(nodes: list[SgNode]) -> Operation:
