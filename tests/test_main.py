@@ -30,12 +30,16 @@ from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportC
         ("(a, b) = t()", "(a, b) = t()"),
         ("[a, b] = t()", "[a, b] = t()"),
         ("[a] = t()", "[a] = t()"),
+        ("a = b = 1", "a = b = 1"),
+        ("a = b = c = 1", "a = b = c = 1"),
+        ("a = (b := 1)", "a: {} = (b := 1)"),
         # Remove annotation
         ("a = 1\na: {}[int] = 2", "a = 1\na: int = 2"),
         ("a = 1\na: {} = 2", "a = 1\na = 2"),
         ("a: int = 1\na: {}[int] = 2", "a: int = 1\na: int = 2"),
         ("a: int = 1\na: {} = 2", "a: int = 1\na = 2"),
         ("a: {} = 1\na: {} = 2\na = 3\na: int = 4", "a = 1\na = 2\na = 3\na: int = 4"),
+        ("a: {} = b = 1", "a: {} = b = 1"),
         # Both
         ("a = 1\nb = 2\nb: {}[int] = 3", "a: {} = 1\nb = 2\nb: int = 3"),
     ],
