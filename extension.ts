@@ -9,7 +9,6 @@ import {
 } from "vscode-languageclient/node";
 
 const NAME = "auto-typing-final";
-const PYTHON_EXTENSION_ID = "ms-python.python";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -18,7 +17,7 @@ const clients: Map<string, LanguageClient> = new Map();
 async function findServerExecutable() {
 	const pythonExtension: PythonExtension = await PythonExtension.api();
 	if (!pythonExtension) {
-		outputChannel?.info(`${PYTHON_EXTENSION_ID} not installed`);
+		outputChannel?.info(`python extension not installed`);
 		return;
 	}
 
