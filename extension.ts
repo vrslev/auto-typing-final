@@ -116,18 +116,20 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 	const folderUri = workspaceFolder.uri.toString();
 	const oldClient = CLIENTS.get(folderUri);
-	if (!oldClient) return;
-	await oldClient.stop();
-	CLIENTS.delete(folderUri);
-	outputChannel?.info(`stopped server for ${folderUri}`);
+	if (oldClient) {
+		await oldClient.stop();
+		CLIENTS.delete(folderUri);
+		outputChannel?.info(`stopped server for ${folderUri}`);
+	}
 }
 
 async function restartClientIfAlreadyStarted(
 	workspaceFolder: vscode.WorkspaceFolder,
 ) {
-	if (!CLIENTS.has(workspaceFolder.uri.toString())) return;
-	await stopClient(workspaceFolder);
-	return await startClient(workspaceFolder);
+	if (CLIENTS.has(workspaceFolder.uri.toString())) {
+		await stopClient(workspaceFolder);
+		return await startClient(workspaceFolder);
+	}
 }
 
 async function createServerForDocument(document: vscode.TextDocument) {
