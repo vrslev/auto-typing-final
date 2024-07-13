@@ -90,10 +90,10 @@ async function restartServer(languageClient?: LanguageClient) {
 		traceOutputChannel: outputChannel,
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
 	};
-	languageClient = new LanguageClient(NAME, serverOptions, clientOptions);
-	await languageClient.start();
+	const newClient = new LanguageClient(NAME, serverOptions, clientOptions);
+	await newClient.start();
 	outputChannel?.info("started server");
-	return languageClient;
+	return newClient;
 }
 
 async function createServerForDocument(document: vscode.TextDocument) {
