@@ -12,6 +12,21 @@ const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 let outputChannel: vscode.LogOutputChannel | undefined;
 
+function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
+	const uri = workspaceFolder.uri.toString();
+	return uri.charAt(uri.length - 1) === "/" ? uri : uri + "/";
+}
+
+function getSortedWorkspaceFolders() {
+	return vscode.workspace.workspaceFolders
+		?.map<[string, vscode.WorkspaceFolder]>((folder) => [
+			normalizeFolderUri(folder),
+			folder,
+		])
+		.sort((first, second) => first[0].length - second[0].length);
+}
+let SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
+
 async function getPythonExtension() {
 	try {
 		return await PythonExtension.api();
@@ -62,7 +77,7 @@ async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
 }
 
 function createClientManager() {
-	const allClients: Map<string, LanguageClient> = new Map();
+	const allClients: Map<string, [string, LanguageClient]> = new Map();
 
 	async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 		const executable = await findServerExecutable(workspaceFolder);
@@ -127,30 +142,15 @@ function createClientManager() {
 	};
 }
 
-function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
-	const uri = workspaceFolder.uri.toString();
-	return uri.charAt(uri.length - 1) === "/" ? uri : uri + "/";
-}
-
-function getSortedWorkspaceFolders() {
-	return vscode.workspace.workspaceFolders
-		?.map<[string, vscode.WorkspaceFolder]>((folder) => [
-			normalizeFolderUri(folder),
-			folder,
-		])
-		.sort((first, second) => first[0].length - second[0].length);
-}
-
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME, {
 		log: true,
 	});
 	const clientManager = createClientManager();
-	let sortedWorkspaceFolders = getSortedWorkspaceFolders();
 
 	function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
 		const folderUri = normalizeFolderUri(folder);
-		for (const [sortedFolderUri, sortedFolder] of sortedWorkspaceFolders ??
+		for (const [sortedFolderUri, sortedFolder] of SORTED_WORKSPACE_FOLDERS ??
 			[]) {
 			if (folderUri.startsWith(sortedFolderUri)) return sortedFolder;
 		}
@@ -194,7 +194,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
 		vscode.workspace.onDidChangeWorkspaceFolders(async ({ removed }) => {
-			sortedWorkspaceFolders = getSortedWorkspaceFolders();
+			SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
 			await Promise.all(
 				removed.map(getOuterMostWorkspaceFolder).map(clientManager.stopClient),
 			);
