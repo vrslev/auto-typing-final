@@ -116,21 +116,22 @@ function createClientManager() {
 		outputChannel?.info(`started server for ${workspaceFolder.uri}`);
 	}
 
+	async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
+		const folderUri = workspaceFolder.uri.toString();
+		const oldClient = allClients.get(folderUri);
+		if (oldClient) {
+			await oldClient.stop();
+			allClients.delete(folderUri);
+			outputChannel?.info(`stopped server for ${folderUri}`);
+		}
+	}
 	return {
-		async stopClient(workspaceFolder: vscode.WorkspaceFolder) {
-			const folderUri = workspaceFolder.uri.toString();
-			const oldClient = allClients.get(folderUri);
-			if (oldClient) {
-				await oldClient.stop();
-				allClients.delete(folderUri);
-				outputChannel?.info(`stopped server for ${folderUri}`);
-			}
-		},
+		stopClient,
 		async restartClientIfAlreadyStarted(
 			workspaceFolder: vscode.WorkspaceFolder,
 		) {
 			if (allClients.has(workspaceFolder.uri.toString())) {
-				await this.stopClient(workspaceFolder);
+				await stopClient(workspaceFolder);
 				return await startClient(workspaceFolder);
 			}
 		},
