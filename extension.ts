@@ -1,12 +1,15 @@
-import { PythonExtension } from "@vscode/python-extension";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as vscode from "vscode";
+import * as vscode from "vscode"
 import {
 	LanguageClient,
 	type LanguageClientOptions,
 	RevealOutputChannelOn,
-} from "vscode-languageclient/node";
+} from "vscode-languageclient/node"
+import * as assfsnode from 
+import * as paththth from frnode
+import { PythonExtensiont } from xtensio
+:fs
+:pathpathpath";
+@vscode/python-extensiono@vscode/python-extension"@vscode/python-extension";
 
 const NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
@@ -78,6 +81,7 @@ async function restartServer(
 		outputChannel: outputChannel,
 		traceOutputChannel: outputChannel,
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
+		workspaceFolder: folder,
 	};
 	const newClient = new LanguageClient(NAME, serverOptions, clientOptions);
 	await newClient.start();
@@ -117,10 +121,6 @@ async function restartAllServers() {
 	await Promise.all(promises);
 }
 
-// On start create LSs for all open text documents
-// On new open text document, create LS for its workspace
-// On restart command, restart all LSs
-
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
@@ -128,13 +128,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		outputChannel,
-		// pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
-		// 	// TODO: All environments?
-		// 	async () => {
-		// 		outputChannel?.info("restarting on python environment changed");
-		// 		await restartAllServers();
-		// 	},
-		// ),
+		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
+			// TODO: All environments?
+			async () => {
+				outputChannel?.info("restarting on python environment changed");
+				await restartAllServers();
+			},
+		),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
 			outputChannel?.info(`restarting on ${NAME}.restart`);
 			await restartAllServers();
