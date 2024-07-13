@@ -133,11 +133,14 @@ async function restartClientIfAlreadyStarted(
 async function createServerForDocument(document: vscode.TextDocument) {
 	if (document.languageId !== "python" || document.uri.scheme !== "file")
 		return;
-	let folder = vscode.workspace.getWorkspaceFolder(document.uri);
+
+	const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 	if (!folder) return;
-	folder = getOuterMostWorkspaceFolder(folder);
-	const folderUri = folder.uri.toString();
-	if (!CLIENTS.has(folderUri)) await startClient(folder);
+	await stopClient(folder);
+
+	const outerMostFolder = getOuterMostWorkspaceFolder(folder);
+	if (!CLIENTS.has(outerMostFolder.uri.toString()))
+		await startClient(outerMostFolder);
 }
 
 export async function activate(context: vscode.ExtensionContext) {
