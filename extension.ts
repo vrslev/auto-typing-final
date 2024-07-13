@@ -119,6 +119,8 @@ async function restartAllServers() {
 	await Promise.all(promises);
 }
 
+
+
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
