@@ -38,12 +38,18 @@ function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
 	return folder;
 }
 
-async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
-	const pythonExtension: PythonExtension = await PythonExtension.api();
-	if (!pythonExtension) {
+async function getPythonExtension() {
+	try {
+		return await PythonExtension.api();
+	} catch {
 		outputChannel?.info(`python extension not installed`);
 		return;
 	}
+}
+
+async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
+	const pythonExtension = await getPythonExtension();
+	if (!pythonExtension) return;
 
 	const environmentPath =
 		pythonExtension.environments.getActiveEnvironmentPath(workspaceFolder);
@@ -91,13 +97,7 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 		options: { env: process.env },
 	};
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [
-			{
-				scheme: "file",
-				language: "python",
-				// pattern: `${workspaceFolder.uri.fsPath}/**/*`,
-			},
-		],
+		documentSelector: [{ scheme: "file", language: "python" }],
 		outputChannel: outputChannel,
 		traceOutputChannel: outputChannel,
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
@@ -147,18 +147,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME, {
 		log: true,
 	});
-	const pythonExtension: PythonExtension = await PythonExtension.api();
+	const pythonExtension = await getPythonExtension();
 
 	context.subscriptions.push(
 		outputChannel,
-		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
+		pythonExtension?.environments.onDidChangeActiveEnvironmentPath(
 			async ({ resource }) => {
 				if (!resource) return;
 				await restartClientIfAlreadyStarted(
 					getOuterMostWorkspaceFolder(resource),
 				);
 			},
-		),
+		) || { dispose: () => undefined },
 		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
 			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
 			if (!vscode.workspace.workspaceFolders) return;
