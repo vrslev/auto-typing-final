@@ -67,7 +67,13 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 		options: { env: process.env },
 	};
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [{ scheme: "file", language: "python" }],
+		documentSelector: [
+			{
+				scheme: "file",
+				language: "python",
+				// pattern: `${workspaceFolder.uri.fsPath}/**/*`,
+			},
+		],
 		outputChannel: outputChannel,
 		traceOutputChannel: outputChannel,
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
@@ -90,6 +96,7 @@ async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 	await oldClient.stop();
 	CLIENTS.delete(folderUri);
 	outputChannel?.info(`stopped server for ${folderUri}`);
+	outputChannel.info(String(Array.from(CLIENTS.keys())));
 }
 
 async function restartClientIfAlreadyStarted(
@@ -139,6 +146,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	await Promise.all(
 		vscode.workspace.textDocuments.map(createServerForDocument),
 	);
+	outputChannel.info(String(Array.from(CLIENTS.keys())));
 }
 
 export async function deactivate() {
