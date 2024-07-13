@@ -79,18 +79,19 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
 }
 
-async function restartClientIfAlreadyStarted(
-	workspaceFolder: vscode.WorkspaceFolder,
-) {
+async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 	const folderUri = workspaceFolder.uri.toString();
-
 	const oldClient = clients.get(folderUri);
 	if (!oldClient) return;
-
 	await oldClient.stop();
 	clients.delete(folderUri);
 	outputChannel?.info(`stopped server for ${folderUri}`);
+}
 
+async function restartClientIfAlreadyStarted(
+	workspaceFolder: vscode.WorkspaceFolder,
+) {
+	await stopClient(workspaceFolder);
 	return await startClient(workspaceFolder);
 }
 
@@ -125,7 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		outputChannel,
 		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
 			async (event) => {
-				const folder = event.resource;//TODO
+				const folder = event.resource; //TODO
 				if (!folder) return;
 				await restartClientIfAlreadyStarted(folder);
 			},
@@ -138,13 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
 			const promises = event.removed.map((folder) => {
 				return (async () => {
-					const folderUri = folder.uri.toString();
-					const client = clients.get(folderUri);
-					if (client) {
-						outputChannel?.info(`stopping server for ${folder.uri}`);
-						await client.stop();
-						clients.delete(folderUri);
-					}
+					await stopClient(folder); // TODO
 				})();
 			});
 			await Promise.all(promises);
