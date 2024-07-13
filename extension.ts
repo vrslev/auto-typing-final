@@ -12,29 +12,10 @@ const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let outputChannel: vscode.LogOutputChannel | undefined;
-let SORTED_WORKSPACE_FOLDERS: [string, vscode.WorkspaceFolder][] | undefined;
 
 function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
 	const uri = workspaceFolder.uri.toString();
 	return uri.charAt(uri.length - 1) === "/" ? uri : uri + "/";
-}
-
-function updateSortedWorkspaceFolders() {
-	SORTED_WORKSPACE_FOLDERS = vscode.workspace.workspaceFolders
-		?.map<[string, vscode.WorkspaceFolder]>((folder) => [
-			normalizeFolderUri(folder),
-			folder,
-		])
-		.sort((first, second) => first[0].length - second[0].length);
-}
-
-function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
-	const folderUri = normalizeFolderUri(folder);
-	for (const [sortedFolderUri, sortedFolder] of SORTED_WORKSPACE_FOLDERS ??
-		[]) {
-		if (folderUri.startsWith(sortedFolderUri)) return sortedFolder;
-	}
-	return folder;
 }
 
 async function getPythonExtension() {
@@ -152,12 +133,30 @@ function createClientManager() {
 	};
 }
 
+function getSortedWorkspaceFolders() {
+	return vscode.workspace.workspaceFolders
+		?.map<[string, vscode.WorkspaceFolder]>((folder) => [
+			normalizeFolderUri(folder),
+			folder,
+		])
+		.sort((first, second) => first[0].length - second[0].length);
+}
+
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME, {
 		log: true,
 	});
-	const pythonExtension = await getPythonExtension();
 	const clientManager = createClientManager();
+	let sortedWorkspaceFolders = getSortedWorkspaceFolders();
+
+	function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
+		const folderUri = normalizeFolderUri(folder);
+		for (const [sortedFolderUri, sortedFolder] of sortedWorkspaceFolders ??
+			[]) {
+			if (folderUri.startsWith(sortedFolderUri)) return sortedFolder;
+		}
+		return folder;
+	}
 
 	async function createServerForDocument(document: vscode.TextDocument) {
 		if (document.languageId !== "python" || document.uri.scheme !== "file")
@@ -175,7 +174,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		outputChannel,
-		pythonExtension?.environments.onDidChangeActiveEnvironmentPath(
+		(await getPythonExtension())?.environments.onDidChangeActiveEnvironmentPath(
 			async ({ resource }) => {
 				if (!resource) return;
 				await clientManager.restartClientIfAlreadyStarted(
@@ -196,7 +195,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
 		vscode.workspace.onDidChangeWorkspaceFolders(async ({ removed }) => {
-			updateSortedWorkspaceFolders();
+			sortedWorkspaceFolders = getSortedWorkspaceFolders();
 			await Promise.all(
 				removed.map(getOuterMostWorkspaceFolder).map(clientManager.stopClient),
 			);
@@ -204,7 +203,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		{ dispose: clientManager.stopAllClients },
 	);
 
-	updateSortedWorkspaceFolders();
 	for (const document of vscode.workspace.textDocuments) {
 		await createServerForDocument(document);
 	}
