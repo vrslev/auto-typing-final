@@ -131,9 +131,20 @@ export async function activate(context: vscode.ExtensionContext) {
 		outputChannel,
 		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
 			// TODO: All environments?
-			async () => {
-				outputChannel?.info("restarting on python environment changed");
-				await restartAllServers();
+			async (event) => {
+				const folder = event.resource;
+				if (!folder) return;
+				const folderUri = folder.uri.toString();
+
+				const client = clients.get(folderUri);
+				if (!client) return;
+
+				const newClient = await restartServer(folder, client);
+				if (newClient) {
+					clients.set(folderUri, newClient);
+				} else {
+					clients.delete(folderUri);
+				}
 			},
 		),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
