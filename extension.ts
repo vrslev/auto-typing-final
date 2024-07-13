@@ -186,6 +186,7 @@ function createClientManager() {
 			await Promise.all(
 				Array.from(allClients.values()).map(([_, client]) => client.stop()),
 			);
+			allClients.clear();
 		},
 	};
 }
