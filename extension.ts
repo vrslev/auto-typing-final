@@ -105,6 +105,7 @@ function didOpenTextDocument(document: vscode.TextDocument) {
 
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
+
 	clients.set(folderUri, "hi");
 	outputChannel?.info("hi");
 	outputChannel?.info(Array.from(clients.keys()).toString());
@@ -112,22 +113,31 @@ function didOpenTextDocument(document: vscode.TextDocument) {
 
 async function restartAllServers() {
 	if (!vscode.workspace.workspaceFolders) return;
+
 	const promises = vscode.workspace.workspaceFolders.map((folder) => {
 		return (async () => {
 			const folderUri = folder.uri.toString();
 			const client = clients.get(folderUri);
-			if (client) {
-				const newClient = await restartServer(client);
-				if (newClient) {
-					clients.set(folderUri, newClient);
-				} else {
-					clients.delete(folderUri);
-				}
+			if (!client) return;
+			await client.stop();
+
+			const newClient = await restartServer(client);
+			if (newClient) {
+				await newClient.start();
+				clients.set(folderUri, newClient);
+			} else {
+				clients.delete(folderUri);
 			}
 		})();
 	});
 	await Promise.all(promises);
 }
+
+// On start create LSs for all open text documents
+// On new open text document, create LS for its workspace
+// On changing workspace folders, remove unused LSs
+// On restart command, restart all LSs
+
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
@@ -136,33 +146,35 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		outputChannel,
-		pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
-			// TODO: All environments?
-			async () => {
-				outputChannel?.info("restarting on python environment changed");
-				await restartAllServers();
-			},
-		),
+		// pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
+		// 	// TODO: All environments?
+		// 	async () => {
+		// 		outputChannel?.info("restarting on python environment changed");
+		// 		await restartAllServers();
+		// 	},
+		// ),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
 			outputChannel?.info(`restarting on ${NAME}.restart`);
 			await restartAllServers();
 		}),
 		vscode.workspace.onDidOpenTextDocument(didOpenTextDocument),
-		vscode.workspace.onDidChangeWorkspaceFolders((event) => {
-			for (const folder of event.removed) {
-				const folderUri = folder.uri.toString();
-				const client = clients.get(folderUri);
-				if (client) {
-					outputChannel?.info(`stopping server in folder ${folder.uri}`);
-					void client.stop();
-					clients.delete(folderUri);
-				}
-			}
+		vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
+			const promises = event.removed.map((folder) => {
+				return (async () => {
+					const folderUri = folder.uri.toString();
+					const client = clients.get(folderUri);
+					if (client) {
+						outputChannel?.info(`stopping server in folder ${folder.uri}`);
+						await client.stop();
+						clients.delete(folderUri);
+					}
+				})();
+			});
+			await Promise.all(promises);
 		}),
 	);
 
 	vscode.workspace.textDocuments.forEach(didOpenTextDocument);
-	// await restartServer();
 }
 
 export async function deactivate() {
