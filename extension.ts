@@ -10,13 +10,7 @@ import {
 
 const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
-
 let outputChannel: vscode.LogOutputChannel | undefined;
-
-function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
-	const uri = workspaceFolder.uri.toString();
-	return uri.charAt(uri.length - 1) === "/" ? uri : uri + "/";
-}
 
 async function getPythonExtension() {
 	try {
@@ -131,6 +125,11 @@ function createClientManager() {
 			);
 		},
 	};
+}
+
+function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
+	const uri = workspaceFolder.uri.toString();
+	return uri.charAt(uri.length - 1) === "/" ? uri : uri + "/";
 }
 
 function getSortedWorkspaceFolders() {
