@@ -123,10 +123,14 @@ async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 	}
 }
 
+function hasClientForFolder(workspaceFolder: vscode.WorkspaceFolder) {
+	return CLIENTS.has(workspaceFolder.uri.toString());
+}
+
 async function restartClientIfAlreadyStarted(
 	workspaceFolder: vscode.WorkspaceFolder,
 ) {
-	if (CLIENTS.has(workspaceFolder.uri.toString())) {
+	if (hasClientForFolder(workspaceFolder)) {
 		await stopClient(workspaceFolder);
 		return await startClient(workspaceFolder);
 	}
@@ -141,8 +145,7 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	await stopClient(folder);
 
 	const outerMostFolder = getOuterMostWorkspaceFolder(folder);
-	if (!CLIENTS.has(outerMostFolder.uri.toString()))
-		await startClient(outerMostFolder);
+	if (!hasClientForFolder(outerMostFolder)) await startClient(outerMostFolder);
 }
 
 export async function activate(context: vscode.ExtensionContext) {
