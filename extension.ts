@@ -119,11 +119,9 @@ async function restartAllServers() {
 			const folderUri = folder.uri.toString();
 			const client = clients.get(folderUri);
 			if (!client) return;
-			await client.stop();
 
 			const newClient = await restartServer(client);
 			if (newClient) {
-				await newClient.start();
 				clients.set(folderUri, newClient);
 			} else {
 				clients.delete(folderUri);
