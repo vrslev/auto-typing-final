@@ -119,7 +119,7 @@ async function createClient(
 function createClientManager() {
 	const allClients: Map<string, [string, LanguageClient]> = new Map();
 
-	async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
+	async function _stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 		const folderUri = workspaceFolder.uri.toString();
 		const oldEntry = allClients.get(folderUri);
 		if (oldEntry) {
@@ -130,54 +130,61 @@ function createClientManager() {
 		}
 	}
 
+	async function requireClientForWorkspace(
+		workspaceFolder: vscode.WorkspaceFolder,
+	) {
+		const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
+		const outerMostFolderUri = outerMostFolder.uri.toString();
+
+		if (workspaceFolder.uri.toString() != outerMostFolderUri) {
+			await _stopClient(workspaceFolder);
+		}
+
+		const outerMostOldEntry = allClients.get(outerMostFolderUri);
+		const newExecutable = await findServerExecutable(outerMostFolder);
+
+		if (outerMostOldEntry) {
+			const [oldExecutable, _] = outerMostOldEntry;
+			if (oldExecutable == newExecutable) {
+				return;
+			}
+			await _stopClient(outerMostFolder);
+		}
+
+		if (newExecutable) {
+			allClients.set(outerMostFolderUri, [
+				newExecutable,
+				await createClient(outerMostFolder, newExecutable),
+			]);
+		}
+	}
 	return {
-		async requireClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
-			const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
-			const outerMostFolderUri = outerMostFolder.uri.toString();
-
-			if (workspaceFolder.uri.toString() != outerMostFolderUri) {
-				await stopClient(workspaceFolder);
-			}
-
-			const outerMostOldEntry = allClients.get(outerMostFolderUri);
-			const newExecutable = await findServerExecutable(outerMostFolder);
-
-			if (outerMostOldEntry) {
-				const [oldExecutable, _] = outerMostOldEntry;
-				if (oldExecutable == newExecutable) {
-					return;
-				}
-				await stopClient(outerMostFolder);
-			}
-
-			if (newExecutable) {
-				allClients.set(outerMostFolderUri, [
-					newExecutable,
-					await createClient(outerMostFolder, newExecutable),
-				]);
-			}
+		requireClientForWorkspace,
+		async requireClientsForWorkspaces(
+			workspaceFolders: readonly vscode.WorkspaceFolder[],
+		) {
+			const outerMostFolders = [
+				...new Set(workspaceFolders.map(getOuterMostWorkspaceFolder)),
+			];
+			await Promise.all(
+				outerMostFolders.map((folder) => requireClientForWorkspace(folder)),
+			);
+		},
+		async stopClientsForWorkspaces(
+			workspaceFolders: readonly vscode.WorkspaceFolder[],
+		) {
+			await Promise.all(
+				workspaceFolders.map(async (folder) => {
+					const outerMostFolder = getOuterMostWorkspaceFolder(folder);
+					if (outerMostFolder.uri.toString() === folder.uri.toString()) {
+						await _stopClient(folder);
+					}
+				}),
+			);
 		},
 		async stopAllClients() {
 			await Promise.all(
 				Array.from(allClients.values()).map(([_, client]) => client.stop()),
-			);
-		},
-		stopClient,
-		async restartClientIfAlreadyStarted(
-			workspaceFolder: vscode.WorkspaceFolder,
-		) {
-			if (allClients.has(workspaceFolder.uri.toString())) {
-				await stopClient(workspaceFolder);
-				return await createClient(workspaceFolder);
-			}
-		},
-		async startClientIfNotExists(workspaceFolder: vscode.WorkspaceFolder) {
-			if (!allClients.has(workspaceFolder.uri.toString()))
-				await createClient(workspaceFolder);
-		},
-		async stopAllClients() {
-			await Promise.all(
-				Array.from(allClients.values()).map((client) => client.stop()),
 			);
 		},
 	};
@@ -209,20 +216,15 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
 			if (!vscode.workspace.workspaceFolders) return;
 			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
-			await Promise.all(
-				[
-					...new Set(
-						vscode.workspace.workspaceFolders.map(getOuterMostWorkspaceFolder),
-					),
-				].map(clientManager.restartClientIfAlreadyStarted),
+			await clientManager.stopAllClients();
+			await clientManager.requireClientsForWorkspaces(
+				vscode.workspace.workspaceFolders,
 			);
 		}),
-		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
+		vscode.workspace.onDidOpenTextDocument(createServerForDocument), //TODO
 		vscode.workspace.onDidChangeWorkspaceFolders(async ({ removed }) => {
 			SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
-			await Promise.all(
-				removed.map(getOuterMostWorkspaceFolder).map(clientManager.stopClient),
-			);
+			await clientManager.stopClientsForWorkspaces(removed);
 		}),
 		{ dispose: clientManager.stopAllClients },
 	);
