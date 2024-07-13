@@ -214,12 +214,17 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 	const clientManager = createClientManager();
 
-	function getWorkspaceFolderFromDocument(document: vscode.TextDocument) {
-		if (document.languageId !== "python" || document.uri.scheme !== "file")
-			return;
+	function takePythonFiles(textDocuments: vscode.TextDocument[]) {
+		return vscode.workspace.textDocuments
+			.map((document) => {
+				if (document.languageId === "python" && document.uri.scheme === "file"){
+					const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+					if (workspaceFolder) return workspaceFolder
+				}
 
-		return vscode.workspace.getWorkspaceFolder(document.uri);
-	}
+			})
+			.filter((value) => value !== undefined),
+
 
 	context.subscriptions.push(
 		outputChannel,
@@ -234,13 +239,15 @@ export async function activate(context: vscode.ExtensionContext) {
 			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
 			await clientManager.stopAllClients();
 			await clientManager.requireClientsForWorkspaces(
-				vscode.workspace.workspaceFolders,
+				vscode.workspace.workspaceFolders,//TODO: Take pytho nfiles here
 			);
 		}),
-		vscode.workspace.onDidOpenTextDocument(async (document) => {
-			const folder = getWorkspaceFolderFromDocument(document);
+		vscode.workspace.onDidOpenTextDocument(``
+			async (document) => {
+				takePythonFiles([document])
+			const folder = takePythonFiles(document);
 			if (folder) {
-				await clientManager.requireClientForWorkspace(folder);
+				await clientManager.requireClientForWorkspaces(takePythonFiles([document]));
 			}
 		}),
 		vscode.workspace.onDidChangeWorkspaceFolders(async ({ removed }) => {
@@ -252,7 +259,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	await clientManager.requireClientsForWorkspaces(
 		vscode.workspace.textDocuments
-			.map(getWorkspaceFolderFromDocument)
+			.map(takePythonFiles)
 			.filter((value) => value !== undefined),
 	);
 }
