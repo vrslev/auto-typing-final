@@ -96,7 +96,7 @@ async function restartServer(languageClient?: LanguageClient) {
 	return languageClient;
 }
 
-function didOpenTextDocument(document: vscode.TextDocument) {
+async function didOpenTextDocument(document: vscode.TextDocument) {
 	if (document.languageId !== "python" || document.uri.scheme !== "file")
 		return;
 
@@ -106,9 +106,9 @@ function didOpenTextDocument(document: vscode.TextDocument) {
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
 
-	clients.set(folderUri, "hi");
-	outputChannel?.info("hi");
-	outputChannel?.info(Array.from(clients.keys()).toString());
+	const newClient = await restartServer();
+	if (!newClient) return;
+	clients.set(folderUri, newClient);
 }
 
 async function restartAllServers() {
