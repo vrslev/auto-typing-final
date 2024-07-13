@@ -67,7 +67,7 @@ async function findExecutable() {
 	return lspServerPath;
 }
 
-async function restartServer(languageClient: LanguageClient) {
+async function restartServer(languageClient?: LanguageClient) {
 	if (languageClient) {
 		await languageClient.stop();
 		outputChannel?.info("stopped server");
