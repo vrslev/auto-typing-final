@@ -75,24 +75,25 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
     )
 
 
-@dataclass(init=False)
+@dataclass
 class Service:
     ls_name: str
     ignored_paths: list[Path]
     import_config: ImportConfig
 
-    def __init__(self, ls_name: str, settings: Any) -> None:  # noqa: ANN401
-        self.ls_name = ls_name
-
-        executable_path: Final = Path(sys.executable)
-        if executable_path.parent.name == "bin":
-            self.ignored_paths = [executable_path.parent.parent]
-
+    @staticmethod
+    def try_from_settings(ls_name: str, settings: Any) -> "Service | None":
         try:
             validated_settings: Final = cattrs.structure(settings, FullClientSettings)
         except cattrs.BaseValidationError:
-            return
-        self.import_config = IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]]
+            return None
+
+        executable_path: Final = Path(sys.executable)
+        return Service(
+            ls_name=ls_name,
+            ignored_paths=[executable_path.parent.parent] if executable_path.parent.name == "bin" else [],
+            import_config=IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]],
+        )
 
     def make_diagnostics(self, source: str) -> list[lsp.Diagnostic]:
         replacement_result: Final = make_replacements(
@@ -173,7 +174,9 @@ async def initialized(ls: CustomLanguageServer, _: lsp.InitializedParams) -> Non
 
 @LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
 def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.DidChangeConfigurationParams) -> None:
-    ls.service = Service(ls_name=ls.name, settings=params.settings)
+    ls.service = Service.try_from_settings(ls_name=ls.name, settings=params.settings) or ls.service
+    if not ls.service:
+        return
     for text_document in ls.workspace.text_documents.values():
         ls.publish_diagnostics(text_document.uri, diagnostics=ls.service.make_diagnostics(text_document.source))
 
