@@ -1,3 +1,4 @@
+import { PythonExtension } from "@vscode/python-extension";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -14,36 +15,22 @@ const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 let outputChannel: vscode.LogOutputChannel | undefined;
 const clients: Map<string, LanguageClient> = new Map();
 
-function getPythonExtension() {
-	return vscode.extensions.getExtension(PYTHON_EXTENSION_ID) as
-		| vscode.Extension<{
-				environments: {
-					onDidChangeActiveEnvironmentPath: (event: any) => any;
-					getActiveEnvironmentPath: () => { path: string };
-					resolveEnvironment: (environment: { path: string }) => Promise<
-						{ executable: { uri?: { fsPath: string } } } | undefined
-					>;
-				};
-		  }>
-		| undefined;
-}
-
 async function findServerExecutable() {
-	const extension = getPythonExtension();
-	if (!extension) {
+	const pythonExtension: PythonExtension = await PythonExtension.api();
+	if (!pythonExtension) {
 		outputChannel?.info(`${PYTHON_EXTENSION_ID} not installed`);
 		return;
 	}
 
 	const environmentPath =
-		extension.exports.environments.getActiveEnvironmentPath();
+		pythonExtension.environments.getActiveEnvironmentPath();
 	if (!environmentPath) {
 		outputChannel?.info(`no active environment`);
 		return;
 	}
 
 	const fsPath = (
-		await extension.exports.environments.resolveEnvironment(environmentPath)
+		await pythonExtension.environments.resolveEnvironment(environmentPath)
 	)?.executable.uri?.fsPath;
 	if (!fsPath) {
 		outputChannel?.info(`failed to resolve environment at ${environmentPath}`);
@@ -135,8 +122,7 @@ async function restartAllServers() {
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
-	const pythonExtension = getPythonExtension();
-	if (!pythonExtension?.isActive) await pythonExtension?.activate();
+	const pythonExtension: PythonExtension = await PythonExtension.api();
 
 	context.subscriptions.push(
 		outputChannel,

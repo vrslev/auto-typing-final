@@ -9,13 +9,26 @@
 		"type": "git",
 		"url": "https://github.com/vrslev/auto-typing-final.git"
 	},
-	"keywords": ["python", "linting", "mypy"],
+	"keywords": [
+		"python",
+		"linting",
+		"mypy"
+	],
 	"engines": {
 		"vscode": "^1.90.0"
 	},
-	"categories": ["Programming Languages", "Linters", "Formatters"],
-	"extensionDependencies": ["ms-python.python"],
-	"activationEvents": ["onLanguage:python", "workspaceContains:*.py"],
+	"categories": [
+		"Programming Languages",
+		"Linters",
+		"Formatters"
+	],
+	"extensionDependencies": [
+		"ms-python.python"
+	],
+	"activationEvents": [
+		"onLanguage:python",
+		"workspaceContains:*.py"
+	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
@@ -29,7 +42,10 @@
 			"properties": {
 				"auto-typing-final.import-style": {
 					"default": "typing-final",
-					"enum": ["typing-final", "final"],
+					"enum": [
+						"typing-final",
+						"final"
+					],
 					"enumDescriptions": [
 						"Use `import typing` and `typing.Final`",
 						"Use `from typing import Final` and `Final`"
@@ -54,6 +70,7 @@
 		"@biomejs/biome": "1.8.3",
 		"@types/node": "^20.14.10",
 		"@types/vscode": "^1.90.0",
+		"@vscode/python-extension": "^1.0.5",
 		"prettier": "^3.3.2",
 		"ts-loader": "^9.5.1",
 		"typescript": "^5.5.3",
