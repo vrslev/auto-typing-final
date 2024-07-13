@@ -209,7 +209,3 @@ export async function activate(context: vscode.ExtensionContext) {
 		await createServerForDocument(document);
 	}
 }
-
-export async function deactivate(context: vscode.ExtensionContext) {
-	// await clientManager.stopAllClients();
-}
