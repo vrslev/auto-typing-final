@@ -57,7 +57,7 @@ async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
 	return lspServerPath;
 }
 
-async function startServer(workspaceFolder: vscode.WorkspaceFolder) {
+async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 	const executable = await findServerExecutable(workspaceFolder);
 	if (!executable) return;
 
@@ -73,19 +73,19 @@ async function startServer(workspaceFolder: vscode.WorkspaceFolder) {
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
 		workspaceFolder: workspaceFolder,
 	};
-	const newClient = new LanguageClient(NAME, serverOptions, clientOptions);
-	await newClient.start();
+	const languageClient = new LanguageClient(NAME, serverOptions, clientOptions);
+	await languageClient.start();
 	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
-	return newClient;
+	return languageClient;
 }
 
-async function restartServer(
+async function restartClient(
 	workspaceFolder: vscode.WorkspaceFolder,
 	languageClient: LanguageClient,
 ) {
 	await languageClient.stop();
 	outputChannel?.info(`stopped server for ${workspaceFolder.uri}`);
-	return await startServer(workspaceFolder);
+	return await startClient(workspaceFolder);
 }
 
 async function createServerForDocument(document: vscode.TextDocument) {
@@ -96,7 +96,7 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
 
-	const newClient = await startServer(folder);
+	const newClient = await startClient(folder);
 	if (newClient) clients.set(folderUri, newClient);
 }
 
@@ -109,7 +109,7 @@ async function restartAllServers() {
 			const client = clients.get(folderUri);
 			if (!client) return;
 
-			const newClient = await restartServer(folder, client);
+			const newClient = await restartClient(folder, client);
 			if (newClient) {
 				clients.set(folderUri, newClient);
 			} else {
@@ -136,7 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				const client = clients.get(folderUri);
 				if (!client) return;
 
-				const newClient = await restartServer(folder, client);
+				const newClient = await restartClient(folder, client);
 				if (newClient) {
 					clients.set(folderUri, newClient);
 				} else {
