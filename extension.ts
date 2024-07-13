@@ -129,6 +129,7 @@ function createClientManager() {
 			outputChannel?.info(`stopped server for ${folderUri}`);
 		}
 	}
+
 	return {
 		async requireClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
 			const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
@@ -150,8 +151,10 @@ function createClientManager() {
 			}
 
 			if (newExecutable) {
-				const client = await createClient(outerMostFolder, newExecutable);
-				allClients.set(outerMostFolderUri, [newExecutable, client]);
+				allClients.set(outerMostFolderUri, [
+					newExecutable,
+					await createClient(outerMostFolder, newExecutable),
+				]);
 			}
 		},
 		async stopAllClients() {
