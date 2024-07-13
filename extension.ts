@@ -196,13 +196,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 	const clientManager = createClientManager();
 
-	async function createServerForDocument(document: vscode.TextDocument) {
+	function getWorkspaceFolderFromDocument(document: vscode.TextDocument) {
 		if (document.languageId !== "python" || document.uri.scheme !== "file")
 			return;
 
-		const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-		if (!folder) return;
-		await clientManager.requireClientForWorkspace(folder);
+		return vscode.workspace.getWorkspaceFolder(document.uri);
 	}
 
 	context.subscriptions.push(
@@ -221,7 +219,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				vscode.workspace.workspaceFolders,
 			);
 		}),
-		vscode.workspace.onDidOpenTextDocument(createServerForDocument), //TODO
+		vscode.workspace.onDidOpenTextDocument(async (document) => {
+			const folder = getWorkspaceFolderFromDocument(document);
+			if (folder) {
+				await clientManager.requireClientForWorkspace(folder);
+			}
+		}),
 		vscode.workspace.onDidChangeWorkspaceFolders(async ({ removed }) => {
 			SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
 			await clientManager.stopClientsForWorkspaces(removed);
@@ -229,7 +232,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		{ dispose: clientManager.stopAllClients },
 	);
 
-	for (const document of vscode.workspace.textDocuments) {
-		await createServerForDocument(document);
-	}
+	await clientManager.requireClientsForWorkspaces(
+		vscode.workspace.textDocuments
+			.map(getWorkspaceFolderFromDocument)
+			.filter((value) => value !== undefined),
+	);
 }
