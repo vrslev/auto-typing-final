@@ -187,9 +187,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (!vscode.workspace.workspaceFolders) return;
 			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
 			await Promise.all(
-				vscode.workspace.workspaceFolders
-					.map(getOuterMostWorkspaceFolder)
-					.map(clientManager.restartClientIfAlreadyStarted),
+				[
+					...new Set(
+						vscode.workspace.workspaceFolders.map(getOuterMostWorkspaceFolder),
+					),
+				].map(clientManager.restartClientIfAlreadyStarted),
 			);
 		}),
 		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
