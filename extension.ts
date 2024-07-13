@@ -75,16 +75,22 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 	};
 	const languageClient = new LanguageClient(NAME, serverOptions, clientOptions);
 	await languageClient.start();
+	clients.set(workspaceFolder.uri.toString(), languageClient);
 	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
-	return languageClient;
 }
 
-async function restartClient(
+async function restartClientIfAlreadyStarted(
 	workspaceFolder: vscode.WorkspaceFolder,
-	languageClient: LanguageClient,
 ) {
-	await languageClient.stop();
-	outputChannel?.info(`stopped server for ${workspaceFolder.uri}`);
+	const folderUri = workspaceFolder.uri.toString();
+
+	const oldClient = clients.get(folderUri);
+	if (!oldClient) return;
+
+	await oldClient.stop();
+	clients.delete(folderUri);
+	outputChannel?.info(`stopped server for ${folderUri}`);
+
 	return await startClient(workspaceFolder);
 }
 
@@ -96,8 +102,7 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
 
-	const newClient = await startClient(folder);
-	if (newClient) clients.set(folderUri, newClient);
+	await startClient(folder);
 }
 
 async function restartAllServers() {
@@ -105,16 +110,7 @@ async function restartAllServers() {
 
 	const promises = vscode.workspace.workspaceFolders.map((folder) => {
 		return (async () => {
-			const folderUri = folder.uri.toString();
-			const client = clients.get(folderUri);
-			if (!client) return;
-
-			const newClient = await restartClient(folder, client);
-			if (newClient) {
-				clients.set(folderUri, newClient);
-			} else {
-				clients.delete(folderUri);
-			}
+			await restartClientIfAlreadyStarted(folder); //TODO
 		})();
 	});
 	await Promise.all(promises);
@@ -129,19 +125,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		outputChannel,
 		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
 			async (event) => {
-				const folder = event.resource;
+				const folder = event.resource;//TODO
 				if (!folder) return;
-				const folderUri = folder.uri.toString();
-
-				const client = clients.get(folderUri);
-				if (!client) return;
-
-				const newClient = await restartClient(folder, client);
-				if (newClient) {
-					clients.set(folderUri, newClient);
-				} else {
-					clients.delete(folderUri);
-				}
+				await restartClientIfAlreadyStarted(folder);
 			},
 		),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
