@@ -102,48 +102,30 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 	if (!folder) return;
 	const folderUri = folder.uri.toString();
-	if (clients.has(folderUri)) return;
-
-	await startClient(folder);
-}
-
-async function restartAllServers() {
-	if (!vscode.workspace.workspaceFolders) return;
-
-	const promises = vscode.workspace.workspaceFolders.map((folder) => {
-		return (async () => {
-			await restartClientIfAlreadyStarted(folder); //TODO
-		})();
-	});
-	await Promise.all(promises);
+	if (!clients.has(folderUri)) await startClient(folder);
 }
 
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
-
 	const pythonExtension: PythonExtension = await PythonExtension.api();
 
 	context.subscriptions.push(
 		outputChannel,
 		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
 			async (event) => {
-				const folder = event.resource; //TODO
-				if (!folder) return;
-				await restartClientIfAlreadyStarted(folder);
+				if (event.resource) await restartClientIfAlreadyStarted(event.resource);
 			},
 		),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
 			outputChannel?.info(`restarting on ${NAME}.restart`);
-			await restartAllServers();
+			if (vscode.workspace.workspaceFolders)
+				await Promise.all(
+					vscode.workspace.workspaceFolders.map(restartClientIfAlreadyStarted),
+				);
 		}),
 		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
 		vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
-			const promises = event.removed.map((folder) => {
-				return (async () => {
-					await stopClient(folder); // TODO
-				})();
-			});
-			await Promise.all(promises);
+			await Promise.all(event.removed.map(stopClient));
 		}),
 	);
 
