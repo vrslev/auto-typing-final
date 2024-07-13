@@ -127,7 +127,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		outputChannel,
 		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
-			// TODO: All environments?
 			async (event) => {
 				const folder = event.resource;
 				if (!folder) return;
