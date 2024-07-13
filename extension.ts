@@ -174,6 +174,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 	);
 
+	updateSortedWorkspaceFolders();
 	await Promise.all(
 		vscode.workspace.textDocuments.map(createServerForDocument),
 	);
