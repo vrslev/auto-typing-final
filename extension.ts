@@ -117,7 +117,8 @@ async function createClient(
 }
 
 function createClientManager() {
-	const allClients: Map<string, [string, LanguageClient]> = new Map();
+	const allClients = new Map<string, [string, LanguageClient]>();
+	const allExecutables = new Map<string, string | null>();
 
 	async function _stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 		const folderUri = workspaceFolder.uri.toString();
@@ -135,14 +136,20 @@ function createClientManager() {
 	) {
 		const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
 		const outerMostFolderUri = outerMostFolder.uri.toString();
-
 		if (workspaceFolder.uri.toString() != outerMostFolderUri) {
 			await _stopClient(workspaceFolder);
 		}
 
-		const outerMostOldEntry = allClients.get(outerMostFolderUri);
-		const newExecutable = await findServerExecutable(outerMostFolder);
+		const cachedExecutable = allExecutables.get(outerMostFolderUri);
+		let newExecutable;
+		if (cachedExecutable === undefined) {
+			newExecutable = await findServerExecutable(outerMostFolder);
+			allExecutables.set(outerMostFolderUri, newExecutable ?? null);
+		} else {
+			newExecutable = cachedExecutable;
+		}
 
+		const outerMostOldEntry = allClients.get(outerMostFolderUri);
 		if (outerMostOldEntry) {
 			const [oldExecutable, _] = outerMostOldEntry;
 			if (oldExecutable == newExecutable) {
@@ -169,6 +176,14 @@ function createClientManager() {
 			await Promise.all(
 				outerMostFolders.map((folder) => requireClientForWorkspace(folder)),
 			);
+		},
+		async updateExecutableForWorkspace(
+			workspaceFolder: vscode.WorkspaceFolder,
+		) {
+			allExecutables.delete(
+				getOuterMostWorkspaceFolder(workspaceFolder).uri.toString(),
+			);
+			await requireClientForWorkspace(workspaceFolder);
 		},
 		async stopClientsForWorkspaces(
 			workspaceFolders: readonly vscode.WorkspaceFolder[],
@@ -209,7 +224,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		(await getPythonExtension())?.environments.onDidChangeActiveEnvironmentPath(
 			async ({ resource }) => {
 				if (!resource) return;
-				await clientManager.requireClientForWorkspace(resource);
+				await clientManager.updateExecutableForWorkspace(resource);
 			},
 		) || { dispose: () => undefined },
 		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
