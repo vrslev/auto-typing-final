@@ -75,10 +75,7 @@ async function restartServer(
 		options: { env: process.env },
 	};
 	const clientOptions: LanguageClientOptions = {
-		documentSelector: [
-			{ scheme: "file", language: "python" },
-			// { scheme: "untitled", language: "python" },
-		],
+		documentSelector: [{ scheme: "file", language: "python" }],
 		outputChannel: outputChannel,
 		traceOutputChannel: outputChannel,
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
