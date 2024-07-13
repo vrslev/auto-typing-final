@@ -127,6 +127,7 @@ function createClientManager() {
 			const [_, oldClient] = oldEntry;
 			await oldClient.stop();
 			allClients.delete(folderUri);
+			allExecutables.delete(folderUri);
 			outputChannel?.info(`stopped server for ${folderUri}`);
 		}
 	}
@@ -202,6 +203,7 @@ function createClientManager() {
 				Array.from(allClients.values()).map(([_, client]) => client.stop()),
 			);
 			allClients.clear();
+			allExecutables.clear();
 		},
 	};
 }
