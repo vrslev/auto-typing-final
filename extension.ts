@@ -14,7 +14,7 @@ const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 let outputChannel: vscode.LogOutputChannel | undefined;
 const clients: Map<string, LanguageClient> = new Map();
 
-async function findServerExecutable() {
+async function findServerExecutable(folder: vscode.WorkspaceFolder) {
 	const pythonExtension: PythonExtension = await PythonExtension.api();
 	if (!pythonExtension) {
 		outputChannel?.info(`python extension not installed`);
@@ -22,9 +22,9 @@ async function findServerExecutable() {
 	}
 
 	const environmentPath =
-		pythonExtension.environments.getActiveEnvironmentPath();
+		pythonExtension.environments.getActiveEnvironmentPath(folder);
 	if (!environmentPath) {
-		outputChannel?.info(`no active environment`);
+		outputChannel?.info(`no active environment for ${folder.uri}`);
 		return;
 	}
 
@@ -32,7 +32,7 @@ async function findServerExecutable() {
 		await pythonExtension.environments.resolveEnvironment(environmentPath)
 	)?.executable.uri?.fsPath;
 	if (!fsPath) {
-		outputChannel?.info(`failed to resolve environment at ${environmentPath}`);
+		outputChannel?.info(`failed to resolve environment for ${folder.uri}`);
 		return;
 	}
 
@@ -44,22 +44,25 @@ async function findServerExecutable() {
 	});
 	if (!fs.existsSync(lspServerPath)) {
 		outputChannel?.info(
-			`failed to find ${LSP_SERVER_EXECUTABLE_NAME} for ${fsPath}`,
+			`failed to find ${LSP_SERVER_EXECUTABLE_NAME} for ${folder.uri}`,
 		);
 		return;
 	}
 
-	outputChannel?.info(`using executable at ${lspServerPath}`);
+	outputChannel?.info(`using executable at ${lspServerPath} for ${folder.uri}`);
 	return lspServerPath;
 }
 
-async function restartServer(languageClient?: LanguageClient) {
+async function restartServer(
+	folder: vscode.WorkspaceFolder,
+	languageClient?: LanguageClient,
+) {
 	if (languageClient) {
 		await languageClient.stop();
-		outputChannel?.info("stopped server");
+		outputChannel?.info(`stopped server for ${folder.uri}`);
 	}
 
-	const executable = await findServerExecutable();
+	const executable = await findServerExecutable(folder);
 	if (!executable) return;
 
 	const serverOptions = {
@@ -78,7 +81,7 @@ async function restartServer(languageClient?: LanguageClient) {
 	};
 	const newClient = new LanguageClient(NAME, serverOptions, clientOptions);
 	await newClient.start();
-	outputChannel?.info("started server");
+	outputChannel?.info(`started server for ${folder.uri}`);
 	return newClient;
 }
 
@@ -90,7 +93,7 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
 
-	const newClient = await restartServer();
+	const newClient = await restartServer(folder);
 	if (newClient) clients.set(folderUri, newClient);
 }
 
@@ -103,7 +106,7 @@ async function restartAllServers() {
 			const client = clients.get(folderUri);
 			if (!client) return;
 
-			const newClient = await restartServer(client);
+			const newClient = await restartServer(folder, client);
 			if (newClient) {
 				clients.set(folderUri, newClient);
 			} else {
@@ -143,7 +146,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					const folderUri = folder.uri.toString();
 					const client = clients.get(folderUri);
 					if (client) {
-						outputChannel?.info(`stopping server in folder ${folder.uri}`);
+						outputChannel?.info(`stopping server for ${folder.uri}`);
 						await client.stop();
 						clients.delete(folderUri);
 					}
