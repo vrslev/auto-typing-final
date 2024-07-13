@@ -11,7 +11,6 @@ const NAME = "auto-typing-final";
 const PYTHON_EXTENSION_ID = "ms-python.python";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
-let languageClient: LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 const clients: Map<string, LanguageClient> = new Map();
 
@@ -133,7 +132,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				const folderUri = folder.uri.toString();
 				const client = clients.get(folderUri);
 				if (client) {
-					client.stop();
+					void client.stop();
 					clients.delete(folderUri);
 				}
 			}
