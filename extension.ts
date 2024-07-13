@@ -28,7 +28,7 @@ function getPythonExtension() {
 		| undefined;
 }
 
-async function findExecutable() {
+async function findServerExecutable() {
 	const extension = getPythonExtension();
 	if (!extension) {
 		outputChannel?.info(`${PYTHON_EXTENSION_ID} not installed`);
@@ -73,7 +73,7 @@ async function restartServer(languageClient?: LanguageClient) {
 		outputChannel?.info("stopped server");
 	}
 
-	const executable = await findExecutable();
+	const executable = await findServerExecutable();
 	if (!executable) return;
 
 	const serverOptions = {
@@ -130,7 +130,6 @@ async function restartAllServers() {
 
 // On start create LSs for all open text documents
 // On new open text document, create LS for its workspace
-// On changing workspace folders, remove unused LSs
 // On restart command, restart all LSs
 
 export async function activate(context: vscode.ExtensionContext) {
