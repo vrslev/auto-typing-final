@@ -82,7 +82,7 @@ class Service:
     import_config: ImportConfig
 
     @staticmethod
-    def try_from_settings(ls_name: str, settings: Any) -> "Service | None":
+    def try_from_settings(ls_name: str, settings: Any) -> "Service | None":  # noqa: ANN401
         try:
             validated_settings: Final = cattrs.structure(settings, FullClientSettings)
         except cattrs.BaseValidationError:
