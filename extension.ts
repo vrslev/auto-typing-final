@@ -26,6 +26,14 @@ function getSortedWorkspaceFolders() {
 		.sort((first, second) => first[0].length - second[0].length);
 }
 let SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
+function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
+	const folderUri = normalizeFolderUri(folder);
+	for (const [sortedFolderUri, sortedFolder] of SORTED_WORKSPACE_FOLDERS ??
+		[]) {
+		if (folderUri.startsWith(sortedFolderUri)) return sortedFolder;
+	}
+	return folder;
+}
 
 async function getPythonExtension() {
 	try {
@@ -147,15 +155,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		log: true,
 	});
 	const clientManager = createClientManager();
-
-	function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
-		const folderUri = normalizeFolderUri(folder);
-		for (const [sortedFolderUri, sortedFolder] of SORTED_WORKSPACE_FOLDERS ??
-			[]) {
-			if (folderUri.startsWith(sortedFolderUri)) return sortedFolder;
-		}
-		return folder;
-	}
 
 	async function createServerForDocument(document: vscode.TextDocument) {
 		if (document.languageId !== "python" || document.uri.scheme !== "file")
