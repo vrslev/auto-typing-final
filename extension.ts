@@ -12,7 +12,7 @@ const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let outputChannel: vscode.LogOutputChannel | undefined;
-const clients: Map<string, LanguageClient> = new Map();
+const CLIENTS: Map<string, LanguageClient> = new Map();
 
 async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
 	const pythonExtension: PythonExtension = await PythonExtension.api();
@@ -79,23 +79,23 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 		clientOptions,
 	);
 	await languageClient.start();
-	clients.set(workspaceFolder.uri.toString(), languageClient);
+	CLIENTS.set(workspaceFolder.uri.toString(), languageClient);
 	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
 }
 
 async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 	const folderUri = workspaceFolder.uri.toString();
-	const oldClient = clients.get(folderUri);
+	const oldClient = CLIENTS.get(folderUri);
 	if (!oldClient) return;
 	await oldClient.stop();
-	clients.delete(folderUri);
+	CLIENTS.delete(folderUri);
 	outputChannel?.info(`stopped server for ${folderUri}`);
 }
 
 async function restartClientIfAlreadyStarted(
 	workspaceFolder: vscode.WorkspaceFolder,
 ) {
-	if (!clients.has(workspaceFolder.uri.toString())) return;
+	if (!CLIENTS.has(workspaceFolder.uri.toString())) return;
 	await stopClient(workspaceFolder);
 	return await startClient(workspaceFolder);
 }
@@ -106,7 +106,7 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 	if (!folder) return;
 	const folderUri = folder.uri.toString();
-	if (!clients.has(folderUri)) await startClient(folder);
+	if (!CLIENTS.has(folderUri)) await startClient(folder);
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -118,20 +118,21 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		outputChannel,
 		pythonExtension.environments.onDidChangeActiveEnvironmentPath(
-			async (event) => {
-				if (event.resource) await restartClientIfAlreadyStarted(event.resource);
+			async ({ resource }) => {
+				if (!resource) return;
+				await restartClientIfAlreadyStarted(resource);
 			},
 		),
 		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
 			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
-			if (vscode.workspace.workspaceFolders)
-				await Promise.all(
-					vscode.workspace.workspaceFolders.map(restartClientIfAlreadyStarted),
-				);
+			if (!vscode.workspace.workspaceFolders) return;
+			await Promise.all(
+				vscode.workspace.workspaceFolders.map(restartClientIfAlreadyStarted),
+			);
 		}),
 		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
-		vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
-			await Promise.all(event.removed.map(stopClient));
+		vscode.workspace.onDidChangeWorkspaceFolders(async ({ removed }) => {
+			await Promise.all(removed.map(stopClient));
 		}),
 	);
 
@@ -141,9 +142,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-	const promises = [];
-	for (const client of clients.values()) {
-		promises.push(client.stop());
-	}
-	await Promise.all(promises);
+	await Promise.all(
+		Array.from(CLIENTS.values()).map((client) => client.stop()),
+	);
 }
