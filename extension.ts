@@ -91,6 +91,7 @@ async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 async function restartClientIfAlreadyStarted(
 	workspaceFolder: vscode.WorkspaceFolder,
 ) {
+	if (!clients.has(workspaceFolder.uri.toString())) return;
 	await stopClient(workspaceFolder);
 	return await startClient(workspaceFolder);
 }
