@@ -145,5 +145,9 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-	await languageClient?.stop();
+	const promises: Thenable<void>[] = [];
+	for (const client of clients.values()) {
+		promises.push(client.stop());
+	}
+	await Promise.all(promises);
 }
