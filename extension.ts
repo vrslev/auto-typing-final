@@ -11,6 +11,7 @@ import {
 const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 let outputChannel: vscode.LogOutputChannel | undefined;
+let SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
 
 function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
 	const uri = workspaceFolder.uri.toString();
@@ -25,7 +26,6 @@ function getSortedWorkspaceFolders() {
 		])
 		.sort((first, second) => first[0].length - second[0].length);
 }
-let SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
 function getOuterMostWorkspaceFolder(folder: vscode.WorkspaceFolder) {
 	const folderUri = normalizeFolderUri(folder);
 	for (const [sortedFolderUri, sortedFolder] of SORTED_WORKSPACE_FOLDERS ??
