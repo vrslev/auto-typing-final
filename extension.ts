@@ -13,6 +13,7 @@ const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let languageClient: LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
+const clients: Map<string, LanguageClient> = new Map();
 
 function getPythonExtension() {
 	return vscode.extensions.getExtension(PYTHON_EXTENSION_ID) as
@@ -84,7 +85,7 @@ async function restartServer() {
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [
 			{ scheme: "file", language: "python" },
-			{ scheme: "untitled", language: "python" },
+			// { scheme: "untitled", language: "python" },
 		],
 		outputChannel: outputChannel,
 		traceOutputChannel: outputChannel,
@@ -95,6 +96,19 @@ async function restartServer() {
 	outputChannel?.info("started server");
 }
 
+function didOpenTextDocument(document: vscode.TextDocument) {
+	if (document.languageId !== "python" || document.uri.scheme !== "file")
+		return;
+
+	const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+	if (!folder) return;
+
+	const folderUri = folder.uri.toString();
+	if (clients.has(folderUri)) return;
+	clients.set(folderUri, "hi");
+	outputChannel?.info("hi");
+	outputChannel?.info(Array.from(clients.keys()).toString());
+}
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
@@ -113,9 +127,21 @@ export async function activate(context: vscode.ExtensionContext) {
 			outputChannel?.info(`restarting on ${NAME}.restart`);
 			await restartServer();
 		}),
+		vscode.workspace.onDidOpenTextDocument(didOpenTextDocument),
+		vscode.workspace.onDidChangeWorkspaceFolders((event) => {
+			for (const folder of event.removed) {
+				const folderUri = folder.uri.toString();
+				const client = clients.get(folderUri);
+				if (client) {
+					client.stop();
+					clients.delete(folderUri);
+				}
+			}
+		}),
 	);
 
-	await restartServer();
+	vscode.workspace.textDocuments.forEach(didOpenTextDocument);
+	// await restartServer();
 }
 
 export async function deactivate() {
