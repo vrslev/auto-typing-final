@@ -96,7 +96,7 @@ async function restartServer(languageClient?: LanguageClient) {
 	return languageClient;
 }
 
-async function didOpenTextDocument(document: vscode.TextDocument) {
+async function createServerForDocument(document: vscode.TextDocument) {
 	if (document.languageId !== "python" || document.uri.scheme !== "file")
 		return;
 	const folder = vscode.workspace.getWorkspaceFolder(document.uri);
@@ -152,7 +152,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			outputChannel?.info(`restarting on ${NAME}.restart`);
 			await restartAllServers();
 		}),
-		vscode.workspace.onDidOpenTextDocument(didOpenTextDocument),
+		vscode.workspace.onDidOpenTextDocument(createServerForDocument),
 		vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
 			const promises = event.removed.map((folder) => {
 				return (async () => {
@@ -169,7 +169,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 	);
 
-	vscode.workspace.textDocuments.forEach(didOpenTextDocument);
+	await Promise.all(
+		vscode.workspace.textDocuments.map(createServerForDocument),
+	);
 }
 
 export async function deactivate() {
