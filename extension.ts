@@ -67,7 +67,7 @@ async function findExecutable() {
 	return lspServerPath;
 }
 
-async function restartServer() {
+async function restartServer(languageClient: LanguageClient) {
 	if (languageClient) {
 		await languageClient.stop();
 		outputChannel?.info("stopped server");
@@ -93,6 +93,7 @@ async function restartServer() {
 	languageClient = new LanguageClient(NAME, serverOptions, clientOptions);
 	await languageClient.start();
 	outputChannel?.info("started server");
+	return languageClient;
 }
 
 function didOpenTextDocument(document: vscode.TextDocument) {
@@ -108,6 +109,25 @@ function didOpenTextDocument(document: vscode.TextDocument) {
 	outputChannel?.info("hi");
 	outputChannel?.info(Array.from(clients.keys()).toString());
 }
+
+async function restartAllServers() {
+	if (!vscode.workspace.workspaceFolders) return;
+	const promises = vscode.workspace.workspaceFolders.map((folder) => {
+		return (async () => {
+			const folderUri = folder.uri.toString();
+			const client = clients.get(folderUri);
+			if (client) {
+				const newClient = await restartServer(client);
+				if (newClient) {
+					clients.set(folderUri, newClient);
+				} else {
+					clients.delete(folderUri);
+				}
+			}
+		})();
+	});
+	await Promise.all(promises);
+}
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
 
@@ -117,14 +137,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		outputChannel,
 		pythonExtension?.exports.environments.onDidChangeActiveEnvironmentPath(
+			// TODO: All environments?
 			async () => {
 				outputChannel?.info("restarting on python environment changed");
-				await restartServer();
+				await restartAllServers();
 			},
 		),
 		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
 			outputChannel?.info(`restarting on ${NAME}.restart`);
-			await restartServer();
+			await restartAllServers();
 		}),
 		vscode.workspace.onDidOpenTextDocument(didOpenTextDocument),
 		vscode.workspace.onDidChangeWorkspaceFolders((event) => {
@@ -132,6 +153,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				const folderUri = folder.uri.toString();
 				const client = clients.get(folderUri);
 				if (client) {
+					outputChannel?.info(`stopping server in folder ${folder.uri}`);
 					void client.stop();
 					clients.delete(folderUri);
 				}
@@ -144,7 +166,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-	const promises: Thenable<void>[] = [];
+	const promises = [];
 	for (const client of clients.values()) {
 		promises.push(client.stop());
 	}
