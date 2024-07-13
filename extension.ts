@@ -57,15 +57,7 @@ async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
 	return lspServerPath;
 }
 
-async function restartServer(
-	workspaceFolder: vscode.WorkspaceFolder,
-	languageClient?: LanguageClient,
-) {
-	if (languageClient) {
-		await languageClient.stop();
-		outputChannel?.info(`stopped server for ${workspaceFolder.uri}`);
-	}
-
+async function startServer(workspaceFolder: vscode.WorkspaceFolder) {
 	const executable = await findServerExecutable(workspaceFolder);
 	if (!executable) return;
 
@@ -87,6 +79,15 @@ async function restartServer(
 	return newClient;
 }
 
+async function restartServer(
+	workspaceFolder: vscode.WorkspaceFolder,
+	languageClient: LanguageClient,
+) {
+	await languageClient.stop();
+	outputChannel?.info(`stopped server for ${workspaceFolder.uri}`);
+	return await startServer(workspaceFolder);
+}
+
 async function createServerForDocument(document: vscode.TextDocument) {
 	if (document.languageId !== "python" || document.uri.scheme !== "file")
 		return;
@@ -95,7 +96,7 @@ async function createServerForDocument(document: vscode.TextDocument) {
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
 
-	const newClient = await restartServer(folder);
+	const newClient = await startServer(folder);
 	if (newClient) clients.set(folderUri, newClient);
 }
 
@@ -118,8 +119,6 @@ async function restartAllServers() {
 	});
 	await Promise.all(promises);
 }
-
-
 
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
