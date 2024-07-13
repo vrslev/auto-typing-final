@@ -8,7 +8,7 @@ import {
 	RevealOutputChannelOn,
 } from "vscode-languageclient/node";
 
-const NAME = "auto-typing-final";
+const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -73,7 +73,11 @@ async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
 		workspaceFolder: workspaceFolder,
 	};
-	const languageClient = new LanguageClient(NAME, serverOptions, clientOptions);
+	const languageClient = new LanguageClient(
+		EXTENSION_NAME,
+		serverOptions,
+		clientOptions,
+	);
 	await languageClient.start();
 	clients.set(workspaceFolder.uri.toString(), languageClient);
 	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
@@ -106,7 +110,9 @@ async function createServerForDocument(document: vscode.TextDocument) {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-	outputChannel = vscode.window.createOutputChannel(NAME, { log: true });
+	outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME, {
+		log: true,
+	});
 	const pythonExtension: PythonExtension = await PythonExtension.api();
 
 	context.subscriptions.push(
@@ -116,8 +122,8 @@ export async function activate(context: vscode.ExtensionContext) {
 				if (event.resource) await restartClientIfAlreadyStarted(event.resource);
 			},
 		),
-		vscode.commands.registerCommand(`${NAME}.restart`, async () => {
-			outputChannel?.info(`restarting on ${NAME}.restart`);
+		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
+			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
 			if (vscode.workspace.workspaceFolders)
 				await Promise.all(
 					vscode.workspace.workspaceFolders.map(restartClientIfAlreadyStarted),
