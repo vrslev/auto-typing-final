@@ -1,6 +1,6 @@
+import { PythonExtension } from "@vscode/python-extension";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { PythonExtension } from "@vscode/python-extension";
 import * as vscode from "vscode";
 import {
 	LanguageClient,
