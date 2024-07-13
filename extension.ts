@@ -133,27 +133,20 @@ function createClientManager() {
 		async requireClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
 			const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
 			const outerMostFolderUri = outerMostFolder.uri.toString();
-			const innerMostFolderUri = workspaceFolder.uri.toString();
-			const innerMostOldEntry = allClients.get(innerMostFolderUri);
 
-			if (innerMostFolderUri != outerMostFolderUri && innerMostOldEntry) {
-				const [_, innerMostOldClient] = innerMostOldEntry;
-				await innerMostOldClient.stop();
-				allClients.delete(innerMostFolderUri);
-				outputChannel?.info(`stopped server for ${innerMostFolderUri}`);
+			if (workspaceFolder.uri.toString() != outerMostFolderUri) {
+				await stopClient(workspaceFolder);
 			}
 
 			const outerMostOldEntry = allClients.get(outerMostFolderUri);
 			const newExecutable = await findServerExecutable(outerMostFolder);
 
 			if (outerMostOldEntry) {
-				const [oldExecutable, oldClient] = outerMostOldEntry;
+				const [oldExecutable, _] = outerMostOldEntry;
 				if (oldExecutable == newExecutable) {
 					return;
 				}
-				await oldClient.stop();
-				allClients.delete(outerMostFolderUri);
-				outputChannel?.info(`stopped server for ${outerMostFolderUri}`);
+				await stopClient(outerMostFolder);
 			}
 
 			if (newExecutable) {
