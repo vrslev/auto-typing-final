@@ -99,16 +99,13 @@ async function restartServer(languageClient?: LanguageClient) {
 async function didOpenTextDocument(document: vscode.TextDocument) {
 	if (document.languageId !== "python" || document.uri.scheme !== "file")
 		return;
-
 	const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 	if (!folder) return;
-
 	const folderUri = folder.uri.toString();
 	if (clients.has(folderUri)) return;
 
 	const newClient = await restartServer();
-	if (!newClient) return;
-	clients.set(folderUri, newClient);
+	if (newClient) clients.set(folderUri, newClient);
 }
 
 async function restartAllServers() {
