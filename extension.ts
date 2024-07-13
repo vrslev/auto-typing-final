@@ -161,6 +161,11 @@ function createClientManager() {
 				allClients.set(outerMostFolderUri, [newExecutable, client]);
 			}
 		},
+		async stopAllClients() {
+			await Promise.all(
+				Array.from(allClients.values()).map(([_, client]) => client.stop()),
+			);
+		},
 		stopClient,
 		async restartClientIfAlreadyStarted(
 			workspaceFolder: vscode.WorkspaceFolder,
