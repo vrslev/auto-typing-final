@@ -121,8 +121,9 @@ function createClientManager() {
 
 	async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 		const folderUri = workspaceFolder.uri.toString();
-		const oldClient = allClients.get(folderUri);
-		if (oldClient) {
+		const oldEntry = allClients.get(folderUri);
+		if (oldEntry) {
+			const [_, oldClient] = oldEntry;
 			await oldClient.stop();
 			allClients.delete(folderUri);
 			outputChannel?.info(`stopped server for ${folderUri}`);
@@ -193,12 +194,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 		if (!folder) return;
-		const outerMostFolder = getOuterMostWorkspaceFolder(folder);
-
-		if (folder.uri.toString() !== outerMostFolder.uri.toString())
-			await clientManager.stopClient(folder);
-
-		await clientManager.startClientIfNotExists(outerMostFolder);
+		await clientManager.requireClientForWorkspace(folder);
 	}
 
 	context.subscriptions.push(
@@ -206,9 +202,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		(await getPythonExtension())?.environments.onDidChangeActiveEnvironmentPath(
 			async ({ resource }) => {
 				if (!resource) return;
-				await clientManager.restartClientIfAlreadyStarted(
-					getOuterMostWorkspaceFolder(resource),
-				);
+				await clientManager.requireClientForWorkspace(resource);
 			},
 		) || { dispose: () => undefined },
 		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
