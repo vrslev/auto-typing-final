@@ -20,7 +20,7 @@
 	"contributes": {
 		"commands": [
 			{
-				"title": "Restart Server",
+				"title": "Restart Servers",
 				"category": "auto-typing-final",
 				"command": "auto-typing-final.restart"
 			}
