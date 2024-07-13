@@ -100,7 +100,13 @@ function createClientManager() {
 			options: { env: process.env },
 		};
 		const clientOptions: LanguageClientOptions = {
-			documentSelector: [{ scheme: "file", language: "python" }],
+			documentSelector: [
+				{
+					scheme: "file",
+					language: "python",
+					pattern: `${workspaceFolder.uri.fsPath}/**/*`,
+				},
+			],
 			outputChannel: outputChannel,
 			traceOutputChannel: outputChannel,
 			revealOutputChannelOn: RevealOutputChannelOn.Never,
@@ -209,10 +215,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 		if (!folder) return;
-		await clientManager.stopClient(folder);
-
 		const outerMostFolder = getOuterMostWorkspaceFolder(folder);
-		clientManager.startClientIfNotExists(outerMostFolder);
+
+		if (folder.uri.toString() !== outerMostFolder.uri.toString())
+			await clientManager.stopClient(folder);
+
+		await clientManager.startClientIfNotExists(outerMostFolder);
 	}
 
 	context.subscriptions.push(
