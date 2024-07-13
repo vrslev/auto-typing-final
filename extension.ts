@@ -1,15 +1,12 @@
-import * as vscode from "vscode"
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { PythonExtension } from "@vscode/python-extension";
+import * as vscode from "vscode";
 import {
 	LanguageClient,
 	type LanguageClientOptions,
 	RevealOutputChannelOn,
-} from "vscode-languageclient/node"
-import * as assfsnode from 
-import * as paththth from frnode
-import { PythonExtensiont } from xtensio
-:fs
-:pathpathpath";
-@vscode/python-extensiono@vscode/python-extension"@vscode/python-extension";
+} from "vscode-languageclient/node";
 
 const NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
@@ -17,7 +14,7 @@ const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 let outputChannel: vscode.LogOutputChannel | undefined;
 const clients: Map<string, LanguageClient> = new Map();
 
-async function findServerExecutable(folder: vscode.WorkspaceFolder) {
+async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
 	const pythonExtension: PythonExtension = await PythonExtension.api();
 	if (!pythonExtension) {
 		outputChannel?.info(`python extension not installed`);
@@ -25,9 +22,9 @@ async function findServerExecutable(folder: vscode.WorkspaceFolder) {
 	}
 
 	const environmentPath =
-		pythonExtension.environments.getActiveEnvironmentPath(folder);
+		pythonExtension.environments.getActiveEnvironmentPath(workspaceFolder);
 	if (!environmentPath) {
-		outputChannel?.info(`no active environment for ${folder.uri}`);
+		outputChannel?.info(`no active environment for ${workspaceFolder.uri}`);
 		return;
 	}
 
@@ -35,7 +32,9 @@ async function findServerExecutable(folder: vscode.WorkspaceFolder) {
 		await pythonExtension.environments.resolveEnvironment(environmentPath)
 	)?.executable.uri?.fsPath;
 	if (!fsPath) {
-		outputChannel?.info(`failed to resolve environment for ${folder.uri}`);
+		outputChannel?.info(
+			`failed to resolve environment for ${workspaceFolder.uri}`,
+		);
 		return;
 	}
 
@@ -47,25 +46,27 @@ async function findServerExecutable(folder: vscode.WorkspaceFolder) {
 	});
 	if (!fs.existsSync(lspServerPath)) {
 		outputChannel?.info(
-			`failed to find ${LSP_SERVER_EXECUTABLE_NAME} for ${folder.uri}`,
+			`failed to find ${LSP_SERVER_EXECUTABLE_NAME} for ${workspaceFolder.uri}`,
 		);
 		return;
 	}
 
-	outputChannel?.info(`using executable at ${lspServerPath} for ${folder.uri}`);
+	outputChannel?.info(
+		`using executable at ${lspServerPath} for ${workspaceFolder.uri}`,
+	);
 	return lspServerPath;
 }
 
 async function restartServer(
-	folder: vscode.WorkspaceFolder,
+	workspaceFolder: vscode.WorkspaceFolder,
 	languageClient?: LanguageClient,
 ) {
 	if (languageClient) {
 		await languageClient.stop();
-		outputChannel?.info(`stopped server for ${folder.uri}`);
+		outputChannel?.info(`stopped server for ${workspaceFolder.uri}`);
 	}
 
-	const executable = await findServerExecutable(folder);
+	const executable = await findServerExecutable(workspaceFolder);
 	if (!executable) return;
 
 	const serverOptions = {
@@ -81,11 +82,11 @@ async function restartServer(
 		outputChannel: outputChannel,
 		traceOutputChannel: outputChannel,
 		revealOutputChannelOn: RevealOutputChannelOn.Never,
-		workspaceFolder: folder,
+		workspaceFolder: workspaceFolder,
 	};
 	const newClient = new LanguageClient(NAME, serverOptions, clientOptions);
 	await newClient.start();
-	outputChannel?.info(`started server for ${folder.uri}`);
+	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
 	return newClient;
 }
 
