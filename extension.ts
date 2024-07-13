@@ -12,7 +12,6 @@ const EXTENSION_NAME = "auto-typing-final";
 const LSP_SERVER_EXECUTABLE_NAME = "auto-typing-final-lsp-server";
 
 let outputChannel: vscode.LogOutputChannel | undefined;
-const CLIENTS: Map<string, LanguageClient> = new Map();
 let SORTED_WORKSPACE_FOLDERS: [string, vscode.WorkspaceFolder][] | undefined;
 
 function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
@@ -147,60 +146,11 @@ function createClientManager() {
 		},
 		async stopAllClients() {
 			await Promise.all(
-				Array.from(CLIENTS.values()).map((client) => client.stop()),
+				Array.from(allClients.values()).map((client) => client.stop()),
 			);
 		},
 	};
 }
-
-// async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
-// 	const executable = await findServerExecutable(workspaceFolder);
-// 	if (!executable) return;
-
-// 	const serverOptions = {
-// 		command: executable,
-// 		args: [],
-// 		options: { env: process.env },
-// 	};
-// 	const clientOptions: LanguageClientOptions = {
-// 		documentSelector: [{ scheme: "file", language: "python" }],
-// 		outputChannel: outputChannel,
-// 		traceOutputChannel: outputChannel,
-// 		revealOutputChannelOn: RevealOutputChannelOn.Never,
-// 		workspaceFolder: workspaceFolder,
-// 	};
-// 	const languageClient = new LanguageClient(
-// 		EXTENSION_NAME,
-// 		serverOptions,
-// 		clientOptions,
-// 	);
-// 	await languageClient.start();
-// 	CLIENTS.set(workspaceFolder.uri.toString(), languageClient);
-// 	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
-// }
-
-// async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
-// 	const folderUri = workspaceFolder.uri.toString();
-// 	const oldClient = CLIENTS.get(folderUri);
-// 	if (oldClient) {
-// 		await oldClient.stop();
-// 		CLIENTS.delete(folderUri);
-// 		outputChannel?.info(`stopped server for ${folderUri}`);
-// 	}
-// }
-
-// function hasClientForFolder(workspaceFolder: vscode.WorkspaceFolder) {
-// 	return CLIENTS.has(workspaceFolder.uri.toString());
-// }
-
-// async function restartClientIfAlreadyStarted(
-// 	workspaceFolder: vscode.WorkspaceFolder,
-// ) {
-// 	if (hasClientForFolder(workspaceFolder)) {
-// 		await stopClient(workspaceFolder);
-// 		return await startClient(workspaceFolder);
-// 	}
-// }
 
 export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME, {
@@ -234,8 +184,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 		) || { dispose: () => undefined },
 		vscode.commands.registerCommand(`${EXTENSION_NAME}.restart`, async () => {
-			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
 			if (!vscode.workspace.workspaceFolders) return;
+			outputChannel?.info(`restarting on ${EXTENSION_NAME}.restart`);
 			await Promise.all(
 				vscode.workspace.workspaceFolders
 					.map(getOuterMostWorkspaceFolder)
@@ -253,14 +203,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	updateSortedWorkspaceFolders();
-	await Promise.all(
-		vscode.workspace.textDocuments.map(createServerForDocument),
-	);
+	for (const document of vscode.workspace.textDocuments) {
+		await createServerForDocument(document);
+	}
 }
 
 export async function deactivate(context: vscode.ExtensionContext) {
-	// context.
-	// await Promise.all(
-	// 	Array.from(CLIENTS.values()).map((client) => client.stop()),
-	// );
+	// await clientManager.stopAllClients();
 }
