@@ -84,40 +84,40 @@ async function findServerExecutable(workspaceFolder: vscode.WorkspaceFolder) {
 	return lspServerPath;
 }
 
+async function createClient(
+	workspaceFolder: vscode.WorkspaceFolder,
+	executable: string,
+) {
+	const serverOptions = {
+		command: executable,
+		args: [],
+		options: { env: process.env },
+	};
+	const clientOptions: LanguageClientOptions = {
+		documentSelector: [
+			{
+				scheme: "file",
+				language: "python",
+				pattern: `${workspaceFolder.uri.fsPath}/**/*`,
+			},
+		],
+		outputChannel: outputChannel,
+		traceOutputChannel: outputChannel,
+		revealOutputChannelOn: RevealOutputChannelOn.Never,
+		workspaceFolder: workspaceFolder,
+	};
+	const languageClient = new LanguageClient(
+		EXTENSION_NAME,
+		serverOptions,
+		clientOptions,
+	);
+	await languageClient.start();
+	outputChannel?.info(`started server for ${workspaceFolder.uri}`);
+	return languageClient;
+}
+
 function createClientManager() {
 	const allClients: Map<string, [string, LanguageClient]> = new Map();
-
-	async function startClient(workspaceFolder: vscode.WorkspaceFolder) {
-		const executable = await findServerExecutable(workspaceFolder);
-		if (!executable) return;
-
-		const serverOptions = {
-			command: executable,
-			args: [],
-			options: { env: process.env },
-		};
-		const clientOptions: LanguageClientOptions = {
-			documentSelector: [
-				{
-					scheme: "file",
-					language: "python",
-					pattern: `${workspaceFolder.uri.fsPath}/**/*`,
-				},
-			],
-			outputChannel: outputChannel,
-			traceOutputChannel: outputChannel,
-			revealOutputChannelOn: RevealOutputChannelOn.Never,
-			workspaceFolder: workspaceFolder,
-		};
-		const languageClient = new LanguageClient(
-			EXTENSION_NAME,
-			serverOptions,
-			clientOptions,
-		);
-		await languageClient.start();
-		allClients.set(workspaceFolder.uri.toString(), languageClient);
-		outputChannel?.info(`started server for ${workspaceFolder.uri}`);
-	}
 
 	async function stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 		const folderUri = workspaceFolder.uri.toString();
@@ -129,18 +129,49 @@ function createClientManager() {
 		}
 	}
 	return {
+		async requireClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
+			const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
+			const outerMostFolderUri = outerMostFolder.uri.toString();
+			const innerMostFolderUri = workspaceFolder.uri.toString();
+			const innerMostOldEntry = allClients.get(innerMostFolderUri);
+
+			if (innerMostFolderUri != outerMostFolderUri && innerMostOldEntry) {
+				const [_, innerMostOldClient] = innerMostOldEntry;
+				await innerMostOldClient.stop();
+				allClients.delete(innerMostFolderUri);
+				outputChannel?.info(`stopped server for ${innerMostFolderUri}`);
+			}
+
+			const outerMostOldEntry = allClients.get(outerMostFolderUri);
+			const newExecutable = await findServerExecutable(outerMostFolder);
+
+			if (outerMostOldEntry) {
+				const [oldExecutable, oldClient] = outerMostOldEntry;
+				if (oldExecutable == newExecutable) {
+					return;
+				}
+				await oldClient.stop();
+				allClients.delete(outerMostFolderUri);
+				outputChannel?.info(`stopped server for ${outerMostFolderUri}`);
+			}
+
+			if (newExecutable) {
+				const client = await createClient(outerMostFolder, newExecutable);
+				allClients.set(outerMostFolderUri, [newExecutable, client]);
+			}
+		},
 		stopClient,
 		async restartClientIfAlreadyStarted(
 			workspaceFolder: vscode.WorkspaceFolder,
 		) {
 			if (allClients.has(workspaceFolder.uri.toString())) {
 				await stopClient(workspaceFolder);
-				return await startClient(workspaceFolder);
+				return await createClient(workspaceFolder);
 			}
 		},
 		async startClientIfNotExists(workspaceFolder: vscode.WorkspaceFolder) {
 			if (!allClients.has(workspaceFolder.uri.toString()))
-				await startClient(workspaceFolder);
+				await createClient(workspaceFolder);
 		},
 		async stopAllClients() {
 			await Promise.all(
