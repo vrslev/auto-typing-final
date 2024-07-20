@@ -36,6 +36,8 @@ from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportC
         # Remove annotation
         ("a = 1\na: {}[int] = 2", "a = 1\na: int = 2"),
         ("a = 1\na: {} = 2", "a = 1\na = 2"),
+        ("a = 1\na: {}=2", "a = 1\na = 2"),
+        ("a = 1\na =2", "a = 1\na =2"),
         ("a: int = 1\na: {}[int] = 2", "a: int = 1\na: int = 2"),
         ("a: int = 1\na: {} = 2", "a: int = 1\na = 2"),
         ("a: {} = 1\na: {} = 2\na = 3\na: int = 4", "a = 1\na = 2\na = 3\na: int = 4"),
