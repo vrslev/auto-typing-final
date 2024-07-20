@@ -3,7 +3,7 @@ import sys
 from collections.abc import Iterable
 from difflib import unified_diff
 from pathlib import Path
-from typing import Final, get_args
+from typing import Final, cast, get_args
 
 from ast_grep_py import SgRoot
 
@@ -49,17 +49,16 @@ def main() -> int:
 
     args: Final = parser.parse_args()
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS[args.import_style]
-
-    has_changes = False
+    open_mode: Final = "r" if args.check else "r+"
+    changed_files_count = 0
 
     for path in find_all_source_files(args.files):
-        with path.open("r+") as file:
+        with path.open(open_mode) as file:
             source = file.read()
             transformed_content = transform_file_content(source=source, import_config=import_config)
             if source == transformed_content:
                 continue
-
-            has_changes = True
+            changed_files_count += 1
 
             if args.check:
                 sys.stdout.writelines(
@@ -70,9 +69,23 @@ def main() -> int:
                         tofile=str(path),
                     )
                 )
+                sys.stdout.write("\n")
             else:
                 file.seek(0)
                 file.write(transformed_content)
                 file.truncate()
 
-    return has_changes if args.check else 0
+    match changed_files_count, cast(bool, args.check):
+        case 0, _:
+            result_message = "No errors found!"
+        case 1, True:
+            result_message = "Found errors in 1 file."
+        case 1, False:
+            result_message = "Fixed errors in 1 file."
+        case _, True:
+            result_message = f"Found errors in {changed_files_count} files."
+        case _, False:
+            result_message = f"Fixed errors in {changed_files_count} files."
+
+    sys.stdout.write(f"{result_message}\n")
+    return changed_files_count > 0 if args.check else 0
