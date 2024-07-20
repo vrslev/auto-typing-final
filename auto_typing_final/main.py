@@ -54,7 +54,7 @@ def main() -> int:
         has_changes = False
 
         for path in find_all_source_files(args.files):
-            with path.open("r+") as file:
+            with path.open() as file:
                 source = file.read()
                 transformed_content = transform_file_content(source=source, import_config=import_config)
                 if source == transformed_content:
