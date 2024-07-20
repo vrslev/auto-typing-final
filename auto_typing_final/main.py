@@ -43,7 +43,7 @@ def find_all_source_files(paths: list[Path]) -> Iterable[Path]:
 
 def main() -> int:
     parser: Final = argparse.ArgumentParser()
-    parser.add_argument("files", type=Path, nargs="*")
+    parser.add_argument("files", type=Path, nargs="*", default=[Path()])
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--import-style", type=str, choices=get_args(ImportStyle), default="typing-final")
 
