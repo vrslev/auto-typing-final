@@ -167,7 +167,7 @@ def _make_changed_text_from_operation(  # noqa: C901
             for assignment in assignments:
                 match assignment:
                     case EditableAssignmentWithoutAnnotation(node, left, right):
-                        yield node, f"{left} = {right}"
+                        yield node, node.text()
                     case EditableAssignmentWithAnnotation(node, left, annotation, right):
                         match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                             case _, "":
