@@ -50,18 +50,16 @@ def main() -> int:
     args: Final = parser.parse_args()
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS[args.import_style]
 
-    has_changes = False
+    if args.check:
+        has_changes = False
 
-    for path in find_all_source_files(args.files):
-        with path.open("r+") as file:
-            source = file.read()
-            transformed_content = transform_file_content(source=source, import_config=import_config)
-            if source == transformed_content:
-                continue
-
-            has_changes = True
-
-            if args.check:
+        for path in find_all_source_files(args.files):
+            with path.open("r+") as file:
+                source = file.read()
+                transformed_content = transform_file_content(source=source, import_config=import_config)
+                if source == transformed_content:
+                    continue
+                has_changes = True
                 sys.stdout.writelines(
                     unified_diff(
                         source.splitlines(keepends=True),
@@ -70,9 +68,15 @@ def main() -> int:
                         tofile=str(path),
                     )
                 )
-            else:
-                file.seek(0)
-                file.write(transformed_content)
-                file.truncate()
+        return has_changes
 
-    return has_changes if args.check else 0
+    for path in find_all_source_files(args.files):
+        with path.open("r+") as file:
+            source = file.read()
+            transformed_content = transform_file_content(source=source, import_config=import_config)
+            if source == transformed_content:
+                continue
+            file.seek(0)
+            file.write(transformed_content)
+            file.truncate()
+    return 0
