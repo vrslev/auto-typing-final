@@ -1,18 +1,22 @@
 default: install lint check-types test
+extension: install-ts check-types-ts lint-ts
+
+run *args:
+    uv run -q --frozen auto-typing-final {{ args }}
 
 install:
     uv lock
     uv sync
 
 lint:
-    uv -q run ruff check .
-    uv -q run ruff format .
+    uv run -q --frozen ruff check .
+    uv run -q --frozen ruff format .
 
 check-types:
-    uv -q run mypy .
+    uv run -q --frozen mypy .
 
 test *args:
-    @.venv/bin/pytest {{ args }}
+    uv run -q --frozen pytest {{ args }}
 
 publish-package:
     rm -rf dist/*
@@ -20,10 +24,6 @@ publish-package:
     uv tool run twine check dist/*
     uv tool run twine upload dist/* --username __token__ --password $PYPI_TOKEN
 
-run *args:
-    @.venv/bin/auto-typing-final {{ args }}
-
-extension: install-ts check-types-ts lint-ts
 
 install-ts:
     npm ci
