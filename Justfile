@@ -9,8 +9,9 @@ install:
     uv sync
 
 lint:
-    uv run -q --frozen ruff check .
-    uv run -q --frozen ruff format .
+    uv run -q --frozen ruff check
+    uv run -q --frozen auto-typing-final --import-style final
+    uv run -q --frozen ruff format
 
 check-types:
     uv run -q --frozen mypy .
