@@ -21,9 +21,9 @@ test *args:
 
 publish-package:
     rm -rf dist/*
-    uv tool run --from build python -m build --installer uv
-    uv tool run twine check dist/*
-    uv tool run twine upload dist/* --username __token__ --password $PYPI_TOKEN
+    uv build
+    uvx twine check dist/*
+    uvx twine upload dist/* --username __token__ --password $PYPI_TOKEN
 
 
 install-ts:
