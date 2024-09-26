@@ -20,11 +20,9 @@ test *args:
     uv run pytest {{ args }}
 
 publish-package:
-    rm -rf dist/*
+    rm -rf dist
     uv build
-    uvx twine check dist/*
-    uvx twine upload dist/* --username __token__ --password $PYPI_TOKEN
-
+    uv publish --token $PYPI_TOKEN
 
 install-ts:
     npm ci
