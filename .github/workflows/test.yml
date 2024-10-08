@@ -16,22 +16,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
-      - uses: extractions/setup-just@v2
       - run: just check-types
 
   lint-py:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
-      - uses: extractions/setup-just@v2
       - run: just lint
 
   test-py:
@@ -45,18 +45,19 @@ jobs:
           - "3.12"
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
       - run: uv python install ${{ matrix.python-version }}
-      - uses: extractions/setup-just@v2
       - run: just test
 
   check-types-ts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: actions/setup-node@v4
       - run: just install-ts check-types-ts
 
@@ -64,5 +65,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: actions/setup-node@v4
       - run: just install-ts lint-ts
