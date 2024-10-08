@@ -32,3 +32,8 @@ check-types-ts:
 
 lint-ts:
     npm run lint
+
+publish-vscode-extension:
+    npm version $NEW_EXTENSION_VERSION --no-git-tag-version
+    npm ci
+    npx @vscode/vsce publish --pat $VSCODE_MARKETPLACE_TOKEN

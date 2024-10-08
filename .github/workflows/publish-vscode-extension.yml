@@ -11,9 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm version ${{ github.event.inputs.version }} --no-git-tag-version
-      - run: npm ci
-      - run: npx @vscode/vsce publish --pat ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+      - run: just publish-vscode-extension
+        env:
+          NEW_EXTENSION_VERSION: ${{ github.event.inputs.version }}
+          VSCODE_MARKETPLACE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}

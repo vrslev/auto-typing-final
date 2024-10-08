@@ -11,38 +11,27 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-env:
-  DEFAULT_PYTHON_VERSION: "3.12"
-
 jobs:
   check-types-py:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: check-types-${{ hashFiles('pyproject.toml') }}
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: extractions/setup-just@v2
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
       - run: just check-types
 
   lint-py:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: lint-${{ hashFiles('pyproject.toml') }}
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: extractions/setup-just@v2
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
       - run: just lint
 
   test-py:
@@ -56,29 +45,26 @@ jobs:
           - "3.12"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ github.job }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - uses: extractions/setup-just@v2
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv python install ${{ matrix.python-version }}
       - run: just test
 
   check-types-ts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: actions/setup-node@v4
-      - run: npm ci
-      - run: npm run compile
+      - run: just install-ts check-types-ts
 
   lint-ts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
       - uses: actions/setup-node@v4
-      - run: npm ci
-      - run: npm run lint
+      - run: just install-ts lint-ts
