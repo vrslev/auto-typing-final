@@ -49,7 +49,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
-      - run: uv python install {{ matrix.python-version }}
+      - run: uv python install ${{ matrix.python-version }}
       - uses: extractions/setup-just@v2
       - run: just test
 
