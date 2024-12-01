@@ -55,7 +55,7 @@
 		"@types/node": "^22.8.6",
 		"@types/vscode": "^1.95.0",
 		"@vscode/python-extension": "^1.0.5",
-		"prettier": "^3.3.3",
+		"prettier": "^3.4.1",
 		"ts-loader": "^9.5.1",
 		"typescript": "^5.6.3",
 		"webpack": "^5.96.0",
