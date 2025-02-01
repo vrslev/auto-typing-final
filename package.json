@@ -52,7 +52,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@types/node": "^22.10.3",
+		"@types/node": "^22.13.0",
 		"@types/vscode": "^1.96.0",
 		"@vscode/python-extension": "^1.0.5",
 		"prettier": "^3.4.2",
