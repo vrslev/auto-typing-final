@@ -41,7 +41,7 @@
 		}
 	},
 	"scripts": {
-		"lint": "biome format --write .",
+		"lint": "biome check --write --unsafe",
 		"compile": "webpack --mode development",
 		"watch": "webpack --mode development --watch",
 		"vscode:prepublish": "npm run package",

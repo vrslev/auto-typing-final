@@ -6,7 +6,7 @@ const extensionConfig = {
 	mode: "none",
 
 	output: {
-		path: require("path").resolve(__dirname, "dist"),
+		path: require("node:path").resolve(__dirname, "dist"),
 		filename: "extension.js",
 		libraryTarget: "commonjs2",
 		devtoolModuleFilenameTemplate: "../[resource-path]",

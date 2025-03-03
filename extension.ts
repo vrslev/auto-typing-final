@@ -1,6 +1,6 @@
-import { PythonExtension } from "@vscode/python-extension";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { PythonExtension } from "@vscode/python-extension";
 import * as vscode from "vscode";
 import {
 	LanguageClient,
@@ -15,7 +15,7 @@ let SORTED_WORKSPACE_FOLDERS = getSortedWorkspaceFolders();
 
 function normalizeFolderUri(workspaceFolder: vscode.WorkspaceFolder) {
 	const uri = workspaceFolder.uri.toString();
-	return uri.charAt(uri.length - 1) === "/" ? uri : uri + "/";
+	return uri.charAt(uri.length - 1) === "/" ? uri : `${uri}/`;
 }
 
 function getSortedWorkspaceFolders() {
@@ -39,7 +39,7 @@ async function getPythonExtension() {
 	try {
 		return await PythonExtension.api();
 	} catch {
-		outputChannel?.info(`python extension not installed`);
+		outputChannel?.info("python extension not installed");
 		return;
 	}
 }
@@ -137,12 +137,12 @@ function createClientManager() {
 	) {
 		const outerMostFolder = getOuterMostWorkspaceFolder(workspaceFolder);
 		const outerMostFolderUri = outerMostFolder.uri.toString();
-		if (workspaceFolder.uri.toString() != outerMostFolderUri) {
+		if (workspaceFolder.uri.toString() !== outerMostFolderUri) {
 			await _stopClient(workspaceFolder);
 		}
 
 		const cachedExecutable = allExecutables.get(outerMostFolderUri);
-		let newExecutable;
+		let newExecutable: string | null | undefined;
 		if (cachedExecutable === undefined) {
 			newExecutable = await findServerExecutable(outerMostFolder);
 			allExecutables.set(outerMostFolderUri, newExecutable ?? null);
@@ -153,7 +153,7 @@ function createClientManager() {
 		const outerMostOldEntry = allClients.get(outerMostFolderUri);
 		if (outerMostOldEntry) {
 			const [oldExecutable, _] = outerMostOldEntry;
-			if (oldExecutable == newExecutable) {
+			if (oldExecutable === newExecutable) {
 				return;
 			}
 			await _stopClient(outerMostFolder);
