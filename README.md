@@ -17,7 +17,7 @@ Basically, this, but handles different operations (like usage of `nonlocal`, aug
 - Keeps mypy happy.
 - Ignores global variables to avoid confusion with the type aliases like `Fruit = Apple | Banana`.
 - Ignores class variables: it is common to use `typing.ClassVar` instead of `typing.Final`.
-- Adds global import if it's not imported yet.
+- Adds global import if it's not imported yet (`import typing`/`from typing import Final`).
 - Inspects one file at a time.
 
 ## How To Use
