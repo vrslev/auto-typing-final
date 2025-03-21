@@ -57,20 +57,18 @@ auto-typing-final . --import-style typing-final
 
 <img width="768" alt="image" src="https://github.com/vrslev/auto-typing-final/assets/75225148/f1541056-06f5-4caa-8c94-0a5eaf98ba15">
 
-The extension uses LSP server bundled with the CLI. To get started, add `auto-typing-final` to your project:
+The extension uses LSP server bundled with the CLI (executable name is `auto-typing-final-lsp-server`). To get started, add `auto-typing-final` to your project:
 
 ```sh
 uv add auto-typing-final --dev
 ```
 
-or:
-
-```sh
-poetry add auto-typing-final --group=dev
-```
-
 After that, install the extension: https://marketplace.visualstudio.com/items?itemName=vrslev.auto-typing-final. In Python environments that have `auto-typing-final` installed, extension will be activated automatically.
 
+### Settings
+
 Import style can be configured in settings: `"auto-typing-final.import-style": "typing-final"` or `"auto-typing-final.import-style": "final"`.
+
+### Notes
 
 Library code of currently activated environment will be ignored (for example, `.venv/bin/python` is active interpreter, all code inside `.venv` will be ignored).
