@@ -7,7 +7,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/vrslev/auto-typing-final.git"
+		"url": "https://github.com/community-of-python/auto-typing-final.git"
 	},
 	"keywords": ["python", "linting", "mypy"],
 	"engines": {
