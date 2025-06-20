@@ -12,6 +12,6 @@
 		}
 	},
 	"formatter": {
-		"ignore": ["package-lock.json"]
+		"includes": ["!package-lock.json"]
 	}
 }
