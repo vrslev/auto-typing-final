@@ -822,16 +822,6 @@ def f():
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
-    ],
-)
-def test_different_styles(case: str, import_config: ImportConfig) -> None:
-    before, _, after = case.partition("---")
-    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
-
-
-@pytest.mark.parametrize(
-    ("case", "import_config"),
-    [
         (
             """
 from typing import Annotated
@@ -839,23 +829,22 @@ from typing import Annotated
 def f():
     a: Annotated[
         int,
-        "hello",
+        "hello"
     ] = 1
-    a = 2
 ---
+from typing import Final
 from typing import Annotated
 
 def f():
-    a: Annotated[
+    a: Final[Annotated[
         int,
-        "hello",
-    ] = 1
-    a = 2
+        "hello"
+    ]] = 1
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
     ],
 )
-def test_different_styles_2(case: str, import_config: ImportConfig) -> None:
+def test_different_styles(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()

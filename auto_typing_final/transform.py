@@ -115,9 +115,9 @@ def _match_exact_identifier(node: SgNode, imports_result: ImportsResult, identif
     return None
 
 
-def _strip_identifier_from_type_annotation(  # noqa: C901, PLR0911
+def _strip_value_inside_given_identifier_from_type_annotation(  # noqa: C901, PLR0911
     node: SgNode, imports_result: ImportsResult, identifier_name: str
-) -> tuple[str, str] | None:
+) -> str | None:
     type_node_children: Final = node.children()
     if len(type_node_children) != 1:
         return None
@@ -128,7 +128,7 @@ def _strip_identifier_from_type_annotation(  # noqa: C901, PLR0911
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
                 if existing_final := _match_exact_identifier(attribute, imports_result, identifier_name):
-                    return existing_final, "".join(node.text() for _, node in kinds_and_nodes)
+                    return "".join(node.text() for _, node in kinds_and_nodes)
     elif kind == "generic_type" and imports_result.has_from_import:
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("identifier", identifier), ("type_parameter", type_parameter)):
@@ -136,13 +136,13 @@ def _strip_identifier_from_type_annotation(  # noqa: C901, PLR0911
                     return None
                 match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
                     case (("[", _), *kinds_and_nodes, ("]", _)):
-                        return identifier_name, "".join(node.text() for _, node in kinds_and_nodes)
-    elif kind == "identifier" and inner_type_node.text() == identifier_name:
-        return identifier_name, ""
+                        return "".join(node.text() for _, node in kinds_and_nodes)
+    elif kind == "identifier" and inner_type_node.text() == identifier_name:  # noqa: SIM114
+        return ""
     elif kind == "attribute" and (
         existing_final := _match_exact_identifier(inner_type_node, imports_result, identifier_name)
     ):
-        return existing_final, ""
+        return ""
     return None
 
 
@@ -155,27 +155,30 @@ def _make_changed_text_from_operation(  # noqa: C901
                 case EditableAssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case EditableAssignmentWithAnnotation(node, left, annotation, right):
-                    match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
+                    match _strip_value_inside_given_identifier_from_type_annotation(annotation, imports_result, identifier_name):
                         case None:
                             yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
-                        case existing_final, "":
-                            yield node, f"{left}: {existing_final} = {right}"
-                        case existing_final, new_annotation:
-                            yield node, f"{left}: {existing_final}[{new_annotation}] = {right}"
-
+                        case "":
+                            pass
+                            # yield node, f"{left}: {existing_final} = {right}"
+                        case new_annotation:
+                            pass
+                            # breakpoint()
+                            # yield node, f"{left}: {existing_final}[{new_annotation}] = {right}"
         case RemoveFinal(assignments):
             for assignment in assignments:
                 match assignment:
                     case EditableAssignmentWithoutAnnotation(node, left, right):
                         yield node, node.text()
                     case EditableAssignmentWithAnnotation(node, left, annotation, right):
-                        match _strip_identifier_from_type_annotation(annotation, imports_result, identifier_name):
-                            case _, "":
+                        match _strip_value_inside_given_identifier_from_type_annotation(annotation, imports_result, identifier_name):
+                            case "":
                                 yield node, f"{left} = {right}"
-                            case _, new_annotation:
+                            case str(new_annotation):
                                 yield node, f"{left}: {new_annotation} = {right}"
 
 
+# TODO: make dataclasses frozen and all other stuff  # noqa: FIX002, TD002, TD003
 @dataclass
 class Edit:
     node: SgNode
