@@ -800,6 +800,28 @@ def f():
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
+        (
+            """
+from typing import Annotated
+
+def f():
+    a: Annotated[
+        int,
+        "hello",
+    ] = 1
+    a = 2
+---
+from typing import Annotated
+
+def f():
+    a: Annotated[
+        int,
+        "hello",
+    ] = 1
+    a = 2
+""",
+            IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
+        ),
     ],
 )
 def test_different_styles(case: str, import_config: ImportConfig) -> None:
@@ -812,19 +834,23 @@ def test_different_styles(case: str, import_config: ImportConfig) -> None:
     [
         (
             """
-from typing import Final
+from typing import Annotated
 
 def f():
-    a: Final[
-        int
+    a: Annotated[
+        int,
+        "hello",
     ] = 1
+    a = 2
 ---
-from typing import Final
+from typing import Annotated
 
 def f():
-    a: Final[
-        int
+    a: Annotated[
+        int,
+        "hello",
     ] = 1
+    a = 2
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
