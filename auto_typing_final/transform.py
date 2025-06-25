@@ -115,7 +115,7 @@ def _match_exact_identifier(node: SgNode, imports_result: ImportsResult, identif
     return None
 
 
-def _strip_value_inside_given_identifier_from_type_annotation(  # noqa: C901, PLR0911
+def _strip_value_inside_given_identifier_from_type_annotation(
     node: SgNode, imports_result: ImportsResult, identifier_name: str
 ) -> str | None:
     type_node_children: Final = node.children()
@@ -127,7 +127,7 @@ def _strip_value_inside_given_identifier_from_type_annotation(  # noqa: C901, PL
     if kind == "subscript":
         match tuple((child.kind(), child) for child in inner_type_node.children()):
             case (("attribute", attribute), ("[", _), *kinds_and_nodes, ("]", _)):
-                if existing_final := _match_exact_identifier(attribute, imports_result, identifier_name):
+                if _match_exact_identifier(attribute, imports_result, identifier_name):
                     return "".join(node.text() for _, node in kinds_and_nodes)
     elif kind == "generic_type" and imports_result.has_from_import:
         match tuple((child.kind(), child) for child in inner_type_node.children()):
@@ -137,10 +137,8 @@ def _strip_value_inside_given_identifier_from_type_annotation(  # noqa: C901, PL
                 match tuple((inner_child.kind(), inner_child) for inner_child in type_parameter.children()):
                     case (("[", _), *kinds_and_nodes, ("]", _)):
                         return "".join(node.text() for _, node in kinds_and_nodes)
-    elif kind == "identifier" and inner_type_node.text() == identifier_name:  # noqa: SIM114
-        return ""
-    elif kind == "attribute" and (
-        existing_final := _match_exact_identifier(inner_type_node, imports_result, identifier_name)
+    elif (kind == "identifier" and inner_type_node.text() == identifier_name) or (
+        kind == "attribute" and _match_exact_identifier(inner_type_node, imports_result, identifier_name)
     ):
         return ""
     return None
@@ -155,7 +153,9 @@ def _make_changed_text_from_operation(  # noqa: C901
                 case EditableAssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
                 case EditableAssignmentWithAnnotation(node, left, annotation, right):
-                    match _strip_value_inside_given_identifier_from_type_annotation(annotation, imports_result, identifier_name):
+                    match _strip_value_inside_given_identifier_from_type_annotation(
+                        annotation, imports_result, identifier_name
+                    ):
                         case None:
                             yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
                         case "":
@@ -171,7 +171,9 @@ def _make_changed_text_from_operation(  # noqa: C901
                     case EditableAssignmentWithoutAnnotation(node, left, right):
                         yield node, node.text()
                     case EditableAssignmentWithAnnotation(node, left, annotation, right):
-                        match _strip_value_inside_given_identifier_from_type_annotation(annotation, imports_result, identifier_name):
+                        match _strip_value_inside_given_identifier_from_type_annotation(
+                            annotation, imports_result, identifier_name
+                        ):
                             case "":
                                 yield node, f"{left} = {right}"
                             case str(new_annotation):
