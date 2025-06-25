@@ -782,6 +782,67 @@ def f():
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
+        (
+            """
+from typing import Final
+
+def f():
+    a: Final[
+        int
+    ] = 1
+---
+from typing import Final
+
+def f():
+    a: Final[
+        int
+    ] = 1
+""",
+            IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
+        ),
+        (
+            """
+from typing import Annotated
+
+def f():
+    a: Annotated[
+        int,
+        "hello",
+    ] = 1
+    a = 2
+---
+from typing import Annotated
+
+def f():
+    a: Annotated[
+        int,
+        "hello",
+    ] = 1
+    a = 2
+""",
+            IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
+        ),
+        (
+            """
+from typing import Annotated
+
+def f():
+    a: Annotated[
+        int,
+        "hello"
+    ] = 1
+---
+from typing import Final
+from typing import Annotated
+
+def f():
+    a: Final[Annotated[
+        int,
+        "hello"
+    ]] = 1
+""",
+            IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
+        ),
     ],
 )
 def test_different_styles(case: str, import_config: ImportConfig) -> None:
