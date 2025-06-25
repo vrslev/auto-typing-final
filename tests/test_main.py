@@ -782,8 +782,54 @@ def f():
 """,
             IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
         ),
+        (
+            """
+from typing import Final
+
+def f():
+    a: Final[
+        int
+    ] = 1
+---
+from typing import Final
+
+def f():
+    a: Final[
+        int
+    ] = 1
+""",
+            IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
+        ),
     ],
 )
 def test_different_styles(case: str, import_config: ImportConfig) -> None:
+    before, _, after = case.partition("---")
+    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
+
+
+@pytest.mark.parametrize(
+    ("case", "import_config"),
+    [
+        (
+            """
+from typing import Final
+
+def f():
+    a: Final[
+        int
+    ] = 1
+---
+from typing import Final
+
+def f():
+    a: Final[
+        int
+    ] = 1
+""",
+            IMPORT_STYLES_TO_IMPORT_CONFIGS["final"],
+        ),
+    ],
+)
+def test_different_styles_2(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
