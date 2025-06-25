@@ -115,7 +115,7 @@ def _match_exact_identifier(node: SgNode, imports_result: ImportsResult, identif
     return None
 
 
-def _strip_value_inside_given_identifier_from_type_annotation(
+def _strip_value_from_type_annotation_that_is_indeed_inside_given_identifier(
     node: SgNode, imports_result: ImportsResult, identifier_name: str
 ) -> str | None:
     type_node_children: Final = node.children()
@@ -144,7 +144,7 @@ def _strip_value_inside_given_identifier_from_type_annotation(
     return None
 
 
-def _make_changed_text_from_operation(  # noqa: C901
+def _make_changed_text_from_operation(
     operation: Operation, final_value: str, imports_result: ImportsResult, identifier_name: str
 ) -> Iterable[tuple[SgNode, str]]:
     match operation:
@@ -152,26 +152,20 @@ def _make_changed_text_from_operation(  # noqa: C901
             match assignment:
                 case EditableAssignmentWithoutAnnotation(node, left, right):
                     yield node, f"{left}: {final_value} = {right}"
-                case EditableAssignmentWithAnnotation(node, left, annotation, right):
-                    match _strip_value_inside_given_identifier_from_type_annotation(
+                case EditableAssignmentWithAnnotation(node, left, annotation, right) if (
+                    _strip_value_from_type_annotation_that_is_indeed_inside_given_identifier(
                         annotation, imports_result, identifier_name
-                    ):
-                        case None:
-                            yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
-                        case "":
-                            pass
-                            # yield node, f"{left}: {existing_final} = {right}"
-                        case new_annotation:
-                            pass
-                            # breakpoint()
-                            # yield node, f"{left}: {existing_final}[{new_annotation}] = {right}"
+                    )
+                    is None
+                ):
+                    yield node, f"{left}: {final_value}[{annotation.text()}] = {right}"
         case RemoveFinal(assignments):
             for assignment in assignments:
                 match assignment:
                     case EditableAssignmentWithoutAnnotation(node, left, right):
                         yield node, node.text()
                     case EditableAssignmentWithAnnotation(node, left, annotation, right):
-                        match _strip_value_inside_given_identifier_from_type_annotation(
+                        match _strip_value_from_type_annotation_that_is_indeed_inside_given_identifier(
                             annotation, imports_result, identifier_name
                         ):
                             case "":
