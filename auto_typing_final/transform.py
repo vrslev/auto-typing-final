@@ -12,7 +12,7 @@ from auto_typing_final.finder import (
 )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ImportConfig:
     value: str
     import_text: str
@@ -26,14 +26,14 @@ IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
 }
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EditableAssignmentWithoutAnnotation:
     node: SgNode
     left: str
     right: str
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EditableAssignmentWithAnnotation:
     node: SgNode
     left: str
@@ -41,7 +41,7 @@ class EditableAssignmentWithAnnotation:
     right: str
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class OtherDefinition:
     node: SgNode
 
@@ -49,12 +49,12 @@ class OtherDefinition:
 Definition = EditableAssignmentWithoutAnnotation | EditableAssignmentWithAnnotation | OtherDefinition
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class AddFinal:
     node: Definition
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class RemoveFinal:
     nodes: list[Definition]
 
@@ -174,20 +174,19 @@ def _make_changed_text_from_operation(
                                 yield node, f"{left}: {new_annotation} = {right}"
 
 
-# TODO: make dataclasses frozen and all other stuff  # noqa: FIX002, TD002, TD003
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Edit:
     node: SgNode
     new_text: str
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Replacement:
     operation_type: type[Operation]
     edits: list[Edit]
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class MakeReplacementsResult:
     replacements: list[Replacement]
     import_text: str | None

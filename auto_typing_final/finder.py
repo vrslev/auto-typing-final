@@ -172,7 +172,7 @@ def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
     return name in {identifier.text() for identifier, _ in _find_identifiers_in_current_scope(root)}
 
 
-@dataclass
+@dataclass(slots=True, kw_only=True)
 class ImportsResult:
     module_aliases: set[str]
     has_from_import: bool
