@@ -75,7 +75,7 @@ def make_text_edit(edit: Edit) -> lsp.TextEdit:
     )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Service:
     ls_name: str
     ignored_paths: list[Path]
