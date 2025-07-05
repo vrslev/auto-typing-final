@@ -7,6 +7,7 @@ from ast_grep_py import SgNode
 from auto_typing_final.finder import (
     ImportsResult,
     find_all_definitions_in_functions,
+    find_all_definitions_in_global_scope,
     find_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
 )
@@ -192,7 +193,7 @@ class MakeReplacementsResult:
     import_text: str | None
 
 
-def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
+def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
@@ -214,6 +215,25 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacem
             has_added_final = True
 
         replacements.append(Replacement(operation_type=operation_type, edits=edits))
+
+    if not ignore_global_vars:
+        for current_definitions in find_all_definitions_in_global_scope(root):
+            operation = _make_operation_from_definitions_of_one_name(current_definitions)
+            edits = [
+                Edit(node=node, new_text=new_text)
+                for node, new_text in _make_changed_text_from_operation(
+                    operation=operation,
+                    final_value=import_config.value,
+                    imports_result=imports_result,
+                    identifier_name="Final",
+                )
+                if node.text() != new_text
+            ]
+
+            if (operation_type := type(operation)) == AddFinal and edits:
+                has_added_final = True
+
+            replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
     return MakeReplacementsResult(
         replacements=replacements,

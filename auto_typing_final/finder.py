@@ -153,6 +153,15 @@ def _find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
             yield from _find_identifiers_in_children(node)
 
 
+def find_all_definitions_in_global_scope(root: SgNode) -> Iterable[list[SgNode]]:
+    definition_map = defaultdict(list)
+    for identifier, node in _find_identifiers_in_current_scope(root):
+        if identifier.text().isupper():
+            definition_map[identifier.text()].append(node)
+
+    yield from definition_map.values()
+
+
 def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
     for function in root.find_all(kind="function_definition"):
         definition_map = defaultdict(list)
