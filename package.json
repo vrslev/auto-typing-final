@@ -36,6 +36,12 @@
 					],
 					"description": "Import style",
 					"scope": "resource"
+				},
+				"auto-typing-final.ignore-global-vars": {
+					"default": false,
+					"type": "boolean",
+					"description": "Do not add Final to global variables.",
+					"scope": "resource"
 				}
 			}
 		}
