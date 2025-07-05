@@ -64,46 +64,14 @@ def foo():
 def foo():
 {after_function_content}
 """
-    assert (transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=True) == after_source.strip())
-
-
-@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
-@pytest.mark.parametrize(
-    ("before", "after"),
-    [
-        # TODO: add docs about this  # noqa: FIX002, TD002, TD003
-        # TODO: add in test below (not current test) we don't touch variables that are changed in functions  # noqa: FIX002, TD002, TD003
-        # Add annotation
-        ("FIRST_FIRST = 1", "FIRST_FIRST: {} = 1"),
-        # Remove annotation
-        ("FIRST_FIRST: {} = 1\nFIRST_FIRST = 1", "FIRST_FIRST = 1\nFIRST_FIRST = 1"),
-        ("FIRST_FIRST = 1\nFIRST_FIRST = 1", "FIRST_FIRST = 1\nFIRST_FIRST = 1"),
-        # Ignore
-        ("FIRST = 1", "FIRST = 1"),
-        ("FIRST: {} = 1", "FIRST: {} = 1"),
-        ("FirstFirst = 1", "FirstFirst = 1"),
-        ("FirstFirst: {} = 1", "FirstFirst: {} = 1"),
-        ("First_First = 1", "First_First = 1"),
-        ("FIRST_FIRSt = 1", "FIRST_FIRSt = 1"),
-        ("first_first = 1", "first_first = 1"),
-        ("first = 1", "first = 1"),
-    ],
-)
-def test_global_constants(import_config: ImportConfig, before: str, after: str) -> None:
-    before_source: Final = f"""
-{import_config.import_text}
-{before.format(import_config.value)}
-"""
-    after_source: Final = f"""
-{import_config.import_text}
-{after.format(import_config.value)}
-"""
-    assert transform_file_content(before_source.strip(), import_config=import_config) == after_source.strip()
+    assert (
+        transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=True)
+        == after_source.strip()
+    )
 
 
 @pytest.mark.parametrize(
     "case",
-)
     [
         """
 a = 1
@@ -674,7 +642,10 @@ def test_global_constants(import_config: ImportConfig, before: str, after: str) 
 {import_config.import_text}
 {after.format(import_config.value)}
 """
-    assert transform_file_content(before_source.strip(), import_config=import_config) == after_source.strip()
+    assert (
+        transform_file_content(before_source.strip(), import_config=import_config, ignore_global_vars=False)
+        == after_source.strip()
+    )
 
 
 @pytest.mark.parametrize(
