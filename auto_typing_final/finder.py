@@ -28,6 +28,7 @@ DEFINITION_RULE: Config = {
         ]
     }
 }
+IGNORE_COMMENT_TEXT = "# auto-typing-final: ignore"
 
 
 def _get_last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
@@ -134,9 +135,22 @@ def _find_identifiers_made_by_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C
                 yield from left.find_all(kind="identifier")
 
 
+def _should_ignore_node(node: SgNode) -> bool:
+    if not (parent := node.parent()):
+        return False
+    if not (grand_parent := parent.parent()):
+        return False
+    for one_child in grand_parent.children():
+        if one_child.kind() == "comment" and IGNORE_COMMENT_TEXT in one_child.text():
+            return True
+    return False
+
+
 def _find_identifiers_in_current_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
     for child in node.find_all(DEFINITION_RULE):
         if _is_inside_inner_function_or_class(node, child) or child == node:
+            continue
+        if _should_ignore_node(child):
             continue
         for identifier in _find_identifiers_made_by_node(child):
             yield identifier, child
@@ -151,6 +165,16 @@ def _find_identifiers_in_function_parameter(node: SgNode) -> Iterable[SgNode]:
             yield node
         case _:
             yield from _find_identifiers_in_children(node)
+
+
+def find_all_definitions_in_global_scope(root: SgNode) -> Iterable[list[SgNode]]:
+    definition_map = defaultdict(list)
+    for identifier, node in _find_identifiers_in_current_scope(root):
+        identifier_text = identifier.text()
+        if identifier_text.isupper() and "_" in identifier_text:
+            definition_map[identifier_text].append(node)
+
+    yield from definition_map.values()
 
 
 def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
