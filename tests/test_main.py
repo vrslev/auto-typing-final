@@ -616,6 +616,8 @@ def test_transform_file_content(case: str) -> None:
     ("before", "after"),
     [
         # TODO: add docs about this  # noqa: FIX002, TD002, TD003
+        # TODO: check that it doesn't override imports
+        # TODO: extend idea about comments not only to globals
         # Add annotation
         ("FIRST_FIRST = 1", "FIRST_FIRST: {} = 1"),
         # Remove annotation
@@ -632,7 +634,7 @@ def test_transform_file_content(case: str) -> None:
         ("first = 1", "first = 1"),
         ("VAR_WITH_COMMENT = 1 # some comment", "VAR_WITH_COMMENT: {} = 1 # some comment"),
         ("IGNORED_VAR = 1 # auto-typing-final: ignore", "IGNORED_VAR = 1 # auto-typing-final: ignore"),
-        ("IGNORED_VAR: {} = 1 # auto-typing-final: ignore", "IGNORED_VAR: {} = 1 # auto-typing-final: ignore"),  # TODO: extend idea about comments not only to globals
+        ("IGNORED_VAR: {} = 1 # auto-typing-final: ignore", "IGNORED_VAR: {} = 1 # auto-typing-final: ignore"),
         ("FIRST_FIRST.FIRST_FIRST = 1", "FIRST_FIRST.FIRST_FIRST = 1"),
         ("first_first.FIRST_FIRST = 1", "first_first.FIRST_FIRST = 1"),
         ("FIRST_FIRST.first_first = 1", "FIRST_FIRST.first_first = 1"),
