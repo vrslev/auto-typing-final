@@ -65,7 +65,7 @@ def foo():
 {after_function_content}
 """
     assert (
-        transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=True)
+        transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=False)
         == after_source.strip()
     )
 
@@ -605,7 +605,7 @@ def test_transform_file_content(case: str) -> None:
     before, _, after = case.partition("---")
     assert (
         transform_file_content(
-            f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=True
+            f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=False
         )
         == f"{import_config.import_text}\n" + after.strip()
     )
