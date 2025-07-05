@@ -654,6 +654,12 @@ def test_global_constants_disabled(import_config: ImportConfig) -> None:
     assert transform_file_content(text, import_config=import_config, ignore_global_vars=True) == text
 
 
+@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
+def test_global_constants_ignored(import_config: ImportConfig) -> None:
+    text = "FIRST_FIRST = 1  # auto-typing-final: ignore"
+    assert transform_file_content(text, import_config=import_config, ignore_global_vars=False) == text
+
+
 @pytest.mark.parametrize(
     "case",
     [

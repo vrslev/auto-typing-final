@@ -25,6 +25,7 @@ IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
     "typing-final": ImportConfig(value="typing.Final", import_text="import typing", import_identifier="typing"),
     "final": ImportConfig(value="Final", import_text="from typing import Final", import_identifier="Final"),
 }
+IGNORE_COMMENT_TEXT = "# auto-typing-final: ignore"
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,11 +89,24 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
             return OtherDefinition(node)
 
 
+def _should_ignore_node(node: SgNode) -> bool:
+    if not (parent := node.parent()):
+        return False
+    if not (grand_parent := parent.parent()):
+        return False
+    for one_child in grand_parent.children():
+        if one_child.kind() == "comment" and IGNORE_COMMENT_TEXT in one_child.text():
+            return True
+    return False
+
+
 def _make_operation_from_definitions_of_one_name(nodes: list[SgNode]) -> Operation:
     value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
 
     for node in nodes:
+        if _should_ignore_node(node):
+            return RemoveFinal([_make_definition_from_definition_node(node)])
         if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
             has_node_inside_loop = True
         value_definitions.append(_make_definition_from_definition_node(node))
