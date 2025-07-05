@@ -633,7 +633,7 @@ def test_transform_file_content(case: str) -> None:
         ("first = 1", "first = 1"),
     ],
 )
-def test_global_constants(import_config: ImportConfig, before: str, after: str) -> None:
+def test_global_constants_works(import_config: ImportConfig, before: str, after: str) -> None:
     before_source: Final = f"""
 {import_config.import_text}
 {before.format(import_config.value)}
@@ -646,6 +646,12 @@ def test_global_constants(import_config: ImportConfig, before: str, after: str) 
         transform_file_content(before_source.strip(), import_config=import_config, ignore_global_vars=False)
         == after_source.strip()
     )
+
+
+@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
+def test_global_constants_disabled(import_config: ImportConfig) -> None:
+    text = "FIRST_FIRST = 1"
+    assert transform_file_content(text, import_config=import_config, ignore_global_vars=True) == text
 
 
 @pytest.mark.parametrize(
