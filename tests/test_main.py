@@ -631,6 +631,11 @@ def test_transform_file_content(case: str) -> None:
         ("FIRST_FIRSt = 1", "FIRST_FIRSt = 1"),
         ("first_first = 1", "first_first = 1"),
         ("first = 1", "first = 1"),
+        ("VAR_WITH_COMMENT = 1 # some comment", "VAR_WITH_COMMENT: {} = 1 # some comment"),
+        ("IGNORED_VAR = 1 # auto-typing-final: ignore", "IGNORED_VAR = 1 # auto-typing-final: ignore"),
+        ("FIRST_FIRST.FIRST_FIRST = 1", "FIRST_FIRST.FIRST_FIRST = 1"),
+        ("first_first.FIRST_FIRST = 1", "first_first.FIRST_FIRST = 1"),
+        ("FIRST_FIRST.first_first = 1", "FIRST_FIRST.first_first = 1"),
     ],
 )
 def test_global_constants_works(import_config: ImportConfig, before: str, after: str) -> None:
@@ -652,12 +657,6 @@ def test_global_constants_works(import_config: ImportConfig, before: str, after:
 def test_global_constants_disabled(import_config: ImportConfig) -> None:
     text = "FIRST_FIRST = 1"
     assert transform_file_content(text, import_config=import_config, ignore_global_vars=True) == text
-
-
-@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
-def test_global_constants_ignored(import_config: ImportConfig) -> None:
-    text = "FIRST_FIRST = 1  # auto-typing-final: ignore"
-    assert transform_file_content(text, import_config=import_config, ignore_global_vars=False) == text
 
 
 @pytest.mark.parametrize(
