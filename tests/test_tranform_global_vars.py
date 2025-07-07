@@ -148,6 +148,11 @@ FRUIT = Apple | Banana
 import typing
 FRUIT: typing.Final = Apple | Banana
 """,
+        """
+A = "ParamSpec"
+---
+A = "ParamSpec"
+""",
     ],
 )
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:
