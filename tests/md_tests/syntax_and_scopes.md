@@ -42,7 +42,7 @@ def foo():
 ```python
 def foo():
     from b import bar
-    bar: typing.Final = 1  # remove
+    bar: Final = 1  # remove
 ```
 
 # 1
@@ -50,7 +50,7 @@ def foo():
 ```python
 def foo():
     import bar
-    bar: typing.Final = 1  # remove
+    bar: Final = 1  # remove
 ```
 
 # 1
@@ -58,7 +58,7 @@ def foo():
 ```python
 def foo():
     import baz
-    bar: typing.Final = 1
+    bar: Final = 1
 ```
 
 # 1
@@ -102,7 +102,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     a += 1
 ```
 
@@ -110,7 +110,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     a: int
 ```
 
@@ -118,8 +118,8 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
-    a: typing.Final
+    a: Final = 1  # remove
+    a: Final
 ```
 
 # 1
@@ -133,8 +133,8 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
-    b: typing.Final = 2  # remove
+    a: Final = 1  # remove
+    b: Final = 2  # remove
     a, b = 3
 ```
 
@@ -142,7 +142,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1
+    a: Final = 1
     b, c = 2
 ```
 
@@ -150,14 +150,14 @@ def foo():
 
 ```python
 def foo():
-    a, b: typing.Final = 1
+    a, b: Final = 1
 ```
 
 # 1
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     (a, b) = 2
 ```
 
@@ -165,7 +165,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     (a, *other) = 2
 ```
 
@@ -174,7 +174,7 @@ def foo():
 ```python
 def foo():
     def a(): ...
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 ```
 
 # 1
@@ -182,14 +182,14 @@ def foo():
 ```python
 def foo():
     class a: ...
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 ```
 
 # 1
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     if a := 1: ...
 ```
 
@@ -206,7 +206,7 @@ def foo():
 ```python
 def foo():
     while True:
-        a: typing.Final = 1  # remove
+        a: Final = 1  # remove
 ```
 
 # 1
@@ -214,7 +214,7 @@ def foo():
 ```python
 def foo():
     for _ in ...:
-        a: typing.Final = 1  # remove
+        a: Final = 1  # remove
 ```
 
 # 1
@@ -223,18 +223,18 @@ def foo():
 def foo():
     for _ in ...:
         def foo():
-            a: typing.Final = 1  # remove
+            a: Final = 1  # remove
 ```
 
 # 1
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
-    b: typing.Final = 2
+    a: Final = 1  # remove
+    b: Final = 2
 
     for _ in ...:
-        a: typing.Final = 1  # remove
+        a: Final = 1  # remove
 ```
 
 # 1
@@ -249,7 +249,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     for a in ...: ...
 ```
 
@@ -257,7 +257,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1
+    a: Final = 1
 
     match ...:
         case ...: ...
@@ -267,7 +267,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case [] as a: ...
@@ -277,7 +277,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case {"hello": a, **b}: ...
@@ -287,7 +287,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case {**a}: ...
@@ -297,7 +297,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case A(b=a) | B(b=a): ...
@@ -307,7 +307,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case [b, *a]: ...
@@ -317,7 +317,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case [a]: ...
@@ -327,7 +327,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
 
     match ...:
         case (a,): ...
@@ -337,7 +337,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     nonlocal a
 ```
 
@@ -353,7 +353,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1
+    a: Final = 1
     global b
 ```
 
@@ -361,7 +361,7 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
+    a: Final = 1  # remove
     global a
 ```
 
@@ -369,14 +369,14 @@ def foo():
 
 ```python
 def foo():
-    a: typing.Final = 1  # remove
-    b: typing.Final = 2
-    c: typing.Final = 3
+    a: Final = 1  # remove
+    b: Final = 2
+    c: Final = 3
 
     def bar():
         nonlocal a
-        b: typing.Final = 4  # remove
-        c: typing.Final = 5
+        b: Final = 4  # remove
+        c: Final = 5
 
         class C:
             a = 6
@@ -384,8 +384,8 @@ def foo():
 
             def baz():
                 nonlocal a, b
-                b: typing.Final = 8  # remove
-                c: typing.Final = 9
+                b: Final = 8  # remove
+                c: Final = 9
 ```
 
 # 1
@@ -399,11 +399,11 @@ def foo():
 
 ```python
 def foo(a, b: int, c=1, d: int = 2):
-    a: typing.Final = 1  # remove
-    b: typing.Final = 2  # remove
-    c: typing.Final = 3  # remove
-    d: typing.Final = 4  # remove
-    e: typing.Final = 5
+    a: Final = 1  # remove
+    b: Final = 2  # remove
+    c: Final = 3  # remove
+    d: Final = 4  # remove
+    e: Final = 5
 ```
 
 # 1
