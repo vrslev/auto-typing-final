@@ -248,7 +248,6 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
             has_added_final = True
 
         replacements.append(Replacement(operation_type=operation_type, edits=edits))
-
     if not ignore_global_vars:
         for current_definitions in find_global_definitions(root):
             if (
@@ -256,6 +255,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
                 or (operation_type := type(operation)) == RemoveFinal
             ):
                 continue
+
             edits = [
                 Edit(node=node, new_text=new_text)
                 for node, new_text in _make_changed_text_from_operation(
