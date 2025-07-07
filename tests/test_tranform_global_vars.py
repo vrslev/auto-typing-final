@@ -137,6 +137,17 @@ _P: typing.Final = typing.ParamSpec("_P")
 ---
 _P: typing.Final = typing.ParamSpec("_P")
 """,
+        """
+Fruit = Apple | Banana
+---
+Fruit = Apple | Banana
+""",
+        """
+FRUIT = Apple | Banana
+---
+import typing
+FRUIT: typing.Final = Apple | Banana
+""",
     ],
 )
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:
