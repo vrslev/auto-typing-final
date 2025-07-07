@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Final, Literal
@@ -11,6 +12,8 @@ from auto_typing_final.finder import (
     find_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
 )
+
+IGNORED_DEFINITION_PATTERNS: typing.Final = {"TypeVar", "ParamSpec"}
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -88,15 +91,10 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
             return OtherDefinition(node)
 
 
-def _is_upper_case_global_constant(name: str) -> bool:
-    return name.isupper() and len(name) > 1
-
-
 def _should_skip_global_variable(definition: Definition) -> bool:
     return isinstance(definition, EditableAssignmentWithoutAnnotation | EditableAssignmentWithAnnotation) and (
-        not _is_upper_case_global_constant(definition.left)
-        or "TypeVar" in definition.right
-        or "ParamSpec" in definition.right
+        not (definition.left.isupper() and len(definition.left) > 1)
+        or any(one_pattern in definition.right for one_pattern in IGNORED_DEFINITION_PATTERNS)
     )
 
 
