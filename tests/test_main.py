@@ -848,3 +848,104 @@ def f():
 def test_different_styles(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
+# TODO: test cases where local var has same name as global var
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        # Test that allows UPPER_CASE global constants
+        """
+MY_CONSTANT = 42
+MY_OTHER_CONSTANT = "hello"
+---
+import typing
+MY_CONSTANT: typing.Final = 42
+MY_OTHER_CONSTANT: typing.Final = "hello"
+""",
+        # Test that non-UPPER_CASE global variables are still ignored
+        """
+global_var = 42
+myVar = "hello"
+---
+global_var = 42
+myVar = "hello"
+""",
+        # Test single letter constants are ignored  # TODO: also ignore cases where not only one letter, but one word.
+        """
+A = 42
+B = "hello"
+---
+A = 42
+B = "hello"
+""",
+        # Test mixed case - function variables should still work
+        """
+MY_CONSTANT = 42
+global_var = "hello"
+
+def foo():
+    local_var = 1
+---
+import typing
+MY_CONSTANT: typing.Final = 42
+global_var = "hello"
+
+def foo():
+    local_var: typing.Final = 1
+""",
+        # Test with existing Final annotation
+        """
+MY_CONSTANT: typing.Final = 42
+MY_OTHER_CONSTANT = "hello"
+---
+import typing
+MY_CONSTANT: typing.Final = 42
+MY_OTHER_CONSTANT: typing.Final = "hello"
+""",
+        # Test with existing typed annotation
+        """
+MY_CONSTANT: int = 42
+MY_OTHER_CONSTANT = "hello"
+---
+import typing
+MY_CONSTANT: typing.Final[int] = 42
+MY_OTHER_CONSTANT: typing.Final = "hello"
+""",
+    ],
+)
+def test_ignore_global_vars_flag(case: str) -> None:
+    """Test the flag functionality."""
+    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+    before, _, after = case.partition("---")
+    result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
+    assert result == after.strip()
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        # Test behavior where ignore_global_vars=True - should ignore all global variables
+        """
+MY_CONSTANT = 42
+MY_OTHER_CONSTANT = "hello"
+global_var = 123
+
+def foo():
+    local_var = 1
+---
+import typing
+MY_CONSTANT = 42
+MY_OTHER_CONSTANT = "hello"
+global_var = 123
+
+def foo():
+    local_var: typing.Final = 1
+""",
+    ],
+)
+def test_default_behavior_still_ignores_globals(case: str) -> None:
+    """Test that default behavior (ignore_global_vars=False) still ignores all global variables."""
+    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+    before, _, after = case.partition("---")
+    result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
+    assert result == after.strip()

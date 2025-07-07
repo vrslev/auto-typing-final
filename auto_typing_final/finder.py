@@ -172,6 +172,13 @@ def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
     return name in {identifier.text() for identifier, _ in _find_identifiers_in_current_scope(root)}
 
 
+def find_global_assignments(root: SgNode) -> Iterable[tuple[str, SgNode]]:
+    """Find all global variable assignments and return (name, node) tuples."""
+    for identifier, definition_node in _find_identifiers_in_current_scope(root):
+        if definition_node.kind() == "assignment":
+            yield identifier.text(), definition_node
+
+
 @dataclass(slots=True, kw_only=True)
 class ImportsResult:
     module_aliases: set[str]
