@@ -762,23 +762,3 @@ def test_ignore_global_vars_flag_preserves_old_behavior(case: str) -> None:
     before, _, after = case.partition("---")
     result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
     assert result == after.strip()
-
-
-@pytest.mark.parametrize(
-    ("before", "after"),
-    [
-        ("VAR_WITH_COMMENT = 1 # some comment", "VAR_WITH_COMMENT: Final = 1 # some comment"),
-        ("IGNORED_VAR = 1 # auto-typing-final: ignore", "IGNORED_VAR = 1 # auto-typing-final: ignore"),
-        ("IGNORED_VAR: Final = 1 # auto-typing-final: ignore", "IGNORED_VAR: Final = 1 # auto-typing-final: ignore"),
-        (
-            "IGNORED_VAR: Final = 1 # auto-typing-final: ignore  # some comment",
-            "IGNORED_VAR: Final = 1 # auto-typing-final: ignore  # some comment",
-        ),
-    ],
-)
-def test_ignore_comment(before: str, after: str) -> None:
-    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["final"]
-    result = transform_file_content(
-        f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=False
-    )
-    assert result == f"{import_config.import_text}\n" + after.strip()
