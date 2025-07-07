@@ -47,7 +47,7 @@ def path_from_uri(uri: str) -> Path | None:
     return path_
 
 
-ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle})
+ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle, "ignore-global-vars": bool})
 FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
 
 
@@ -80,6 +80,7 @@ class Service:
     ls_name: str
     ignored_paths: list[Path]
     import_config: ImportConfig
+    ignore_global_vars: bool
 
     @staticmethod
     def try_from_settings(ls_name: str, settings: Any) -> "Service | None":  # noqa: ANN401
@@ -93,11 +94,14 @@ class Service:
             ls_name=ls_name,
             ignored_paths=[executable_path.parent.parent] if executable_path.parent.name == "bin" else [],
             import_config=IMPORT_STYLES_TO_IMPORT_CONFIGS[validated_settings["auto-typing-final"]["import-style"]],
+            ignore_global_vars=validated_settings["auto-typing-final"]["ignore-global-vars"],
         )
 
     def make_diagnostics(self, source: str) -> list[lsp.Diagnostic]:
         replacement_result: Final = make_replacements(
-            root=SgRoot(source, "python").root(), import_config=self.import_config
+            root=SgRoot(source, "python").root(),
+            import_config=self.import_config,
+            ignore_global_vars=self.ignore_global_vars,
         )
         result: Final = []
 
@@ -131,7 +135,9 @@ class Service:
 
     def make_fix_all_text_edits(self, source: str) -> list[lsp.TextEdit | lsp.AnnotatedTextEdit]:
         replacement_result: Final = make_replacements(
-            root=SgRoot(source, "python").root(), import_config=self.import_config
+            root=SgRoot(source, "python").root(),
+            import_config=self.import_config,
+            ignore_global_vars=self.ignore_global_vars,
         )
         result: Final[list[lsp.TextEdit | lsp.AnnotatedTextEdit]] = [
             make_text_edit(edit) for replacement in replacement_result.replacements for edit in replacement.edits
@@ -150,7 +156,7 @@ class CustomLanguageServer(LanguageServer):
     service: Service | None = None
 
 
-LSP_SERVER = CustomLanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
+LSP_SERVER: Final = CustomLanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
 @LSP_SERVER.feature(lsp.INITIALIZE)

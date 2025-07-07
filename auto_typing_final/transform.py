@@ -1,3 +1,4 @@
+import typing
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Final, Literal
@@ -7,6 +8,7 @@ from ast_grep_py import SgNode
 from auto_typing_final.finder import (
     ImportsResult,
     find_all_definitions_in_functions,
+    find_global_definitions,
     find_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
 )
@@ -20,10 +22,11 @@ class ImportConfig:
 
 
 ImportStyle = Literal["typing-final", "final"]
-IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
+IMPORT_STYLES_TO_IMPORT_CONFIGS: Final[dict[ImportStyle, ImportConfig]] = {
     "typing-final": ImportConfig(value="typing.Final", import_text="import typing", import_identifier="typing"),
     "final": ImportConfig(value="Final", import_text="from typing import Final", import_identifier="Final"),
 }
+IGNORED_DEFINITION_PATTERNS: typing.Final = {"TypeVar", "ParamSpec"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,17 +90,37 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
             return OtherDefinition(node)
 
 
-def _make_operation_from_definitions_of_one_name(nodes: list[SgNode]) -> Operation:
+def _should_skip_global_variable(definition: Definition) -> bool:
+    return isinstance(definition, EditableAssignmentWithoutAnnotation | EditableAssignmentWithAnnotation) and (
+        not (definition.left.isupper() and len(definition.left) > 1)
+        or any(one_pattern in definition.right for one_pattern in IGNORED_DEFINITION_PATTERNS)
+    )
+
+
+def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool) -> Operation | None:  # noqa: FBT001
     value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
+    has_global_scope_definition = False
 
     for node in nodes:
         if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
             has_node_inside_loop = True
+
+        if all(ancestor.kind() != "function_definition" for ancestor in node.ancestors()):
+            has_global_scope_definition = True
+
         value_definitions.append(_make_definition_from_definition_node(node))
 
     if has_node_inside_loop:
         return RemoveFinal(value_definitions)
+
+    if (
+        not ignore_global_vars
+        and has_global_scope_definition
+        and value_definitions
+        and _should_skip_global_variable(value_definitions[0])
+    ):
+        return None
 
     match value_definitions:
         case [definition]:
@@ -192,13 +215,14 @@ class MakeReplacementsResult:
     import_text: str | None
 
 
-def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacementsResult:
+def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:  # noqa: FBT001
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
 
     for current_definitions in find_all_definitions_in_functions(root):
-        operation = _make_operation_from_definitions_of_one_name(current_definitions)
+        if not (operation := _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)):
+            continue
         edits = [
             Edit(node=node, new_text=new_text)
             for node, new_text in _make_changed_text_from_operation(
@@ -214,6 +238,29 @@ def make_replacements(root: SgNode, import_config: ImportConfig) -> MakeReplacem
             has_added_final = True
 
         replacements.append(Replacement(operation_type=operation_type, edits=edits))
+
+    if not ignore_global_vars:
+        for current_definitions in find_global_definitions(root):
+            if (
+                not (operation := _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars))
+                or (operation_type := type(operation)) == RemoveFinal
+            ):
+                continue
+
+            edits = [
+                Edit(node=node, new_text=new_text)
+                for node, new_text in _make_changed_text_from_operation(
+                    operation=operation,
+                    final_value=import_config.value,
+                    imports_result=imports_result,
+                    identifier_name="Final",
+                )
+                if node.text() != new_text
+            ]
+            if not edits:
+                continue
+            has_added_final = True
+            replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
     return MakeReplacementsResult(
         replacements=replacements,

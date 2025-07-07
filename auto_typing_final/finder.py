@@ -6,7 +6,7 @@ from typing import Final
 from ast_grep_py import Config, SgNode
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
-DEFINITION_RULE: Config = {
+DEFINITION_RULE: Final[Config] = {
     "rule": {
         "any": [
             {"kind": "assignment"},
@@ -28,6 +28,14 @@ DEFINITION_RULE: Config = {
         ]
     }
 }
+GLOBAL_STATEMENTS_RULE: Final[Config] = {
+    "rule": {
+        "any": [
+            {"kind": "global_statement"},
+        ]
+    }
+}
+IGNORE_COMMENT_TEXT: Final = "# auto-typing-final: ignore"
 
 
 def _get_last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
@@ -134,9 +142,20 @@ def _find_identifiers_made_by_node(node: SgNode) -> Iterable[SgNode]:  # noqa: C
                 yield from left.find_all(kind="identifier")
 
 
+def _line_has_ignore_comment(node: SgNode) -> bool:
+    if not (parent := node.parent()):
+        return False
+    if not (grand_parent := parent.parent()):
+        return False
+    for one_child in grand_parent.children():
+        if one_child.kind() == "comment" and IGNORE_COMMENT_TEXT in one_child.text():
+            return True
+    return False
+
+
 def _find_identifiers_in_current_scope(node: SgNode) -> Iterable[tuple[SgNode, SgNode]]:
     for child in node.find_all(DEFINITION_RULE):
-        if _is_inside_inner_function_or_class(node, child) or child == node:
+        if child == node or _is_inside_inner_function_or_class(node, child) or _line_has_ignore_comment(child):
             continue
         for identifier in _find_identifiers_made_by_node(child):
             yield identifier, child
@@ -170,6 +189,19 @@ def find_all_definitions_in_functions(root: SgNode) -> Iterable[list[SgNode]]:
 
 def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
     return name in {identifier.text() for identifier, _ in _find_identifiers_in_current_scope(root)}
+
+
+def find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
+    definitions_by_name: Final = defaultdict(list)
+
+    for identifier, definition_node in _find_identifiers_in_current_scope(root):
+        definitions_by_name[identifier.text()].append(definition_node)
+
+    for one_node in root.find_all(GLOBAL_STATEMENTS_RULE):
+        for one_identifier in _find_identifiers_in_children(one_node):
+            definitions_by_name[one_identifier.text()].append(one_node)
+
+    return definitions_by_name.values()
 
 
 @dataclass(slots=True, kw_only=True)
