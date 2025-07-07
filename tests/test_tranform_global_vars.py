@@ -153,7 +153,7 @@ FRUIT: typing.Final = Apple | Banana
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
-    result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False)
+    result: Final = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False)
     assert result == after.strip()
 
 
@@ -197,5 +197,5 @@ def foo():
 def test_ignore_global_vars_flag_preserves_old_behavior(case: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
-    result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
+    result: Final = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
     assert result == after.strip()

@@ -22,7 +22,7 @@ from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS
 )
 def test_ignore_comment(before: str, after: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["final"]
-    result = transform_file_content(
+    result: Final = transform_file_content(
         f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=False
     )
     assert result == f"{import_config.import_text}\n" + after.strip()

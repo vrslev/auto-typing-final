@@ -64,7 +64,9 @@ def f():
 def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
-    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
+    assert (
+        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False) == after.strip()
+    )
 
 
 @pytest.mark.parametrize(
@@ -247,4 +249,6 @@ def f():
 )
 def test_different_import_styles(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
-    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
+    assert (
+        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False) == after.strip()
+    )

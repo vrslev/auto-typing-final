@@ -156,7 +156,7 @@ class CustomLanguageServer(LanguageServer):
     service: Service | None = None
 
 
-LSP_SERVER = CustomLanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
+LSP_SERVER: Final = CustomLanguageServer(name="auto-typing-final", version=version("auto-typing-final"), max_workers=5)
 
 
 @LSP_SERVER.feature(lsp.INITIALIZE)

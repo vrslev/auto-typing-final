@@ -64,7 +64,10 @@ def foo():
 def foo():
 {after_function_content}
 """
-    assert transform_file_content(source.strip(), import_config=import_config) == after_source.strip()
+    assert (
+        transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=False)
+        == after_source.strip()
+    )
 
 
 @pytest.mark.parametrize(
@@ -601,6 +604,8 @@ def test_transform_file_content(case: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
     assert (
-        transform_file_content(f"{import_config.import_text}\n" + before.strip(), import_config=import_config)
+        transform_file_content(
+            f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=False
+        )
         == f"{import_config.import_text}\n" + after.strip()
     )

@@ -21,7 +21,7 @@ class ImportConfig:
 
 
 ImportStyle = Literal["typing-final", "final"]
-IMPORT_STYLES_TO_IMPORT_CONFIGS: dict[ImportStyle, ImportConfig] = {
+IMPORT_STYLES_TO_IMPORT_CONFIGS: Final[dict[ImportStyle, ImportConfig]] = {
     "typing-final": ImportConfig(value="typing.Final", import_text="import typing", import_identifier="typing"),
     "final": ImportConfig(value="Final", import_text="from typing import Final", import_identifier="Final"),
 }
@@ -93,21 +93,14 @@ def _is_upper_case_global_constant(name: str) -> bool:
 
 
 def _should_skip_global_variable(definition: Definition) -> bool:
-    return isinstance(definition, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)) and (
+    return isinstance(definition, EditableAssignmentWithoutAnnotation | EditableAssignmentWithAnnotation) and (
         not _is_upper_case_global_constant(definition.left)
         or "TypeVar" in definition.right
         or "ParamSpec" in definition.right
     )
 
 
-def _is_global_scope_definition(node: SgNode) -> bool:
-    for ancestor in node.ancestors():
-        if ancestor.kind() == "function_definition":
-            return False
-    return True
-
-
-def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool) -> Operation | None:
+def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool) -> Operation | None:  # noqa: FBT001
     value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
     has_global_scope_definition = False
@@ -116,7 +109,7 @@ def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_glo
         if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
             has_node_inside_loop = True
 
-        if _is_global_scope_definition(node):
+        if all(ancestor.kind() != "function_definition" for ancestor in node.ancestors()):
             has_global_scope_definition = True
 
         value_definitions.append(_make_definition_from_definition_node(node))
@@ -225,7 +218,7 @@ class MakeReplacementsResult:
     import_text: str | None
 
 
-def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:
+def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:  # noqa: FBT001
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")

@@ -6,7 +6,7 @@ from typing import Final
 from ast_grep_py import Config, SgNode
 
 # https://github.com/tree-sitter/tree-sitter-python/blob/71778c2a472ed00a64abf4219544edbf8e4b86d7/grammar.js
-DEFINITION_RULE: Config = {
+DEFINITION_RULE: Final[Config] = {
     "rule": {
         "any": [
             {"kind": "assignment"},
@@ -28,7 +28,7 @@ DEFINITION_RULE: Config = {
         ]
     }
 }
-IGNORE_COMMENT_TEXT = "# auto-typing-final: ignore"
+IGNORE_COMMENT_TEXT: Final = "# auto-typing-final: ignore"
 
 
 def _get_last_child_of_type(node: SgNode, type_: str) -> SgNode | None:
@@ -185,7 +185,7 @@ def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
 
 
 def find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
-    definitions_by_name = defaultdict(list)
+    definitions_by_name: Final = defaultdict(list)
 
     for identifier, definition_node in _find_identifiers_in_current_scope(root):
         definitions_by_name[identifier.text()].append(definition_node)
