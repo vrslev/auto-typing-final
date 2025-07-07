@@ -117,6 +117,26 @@ a: typing.Final = 1
 ---
 a: typing.Final = 1
 """,
+        """
+_T = typing.TypeVar("_T")
+---
+_T = typing.TypeVar("_T")
+""",
+        """
+_T: typing.Final = typing.TypeVar("_T")
+---
+_T: typing.Final = typing.TypeVar("_T")
+""",
+        """
+_P = typing.ParamSpec("_P")
+---
+_P = typing.ParamSpec("_P")
+""",
+        """
+_P: typing.Final = typing.ParamSpec("_P")
+---
+_P: typing.Final = typing.ParamSpec("_P")
+""",
     ],
 )
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:
