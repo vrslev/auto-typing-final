@@ -16,7 +16,8 @@ from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS
             "IGNORED_VAR: Final = 1 # auto-typing-final: ignore  # some comment",
             "IGNORED_VAR: Final = 1 # auto-typing-final: ignore  # some comment",
         ),
-        #  TODO: ignore in function
+        ("def foo():\n a = 1", "def foo():\n a: Final = 1"),
+        ("def foo():\n a = 1  # auto-typing-final: ignore", "def foo():\n a = 1  # auto-typing-final: ignore"),
     ],
 )
 def test_ignore_comment(before: str, after: str) -> None:
