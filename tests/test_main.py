@@ -911,6 +911,21 @@ import typing
 MY_CONSTANT: typing.Final[int] = 42
 MY_OTHER_CONSTANT: typing.Final = "hello"
 """,
+        # Test local vars with same name as global vars
+        """
+MY_CONSTANT = 42
+
+def foo():
+    MY_CONSTANT = 1
+    local_var = 2
+---
+import typing
+MY_CONSTANT: typing.Final = 42
+
+def foo():
+    MY_CONSTANT: typing.Final = 1
+    local_var: typing.Final = 2
+""",
     ],
 )
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:
@@ -939,6 +954,21 @@ global_var = 123
 
 def foo():
     local_var: typing.Final = 1
+""",
+        # Test --ignore-global-vars with local vars same name as global
+        """
+MY_CONSTANT = 42
+
+def foo():
+    MY_CONSTANT = 1
+    local_var = 2
+---
+import typing
+MY_CONSTANT = 42
+
+def foo():
+    MY_CONSTANT: typing.Final = 1
+    local_var: typing.Final = 2
 """,
     ],
 )

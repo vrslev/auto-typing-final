@@ -99,36 +99,30 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
             return OtherDefinition(node)
 
 
+def _should_skip_global_variable(definition: Definition, ignore_global_vars: bool) -> bool:
+    if ignore_global_vars:
+        return True
+    if isinstance(definition, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)):
+        return not _is_upper_case_global_constant(definition.left)
+    return True
+
+
 def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool = False) -> Operation:
-    value_definitions: Final[list[Definition]] = []
-    has_node_inside_loop = False
-    has_global_scope_definition = False
-
-    for node in nodes:
-        if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
-            has_node_inside_loop = True
-
-        if _is_global_scope_definition(node):
-            has_global_scope_definition = True
-
-        value_definitions.append(_make_definition_from_definition_node(node))
+    value_definitions: Final[list[Definition]] = [_make_definition_from_definition_node(node) for node in nodes]
+    
+    has_node_inside_loop = any(
+        any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors())
+        for node in nodes
+    )
+    
+    has_global_scope_definition = any(_is_global_scope_definition(node) for node in nodes)
 
     if has_node_inside_loop:
         return RemoveFinal(value_definitions)
 
-    # TODO: fix spagetttty code
-    # Check if we should skip global variables
-    if has_global_scope_definition:
-        if ignore_global_vars:
-            # --ignore-global-vars flag: skip all global variables (preserve old behavior)
+    if has_global_scope_definition and value_definitions:
+        if _should_skip_global_variable(value_definitions[0], ignore_global_vars):
             return RemoveFinal(value_definitions)
-        else:
-            # Default behavior: only process UPPER_CASE global constants
-            if value_definitions:
-                first_def = value_definitions[0]
-                if isinstance(first_def, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)):
-                    if not _is_upper_case_global_constant(first_def.left):
-                        return RemoveFinal(value_definitions)
 
     match value_definitions:
         case [definition]:
