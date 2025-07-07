@@ -1,3 +1,4 @@
+import pathlib
 from typing import Final
 
 import pytest
@@ -41,6 +42,12 @@ def foo():
     )
 
 
+def test_ignore_comment_global_vars_disabled(import_config: ImportConfig) -> None:
+    case: Final = f"{import_config.import_text}\nVAR_WITH_COMMENT = 1 # some comment"
+    result: Final = transform_file_content(case, import_config=import_config, ignore_global_vars=True)
+    assert result == case
+
+
 class TestWithMdTests:
     @pytest.mark.parametrize("case", parse_md_test_cases("function_vars.md"))
     def test_function_vars(self, case: str, import_config: ImportConfig, ignore_global_vars: bool) -> None:
@@ -79,8 +86,8 @@ class TestWithMdTests:
         )
         assert_md_test_case_transformed(test_case=case, transformed_result=result, import_config=import_config)
 
-
-def test_ignore_comment_global_vars_disabled(import_config: ImportConfig) -> None:
-    case: Final = f"{import_config.import_text}\nVAR_WITH_COMMENT = 1 # some comment"
-    result: Final = transform_file_content(case, import_config=import_config, ignore_global_vars=True)
-    assert result == case
+    def test_all_md_tests_are_used(self) -> None:
+        current_file_source: Final = pathlib.Path(__file__).read_text(encoding="utf-8")
+        # README.md is ignored by mentioning it (so meta!1)
+        for one_md_test in (pathlib.Path(__file__).parent / "md_tests").glob("*.md"):
+            assert one_md_test.name in current_file_source
