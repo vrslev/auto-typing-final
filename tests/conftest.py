@@ -18,7 +18,7 @@ def ignore_global_vars(request: pytest.FixtureRequest) -> bool:
 
 
 def parse_md_test_cases(file_name: str) -> list[str]:
-    md_test = (pathlib.Path(__file__).parent / "md_tests" / file_name).read_text(encoding="utf-8")
+    md_test = (pathlib.Path(__file__).parent.parent / "docs" / file_name).read_text(encoding="utf-8")
     test_cases: Final = []
     while True:
         index_before = md_test.find("```python")
