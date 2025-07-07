@@ -64,10 +64,7 @@ def foo():
 def foo():
 {after_function_content}
 """
-    assert (
-        transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=False)
-        == after_source.strip()
-    )
+    assert transform_file_content(source.strip(), import_config=import_config) == after_source.strip()
 
 
 @pytest.mark.parametrize(
@@ -604,55 +601,9 @@ def test_transform_file_content(case: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
     assert (
-        transform_file_content(
-            f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=False
-        )
+        transform_file_content(f"{import_config.import_text}\n" + before.strip(), import_config=import_config)
         == f"{import_config.import_text}\n" + after.strip()
     )
-
-
-@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
-@pytest.mark.parametrize(
-    ("before", "after"),
-    [
-        # TODO: add docs about this  # noqa: FIX002, TD002, TD003
-        # TODO: add in test below (not current test) we don't touch variables that are changed in functions  # noqa: FIX002, TD002, TD003
-        # TODO: check that it doesn't override imports
-        # Add annotation
-        ("FIRST_FIRST = 1", "FIRST_FIRST: {} = 1"),
-        # Remove annotation
-        ("FIRST_FIRST: {} = 1\nFIRST_FIRST = 1", "FIRST_FIRST = 1\nFIRST_FIRST = 1"),
-        ("FIRST_FIRST = 1\nFIRST_FIRST = 1", "FIRST_FIRST = 1\nFIRST_FIRST = 1"),
-        # Ignore
-        ("FIRST = 1", "FIRST = 1"),
-        ("FIRST: {} = 1", "FIRST: {} = 1"),
-        ("FirstFirst = 1", "FirstFirst = 1"),
-        ("FirstFirst: {} = 1", "FirstFirst: {} = 1"),
-        ("First_First = 1", "First_First = 1"),
-        ("FIRST_FIRSt = 1", "FIRST_FIRSt = 1"),
-        ("first_first = 1", "first_first = 1"),
-        ("first = 1", "first = 1"),
-    ],
-)
-def test_global_constants_works(import_config: ImportConfig, before: str, after: str) -> None:
-    before_source: Final = f"""
-{import_config.import_text}
-{before.format(import_config.value)}
-"""
-    after_source: Final = f"""
-{import_config.import_text}
-{after.format(import_config.value)}
-"""
-    assert (
-        transform_file_content(before_source.strip(), import_config=import_config, ignore_global_vars=False)
-        == after_source.strip()
-    )
-
-
-@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
-def test_global_constants_disabled(import_config: ImportConfig) -> None:
-    text = "FIRST_FIRST = 1"
-    assert transform_file_content(text, import_config=import_config, ignore_global_vars=True) == text
 
 
 @pytest.mark.parametrize(
@@ -713,9 +664,7 @@ def f():
 def test_add_import(case: str) -> None:
     before, _, after = case.partition("---")
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
-    assert (
-        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False) == after.strip()
-    )
+    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
 
 
 @pytest.mark.parametrize(
@@ -898,6 +847,4 @@ def f():
 )
 def test_different_styles(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
-    assert (
-        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False) == after.strip()
-    )
+    assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
