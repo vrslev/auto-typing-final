@@ -13,8 +13,6 @@ from auto_typing_final.finder import (
     has_global_identifier_with_name,
 )
 
-IGNORED_DEFINITION_PATTERNS: typing.Final = {"TypeVar", "ParamSpec"}
-
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ImportConfig:
@@ -28,6 +26,7 @@ IMPORT_STYLES_TO_IMPORT_CONFIGS: Final[dict[ImportStyle, ImportConfig]] = {
     "typing-final": ImportConfig(value="typing.Final", import_text="import typing", import_identifier="typing"),
     "final": ImportConfig(value="Final", import_text="from typing import Final", import_identifier="Final"),
 }
+IGNORED_DEFINITION_PATTERNS: typing.Final = {"TypeVar", "ParamSpec"}
 
 
 @dataclass(frozen=True, slots=True)
