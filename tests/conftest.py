@@ -40,13 +40,14 @@ def assert_md_test_case_transformed(*, test_case: str, transformed_result: str, 
         strict=True,
     ):
         if "# insert" in one_before_line:
-            assert import_config.import_identifier in one_after_line
+            assert import_config.value in one_after_line
         elif "# remove" in one_before_line:
             assert "Final" in one_before_line
-            assert import_config.import_text not in one_after_line
+            assert import_config.value not in one_after_line
         else:
             assert one_before_line == one_after_line
 
-def parse_before_after_test_case(test_case: str) ->tuple[str, str]:
+
+def parse_before_after_test_case(test_case: str) -> tuple[str, str]:
     before, _, after = test_case.partition("---")
     return before.strip(), after.strip()

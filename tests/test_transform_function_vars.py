@@ -4,49 +4,20 @@ import pytest
 
 from auto_typing_final.main import transform_file_content
 from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportConfig
+from tests.conftest import assert_md_test_case_transformed, parse_md_test_cases
 
 
 @pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
 @pytest.mark.parametrize(
     ("before", "after"),
     [
-        # Add annotation
-        ("a: int", "a: int"),
-        ("a = 1", "a: {} = 1"),
-        ("a: {} = 1", "a: {} = 1"),
-        ("a: int = 1", "a: {}[int] = 1"),
         ("a: typing.Annotated[int, 'hello'] = 1", "a: {}[typing.Annotated[int, 'hello']] = 1"),
         ("a: list[int] = 1", "a: {}[list[int]] = 1"),
-        ("b = 1\na = 2\nb = 3", "b = 1\na: {} = 2\nb = 3"),
-        ("b = 1\nb = 2\na = 3", "b = 1\nb = 2\na: {} = 3"),
-        ("a = 1\nb = 2\nb = 3", "a: {} = 1\nb = 2\nb = 3"),
-        ("a = 1\na = 2\nb: int", "a = 1\na = 2\nb: int"),
-        ("a = 1\na: int", "a = 1\na: int"),
-        ("a: int\na = 1", "a: int\na = 1"),
-        ("a: {}\na = 1", "a: {}\na = 1"),
-        ("a: int\na: int = 1", "a: int\na: int = 1"),
-        ("a, b = 1, 2", "a, b = 1, 2"),
-        ("(a, b) = 1, 2", "(a, b) = 1, 2"),
-        ("(a, b) = t()", "(a, b) = t()"),
-        ("[a, b] = t()", "[a, b] = t()"),
-        ("[a] = t()", "[a] = t()"),
-        ("a = b = 1", "a = b = 1"),
-        ("a = b = c = 1", "a = b = c = 1"),
-        ("a = (b := 1)", "a: {} = (b := 1)"),
-        # Remove annotation
         ("a = 1\na: {}[int] = 2", "a = 1\na: int = 2"),
-        ("a = 1\na: {} = 2", "a = 1\na = 2"),
-        ("a = 1\na: {}=2", "a = 1\na = 2"),
-        ("a = 1\na =2", "a = 1\na =2"),
-        ("a: int = 1\na: {}[int] = 2", "a: int = 1\na: int = 2"),
-        ("a: int = 1\na: {} = 2", "a: int = 1\na = 2"),
-        ("a: {} = 1\na: {} = 2\na = 3\na: int = 4", "a = 1\na = 2\na = 3\na: int = 4"),
-        ("a: {} = b = 1", "a: {} = b = 1"),
-        # Both
         ("a = 1\nb = 2\nb: {}[int] = 3", "a: {} = 1\nb = 2\nb: int = 3"),
     ],
 )
-def test_variants(import_config: ImportConfig, before: str, after: str) -> None:
+def test_tricky_annotations_exact_match(import_config: ImportConfig, before: str, after: str) -> None:
     source_function_content: Final = "\n".join(
         f"    {line.format(import_config.value)}" for line in before.splitlines()
     )
@@ -68,6 +39,14 @@ def foo():
         transform_file_content(source.strip(), import_config=import_config, ignore_global_vars=False)
         == after_source.strip()
     )
+
+
+@pytest.mark.parametrize("case", parse_md_test_cases("function_vars.md"))
+def test_function_vars(case: str, import_config: ImportConfig, ignore_global_vars: bool) -> None:
+    result: Final = transform_file_content(
+        f"{import_config.import_text}\n{case}", import_config=import_config, ignore_global_vars=ignore_global_vars
+    )
+    assert_md_test_case_transformed(test_case=case, transformed_result=result, import_config=import_config)
 
 
 @pytest.mark.parametrize(
