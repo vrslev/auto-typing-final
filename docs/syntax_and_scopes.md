@@ -1,4 +1,4 @@
-# Assigning a Variable Inside a Function
+### Assigning a Variable Inside a Function
 ```python
 a = 1
 

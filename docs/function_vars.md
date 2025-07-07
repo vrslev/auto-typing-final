@@ -1,4 +1,4 @@
-# Variable Declaration with Type Annotation
+### Variable Declaration with Type Annotation
 ```python
 def foo():
     a: int

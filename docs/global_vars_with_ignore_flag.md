@@ -1,4 +1,4 @@
-# Global Constants and Variable Declaration
+### Global Constants and Variable Declaration
 
 ```python
 MY_CONSTANT = 42
