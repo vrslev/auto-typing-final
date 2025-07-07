@@ -111,6 +111,11 @@ MY_CONSTANT = 42
 from foo import MY_CONSTANT
 MY_CONSTANT = 42
 """,
+        """
+a: typing.Final = 1
+---
+a: typing.Final = 1
+""",
     ],
 )
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:

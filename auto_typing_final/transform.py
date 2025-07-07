@@ -256,9 +256,9 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
                 if node.text() != new_text
             ]
 
-            if (operation_type := type(operation)) == AddFinal and edits:
-                has_added_final = True
-
+            if (operation_type := type(operation)) == RemoveFinal or not edits:
+                continue
+            has_added_final = True
             replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
     return MakeReplacementsResult(
