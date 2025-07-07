@@ -49,6 +49,14 @@ def test_function_vars(case: str, import_config: ImportConfig, ignore_global_var
     assert_md_test_case_transformed(test_case=case, transformed_result=result, import_config=import_config)
 
 
+@pytest.mark.parametrize("case", parse_md_test_cases("syntax_and_scopes.md"))
+def test_syntax_and_scopes(case: str, import_config: ImportConfig, ignore_global_vars: bool) -> None:
+    result: Final = transform_file_content(
+        f"{import_config.import_text}\n{case}", import_config=import_config, ignore_global_vars=ignore_global_vars
+    )
+    assert_md_test_case_transformed(test_case=case, transformed_result=result, import_config=import_config)
+
+
 @pytest.mark.parametrize(
     "case",
     [
