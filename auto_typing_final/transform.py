@@ -64,7 +64,7 @@ Operation = AddFinal | RemoveFinal
 
 
 def _is_upper_case_global_constant(name: str) -> bool:
-    return name.isupper() and len(name) > 1
+    return name.isupper() and len(name.split("_")) > 1
 
 
 def _is_global_scope_definition(node: SgNode) -> bool:
