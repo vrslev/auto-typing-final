@@ -61,11 +61,12 @@ def f():
 """,
     ],
 )
-def test_add_import(case: str) -> None:
+def test_add_import(case: str, ignore_global_vars: bool) -> None:
     before, _, after = case.partition("---")
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     assert (
-        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False) == after.strip()
+        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=ignore_global_vars)
+        == after.strip()
     )
 
 
@@ -247,8 +248,9 @@ def f():
         ),
     ],
 )
-def test_different_import_styles(case: str, import_config: ImportConfig) -> None:
+def test_different_import_styles(case: str, import_config: ImportConfig, ignore_global_vars: bool) -> None:
     before, _, after = case.partition("---")
     assert (
-        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False) == after.strip()
+        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=ignore_global_vars)
+        == after.strip()
     )

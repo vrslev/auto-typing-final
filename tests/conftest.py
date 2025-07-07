@@ -41,3 +41,8 @@ def assert_md_test_case_transformed(*, test_case: str, transformed_result: str, 
 @pytest.fixture(params=IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
 def import_config(request: pytest.FixtureRequest) -> ImportConfig:
     return typing.cast(ImportConfig, request.param)
+
+
+@pytest.fixture(params=[True, False])
+def ignore_global_vars(request: pytest.FixtureRequest) -> bool:
+    return typing.cast(bool, request.param)
