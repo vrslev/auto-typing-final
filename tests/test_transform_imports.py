@@ -1,9 +1,8 @@
-from typing import Final
-
 import pytest
 
 from auto_typing_final.main import transform_file_content
 from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportConfig
+from tests.conftest import parse_before_after_test_case
 
 
 @pytest.mark.parametrize(
@@ -62,11 +61,12 @@ def f():
     ],
 )
 def test_add_import(case: str, ignore_global_vars: bool) -> None:
-    before, _, after = case.partition("---")
-    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
+    before, after = parse_before_after_test_case(case)
     assert (
-        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=ignore_global_vars)
-        == after.strip()
+        transform_file_content(
+            before, import_config=IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"], ignore_global_vars=ignore_global_vars
+        )
+        == after
     )
 
 
@@ -249,8 +249,5 @@ def f():
     ],
 )
 def test_different_import_styles(case: str, import_config: ImportConfig, ignore_global_vars: bool) -> None:
-    before, _, after = case.partition("---")
-    assert (
-        transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=ignore_global_vars)
-        == after.strip()
-    )
+    before, after = parse_before_after_test_case(case)
+    assert transform_file_content(before, import_config=import_config, ignore_global_vars=ignore_global_vars) == after

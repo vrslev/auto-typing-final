@@ -7,6 +7,16 @@ import pytest
 from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportConfig
 
 
+@pytest.fixture(params=IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
+def import_config(request: pytest.FixtureRequest) -> ImportConfig:
+    return typing.cast(ImportConfig, request.param)
+
+
+@pytest.fixture(params=[True, False])
+def ignore_global_vars(request: pytest.FixtureRequest) -> bool:
+    return typing.cast(bool, request.param)
+
+
 def parse_md_test_cases(file_name: str) -> list[str]:
     md_test = (pathlib.Path(__file__).parent / "md_tests" / file_name).read_text()
     test_cases: Final = []
@@ -37,12 +47,6 @@ def assert_md_test_case_transformed(*, test_case: str, transformed_result: str, 
         else:
             assert one_before_line == one_after_line
 
-
-@pytest.fixture(params=IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
-def import_config(request: pytest.FixtureRequest) -> ImportConfig:
-    return typing.cast(ImportConfig, request.param)
-
-
-@pytest.fixture(params=[True, False])
-def ignore_global_vars(request: pytest.FixtureRequest) -> bool:
-    return typing.cast(bool, request.param)
+def parse_before_after_test_case(test_case: str) ->tuple[str, str]:
+    before, _, after = test_case.partition("---")
+    return before.strip(), after.strip()
