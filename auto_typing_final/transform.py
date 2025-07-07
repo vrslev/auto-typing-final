@@ -9,7 +9,7 @@ from auto_typing_final.finder import (
     find_all_definitions_in_functions,
     find_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
-    find_global_assignments,
+    find_global_definitions,
 )
 
 
@@ -72,18 +72,6 @@ def _is_global_scope_definition(node: SgNode) -> bool:
         if ancestor.kind() == "function_definition":
             return False
     return True
-
-
-# TODO: move to finder.py
-def _find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
-    from collections import defaultdict
-
-    definitions_by_name = defaultdict(list)
-
-    for identifier_name, definition_node in find_global_assignments(root):
-        definitions_by_name[identifier_name].append(definition_node)
-
-    return definitions_by_name.values()
 
 
 def _make_definition_from_definition_node(node: SgNode) -> Definition:
@@ -261,7 +249,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
 
     # Process global definitions (default behavior, unless --ignore-global-vars is used)
     if not ignore_global_vars:
-        for current_definitions in _find_global_definitions(root):
+        for current_definitions in find_global_definitions(root):
             operation = _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)
             edits = [
                 Edit(node=node, new_text=new_text)

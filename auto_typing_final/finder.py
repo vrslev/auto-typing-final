@@ -178,6 +178,17 @@ def find_global_assignments(root: SgNode) -> Iterable[tuple[str, SgNode]]:
             yield identifier.text(), definition_node
 
 
+def find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
+    from collections import defaultdict
+    
+    definitions_by_name = defaultdict(list)
+    
+    for identifier_name, definition_node in find_global_assignments(root):
+        definitions_by_name[identifier_name].append(definition_node)
+    
+    return definitions_by_name.values()
+
+
 @dataclass(slots=True, kw_only=True)
 class ImportsResult:
     module_aliases: set[str]
