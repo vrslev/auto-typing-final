@@ -64,13 +64,10 @@ Operation = AddFinal | RemoveFinal
 
 
 def _is_upper_case_global_constant(name: str) -> bool:
-    # TODO: remove docstrings
-    """Check if a variable name follows the UPPER_CASE convention for global constants."""
     return name.isupper() and len(name) > 1
 
 
 def _is_global_scope_definition(node: SgNode) -> bool:
-    """Check if a definition node is in global scope (not inside any function)."""
     for ancestor in node.ancestors():
         if ancestor.kind() == "function_definition":
             return False
@@ -79,7 +76,6 @@ def _is_global_scope_definition(node: SgNode) -> bool:
 
 # TODO: move to finder.py
 def _find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
-    """Find all global scope definitions grouped by variable name."""
     from collections import defaultdict
 
     definitions_by_name = defaultdict(list)
@@ -135,11 +131,11 @@ def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_glo
     # TODO: fix spagetttty code
     # Check if we should skip global variables
     if has_global_scope_definition:
-        if not ignore_global_vars:
-            # Default behavior: skip all global variables
+        if ignore_global_vars:
+            # --ignore-global-vars flag: skip all global variables (preserve old behavior)
             return RemoveFinal(value_definitions)
         else:
-            # ignore_global_vars is True: only process UPPER_CASE global constants
+            # Default behavior: only process UPPER_CASE global constants
             if value_definitions:
                 first_def = value_definitions[0]
                 if isinstance(first_def, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)):
@@ -263,7 +259,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
 
         replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
-    # Process global definitions (new behavior for --ignore-global-vars)
+    # Process global definitions (default behavior, unless --ignore-global-vars is used)
     if not ignore_global_vars:
         for current_definitions in _find_global_definitions(root):
             operation = _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)

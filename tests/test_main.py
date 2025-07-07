@@ -913,18 +913,17 @@ MY_OTHER_CONSTANT: typing.Final = "hello"
 """,
     ],
 )
-def test_ignore_global_vars_flag(case: str) -> None:
-    """Test the flag functionality."""
+def test_default_behavior_processes_upper_case_globals(case: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
-    result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
+    result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=False)
     assert result == after.strip()
 
 
 @pytest.mark.parametrize(
     "case",
     [
-        # Test behavior where ignore_global_vars=True - should ignore all global variables
+        # Test --ignore-global-vars flag: should ignore all global variables (preserve old behavior)
         """
 MY_CONSTANT = 42
 MY_OTHER_CONSTANT = "hello"
@@ -943,8 +942,7 @@ def foo():
 """,
     ],
 )
-def test_default_behavior_still_ignores_globals(case: str) -> None:
-    """Test that default behavior (ignore_global_vars=False) still ignores all global variables."""
+def test_ignore_global_vars_flag_preserves_old_behavior(case: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["typing-final"]
     before, _, after = case.partition("---")
     result = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)

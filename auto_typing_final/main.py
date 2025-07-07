@@ -46,7 +46,6 @@ def main() -> int:
     parser.add_argument("files", type=Path, nargs="*", default=[Path()])
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--import-style", type=str, choices=get_args(ImportStyle), default="typing-final")
-    # TODO: update package.json and lsp.py as well
     parser.add_argument("--ignore-global-vars", action="store_true", help="Ignore global variables when applying Final annotations")
 
     args: Final = parser.parse_args()
