@@ -845,7 +845,7 @@ def f():
         ),
     ],
 )
-def test_different_styles(case: str, import_config: ImportConfig) -> None:
+def test_different_import_styles(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
 
