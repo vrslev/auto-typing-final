@@ -99,7 +99,9 @@ class Service:
 
     def make_diagnostics(self, source: str) -> list[lsp.Diagnostic]:
         replacement_result: Final = make_replacements(
-            root=SgRoot(source, "python").root(), import_config=self.import_config, ignore_global_vars=self.ignore_global_vars
+            root=SgRoot(source, "python").root(),
+            import_config=self.import_config,
+            ignore_global_vars=self.ignore_global_vars,
         )
         result: Final = []
 
@@ -133,7 +135,9 @@ class Service:
 
     def make_fix_all_text_edits(self, source: str) -> list[lsp.TextEdit | lsp.AnnotatedTextEdit]:
         replacement_result: Final = make_replacements(
-            root=SgRoot(source, "python").root(), import_config=self.import_config, ignore_global_vars=self.ignore_global_vars
+            root=SgRoot(source, "python").root(),
+            import_config=self.import_config,
+            ignore_global_vars=self.ignore_global_vars,
         )
         result: Final[list[lsp.TextEdit | lsp.AnnotatedTextEdit]] = [
             make_text_edit(edit) for replacement in replacement_result.replacements for edit in replacement.edits

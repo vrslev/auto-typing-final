@@ -63,13 +63,6 @@ class RemoveFinal:
 Operation = AddFinal | RemoveFinal
 
 
-def _is_global_scope_definition(node: SgNode) -> bool:
-    for ancestor in node.ancestors():
-        if ancestor.kind() == "function_definition":
-            return False
-    return True
-
-
 def _make_definition_from_definition_node(node: SgNode) -> Definition:
     if node.kind() != "assignment":
         return OtherDefinition(node)
@@ -102,6 +95,13 @@ def _is_upper_case_global_constant(name: str) -> bool:
 def _should_skip_global_variable(definition: Definition) -> bool:
     if isinstance(definition, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)):
         return not _is_upper_case_global_constant(definition.left)
+    return True
+
+
+def _is_global_scope_definition(node: SgNode) -> bool:
+    for ancestor in node.ancestors():
+        if ancestor.kind() == "function_definition":
+            return False
     return True
 
 
@@ -219,14 +219,11 @@ class MakeReplacementsResult:
     import_text: str | None
 
 
-def make_replacements(
-    root: SgNode, import_config: ImportConfig, ignore_global_vars: bool = False
-) -> MakeReplacementsResult:
+def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
 
-    # Process function definitions (existing behavior)
     for current_definitions in find_all_definitions_in_functions(root):
         operation = _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)
         edits = [
@@ -245,7 +242,6 @@ def make_replacements(
 
         replacements.append(Replacement(operation_type=operation_type, edits=edits))
 
-    # Process global definitions (default behavior, unless --ignore-global-vars is used)
     if not ignore_global_vars:
         for current_definitions in find_global_definitions(root):
             operation = _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)
