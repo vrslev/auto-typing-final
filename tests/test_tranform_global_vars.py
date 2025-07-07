@@ -39,8 +39,9 @@ B = "hello"
 DEBUG = True
 VERSION = "1.0"
 ---
-DEBUG = True
-VERSION = "1.0"
+import typing
+DEBUG: typing.Final = True
+VERSION: typing.Final = "1.0"
 """,
         # Test mixed case - function variables should still work
         """
