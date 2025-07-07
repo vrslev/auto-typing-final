@@ -1,9 +1,10 @@
+import pathlib
 from typing import Final
 
 import pytest
 
 from auto_typing_final.main import transform_file_content
-from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS
+from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportConfig
 
 
 @pytest.mark.parametrize(
@@ -204,3 +205,36 @@ def test_ignore_global_vars_flag_preserves_old_behavior(case: str) -> None:
     before, _, after = case.partition("---")
     result: Final = transform_file_content(before.strip(), import_config=import_config, ignore_global_vars=True)
     assert result == after.strip()
+
+
+it = (pathlib.Path(__file__).parent / "md_tests" / "global_vars.md").read_text()
+cases = []
+while True:
+    index_before = it.find("```python")
+    if index_before == -1:
+        break
+    before = it[index_before:].removeprefix("```python")
+    index_after = before.find("```")
+    if index_after == -1:
+        break
+    cases.append(before[:index_after].strip())
+    it = before[index_after:].removeprefix("```")
+
+
+@pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
+@pytest.mark.parametrize("case", cases)
+def test_new(case: str, import_config: ImportConfig) -> None:
+    result: Final = transform_file_content(
+        f"{import_config.import_text}\n{case}", import_config=import_config, ignore_global_vars=False
+    )
+
+    for one_before_line, one_after_line in zip(
+        case.splitlines(), result.removeprefix(import_config.import_text + "\n").splitlines(), strict=True
+    ):
+        if "# insert" in one_before_line:
+            assert import_config.import_identifier in one_after_line
+        elif "# remove" in one_before_line:
+            assert "Final" in one_before_line
+            assert import_config.import_text not in one_after_line
+        else:
+            assert one_before_line == one_after_line
