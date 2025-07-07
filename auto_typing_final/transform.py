@@ -238,6 +238,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
             has_added_final = True
 
         replacements.append(Replacement(operation_type=operation_type, edits=edits))
+
     if not ignore_global_vars:
         for current_definitions in find_global_definitions(root):
             if (
