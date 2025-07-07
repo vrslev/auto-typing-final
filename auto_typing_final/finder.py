@@ -179,13 +179,15 @@ def find_global_assignments(root: SgNode) -> Iterable[tuple[str, SgNode]]:
 
 
 def find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
-    from collections import defaultdict
-    
     definitions_by_name = defaultdict(list)
-    
+
     for identifier_name, definition_node in find_global_assignments(root):
         definitions_by_name[identifier_name].append(definition_node)
-    
+
+    for one_node in root.find_all({"rule": {"any": [{"kind": "global_statement"}]}}):
+        for one_identifier in _find_identifiers_in_children(one_node):
+            definitions_by_name[one_identifier.text()].append(one_node)
+
     return definitions_by_name.values()
 
 

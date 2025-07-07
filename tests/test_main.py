@@ -848,7 +848,10 @@ def f():
 def test_different_styles(case: str, import_config: ImportConfig) -> None:
     before, _, after = case.partition("---")
     assert transform_file_content(before.strip(), import_config=import_config) == after.strip()
+
+
 # TODO: test cases where local var has same name as global var
+
 
 @pytest.mark.parametrize(
     "case",
@@ -933,6 +936,20 @@ MY_CONSTANT: typing.Final = 42
 def foo():
     MY_CONSTANT: typing.Final = 1
     local_var: typing.Final = 2
+""",
+        # Test local vars with same name as global vars
+        """
+MY_CONSTANT = 42
+
+def foo():
+    global MY_CONSTANT
+    MY_CONSTANT = 1
+---
+MY_CONSTANT = 42
+
+def foo():
+    global MY_CONSTANT
+    MY_CONSTANT = 1
 """,
     ],
 )
