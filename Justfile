@@ -5,7 +5,7 @@ run *args:
     uv run auto-typing-final {{ args }}
 
 install:
-    uv lock
+    uv lock --upgrade
     uv sync
 
 lint:
