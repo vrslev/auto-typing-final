@@ -123,9 +123,9 @@ def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_glo
         return RemoveFinal(value_definitions)
 
     if (
-        has_global_scope_definition
+        not ignore_global_vars
+        and has_global_scope_definition
         and value_definitions
-        and not ignore_global_vars
         and not _should_skip_global_variable(value_definitions[0])
     ):
         return RemoveFinal(value_definitions)
