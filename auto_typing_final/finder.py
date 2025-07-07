@@ -28,6 +28,13 @@ DEFINITION_RULE: Final[Config] = {
         ]
     }
 }
+GLOBAL_STATEMENTS_RULE: Final[Config] = {
+    "rule": {
+        "any": [
+            {"kind": "global_statement"},
+        ]
+    }
+}
 IGNORE_COMMENT_TEXT: Final = "# auto-typing-final: ignore"
 
 
@@ -190,7 +197,7 @@ def find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
     for identifier, definition_node in _find_identifiers_in_current_scope(root):
         definitions_by_name[identifier.text()].append(definition_node)
 
-    for one_node in root.find_all({"rule": {"any": [{"kind": "global_statement"}]}}):
+    for one_node in root.find_all(GLOBAL_STATEMENTS_RULE):
         for one_identifier in _find_identifiers_in_children(one_node):
             definitions_by_name[one_identifier.text()].append(one_node)
 
