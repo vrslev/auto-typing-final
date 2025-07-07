@@ -7,9 +7,9 @@ from ast_grep_py import SgNode
 from auto_typing_final.finder import (
     ImportsResult,
     find_all_definitions_in_functions,
+    find_global_definitions,
     find_imports_of_identifier_in_scope,
     has_global_identifier_with_name,
-    find_global_definitions,
 )
 
 
@@ -108,14 +108,18 @@ def _should_skip_global_variable(definition: Definition, ignore_global_vars: boo
 
 
 def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool = False) -> Operation:
-    value_definitions: Final[list[Definition]] = [_make_definition_from_definition_node(node) for node in nodes]
-    
-    has_node_inside_loop = any(
-        any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors())
-        for node in nodes
-    )
-    
-    has_global_scope_definition = any(_is_global_scope_definition(node) for node in nodes)
+    value_definitions: Final[list[Definition]] = []
+    has_node_inside_loop = False
+    has_global_scope_definition = False
+
+    for node in nodes:
+        if any(ancestor.kind() in {"for_statement", "while_statement"} for ancestor in node.ancestors()):
+            has_node_inside_loop = True
+
+        if _is_global_scope_definition(node):
+            has_global_scope_definition = True
+
+        value_definitions.append(_make_definition_from_definition_node(node))
 
     if has_node_inside_loop:
         return RemoveFinal(value_definitions)
@@ -217,7 +221,9 @@ class MakeReplacementsResult:
     import_text: str | None
 
 
-def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool = False) -> MakeReplacementsResult:
+def make_replacements(
+    root: SgNode, import_config: ImportConfig, ignore_global_vars: bool = False
+) -> MakeReplacementsResult:
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
