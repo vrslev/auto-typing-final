@@ -870,13 +870,21 @@ myVar = "hello"
 global_var = 42
 myVar = "hello"
 """,
-        # Test single letter constants are ignored  # TODO: also ignore cases where not only one letter, but one word.
+        # Test single letter constants are ignored
         """
 A = 42
 B = "hello"
 ---
 A = 42
 B = "hello"
+""",
+        # Test single word constants are ignored (like DEBUG, VERSION)
+        """
+DEBUG = True
+VERSION = "1.0"
+---
+DEBUG = True
+VERSION = "1.0"
 """,
         # Test mixed case - function variables should still work
         """
