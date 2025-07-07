@@ -184,17 +184,11 @@ def has_global_identifier_with_name(root: SgNode, name: str) -> bool:
     return name in {identifier.text() for identifier, _ in _find_identifiers_in_current_scope(root)}
 
 
-def find_global_assignments(root: SgNode) -> Iterable[tuple[str, SgNode]]:
-    for identifier, definition_node in _find_identifiers_in_current_scope(root):
-        if definition_node.kind() == "assignment":
-            yield identifier.text(), definition_node
-
-
 def find_global_definitions(root: SgNode) -> Iterable[list[SgNode]]:
     definitions_by_name = defaultdict(list)
 
-    for identifier_name, definition_node in find_global_assignments(root):
-        definitions_by_name[identifier_name].append(definition_node)
+    for identifier, definition_node in _find_identifiers_in_current_scope(root):
+        definitions_by_name[identifier.text()].append(definition_node)
 
     for one_node in root.find_all({"rule": {"any": [{"kind": "global_statement"}]}}):
         for one_identifier in _find_identifiers_in_children(one_node):

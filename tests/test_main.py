@@ -948,6 +948,13 @@ def foo():
     global MY_CONSTANT
     MY_CONSTANT = 1
 """,
+        """
+from foo import MY_CONSTANT
+MY_CONSTANT = 42
+---
+from foo import MY_CONSTANT
+MY_CONSTANT = 42
+""",
     ],
 )
 def test_default_behavior_processes_upper_case_globals(case: str) -> None:
@@ -1013,7 +1020,7 @@ def test_ignore_global_vars_flag_preserves_old_behavior(case: str) -> None:
         ),
     ],
 )
-def test_ignore_comment(before, after) -> None:
+def test_ignore_comment(before: str, after: str) -> None:
     import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS["final"]
     result = transform_file_content(
         f"{import_config.import_text}\n" + before.strip(), import_config=import_config, ignore_global_vars=False
