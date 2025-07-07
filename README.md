@@ -14,10 +14,10 @@ Auto-fixer for Python code that adds `typing.Final` annotation to variable assig
 
 Basically, this, but handles different operations (like usage of `nonlocal`, augmented assignments: `+=`, etc) as well.
 
-- Keeps mypy happy.
+- Keeps type checker happy.
 - Adds global import if it's not imported yet (`import typing`/`from typing import Final`).
 - Inspects one file at a time.
-- Is careful with global variables: adds Final only for uppercase variables, ignores variable that are referenced in `global` statement inside functions in current file, and avoids removing Final when it already was set.
+- Is careful with global variables: adds Final only for uppercase variables, ignores variable that are referenced in `global` statement inside functions in current file, and avoids removing Final when it already was set ([docs](docs/global_vars_enabled.md)).
 - Ignores class variables: it is common to use `typing.ClassVar` instead of `typing.Final`.
 
 ## How To Use
@@ -59,7 +59,7 @@ auto-typing-final . --ignore-global-vars
 
 ### Ignore comment
 
-You can ignore variables by adding `# auto-typing-final: ignore` comment to the line.
+You can ignore variables by adding `# auto-typing-final: ignore` comment to the line ([docs](docs/ignore_comment.md)).
 
 ### VS Code Extension
 

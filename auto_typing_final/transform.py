@@ -97,7 +97,7 @@ def _should_skip_global_variable(definition: Definition) -> bool:
     )
 
 
-def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool) -> Operation | None:  # noqa: FBT001
+def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool) -> Operation | None:
     value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
     has_global_scope_definition = False
@@ -215,7 +215,7 @@ class MakeReplacementsResult:
     import_text: str | None
 
 
-def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:  # noqa: FBT001
+def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_vars: bool) -> MakeReplacementsResult:
     replacements: Final = []
     has_added_final = False
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")

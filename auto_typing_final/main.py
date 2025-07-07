@@ -10,7 +10,7 @@ from ast_grep_py import SgRoot
 from auto_typing_final.transform import IMPORT_STYLES_TO_IMPORT_CONFIGS, ImportConfig, ImportStyle, make_replacements
 
 
-def transform_file_content(source: str, import_config: ImportConfig, ignore_global_vars: bool) -> str:  # noqa: FBT001
+def transform_file_content(source: str, import_config: ImportConfig, ignore_global_vars: bool) -> str:
     root: Final = SgRoot(source, "python").root()
     result: Final = make_replacements(root, import_config, ignore_global_vars)
     new_text: Final = root.commit_edits(
