@@ -1,3 +1,5 @@
+Tests for variables inside functions.
+
 ### Variable Declaration with Type Annotation
 ```python
 def foo():

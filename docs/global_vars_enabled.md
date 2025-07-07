@@ -1,3 +1,5 @@
+Test for global variables for case when running **without** `ignore-global-vars`.
+
 ### Constants and Variable Assignments
 ```python
 MY_CONSTANT = 42  # insert

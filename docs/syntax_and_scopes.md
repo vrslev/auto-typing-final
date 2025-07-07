@@ -1,3 +1,5 @@
+Tests for various cases, syntax, scopes, etc. Probably should be split into separate files.
+
 ### Assigning a Variable Inside a Function
 ```python
 a = 1

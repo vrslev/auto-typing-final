@@ -1,3 +1,5 @@
+Test for global variables for case when running **with** `ignore-global-vars`.
+
 ### Global Constants and Variable Declaration
 
 ```python

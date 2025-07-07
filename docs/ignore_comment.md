@@ -1,3 +1,5 @@
+Tests for ignoring variables with `# auto-typing-final: ignore` comment.
+
 ### Variable with a comment
 ```python
 VAR_WITH_COMMENT = 1 # some comment  # insert
