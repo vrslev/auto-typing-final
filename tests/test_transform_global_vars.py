@@ -239,8 +239,8 @@ def assert_md_test_case_transformed(*, test_case: str, transformed_result: str, 
 
 
 @pytest.mark.parametrize("import_config", IMPORT_STYLES_TO_IMPORT_CONFIGS.values())
-@pytest.mark.parametrize("case", parse_md_test_cases("global_vars.md"))
-def test_new(case: str, import_config: ImportConfig) -> None:
+@pytest.mark.parametrize("case", parse_md_test_cases("global_vars_enabled.md"))
+def test_global_vars_enabled(case: str, import_config: ImportConfig) -> None:
     result: Final = transform_file_content(
         f"{import_config.import_text}\n{case}", import_config=import_config, ignore_global_vars=False
     )
