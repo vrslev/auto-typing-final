@@ -89,13 +89,13 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
 
 
 def _is_upper_case_global_constant(name: str) -> bool:
-    return name.isupper() and len(name.split("_")) > 1
+    return name.isupper() and len(name) > 1
 
 
 def _should_skip_global_variable(definition: Definition) -> bool:
     if isinstance(definition, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)):
-        return not _is_upper_case_global_constant(definition.left)
-    return True
+        return _is_upper_case_global_constant(definition.left)
+    return False
 
 
 def _is_global_scope_definition(node: SgNode) -> bool:
@@ -122,9 +122,13 @@ def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_glo
     if has_node_inside_loop:
         return RemoveFinal(value_definitions)
 
-    if (not ignore_global_vars) and has_global_scope_definition and value_definitions:
-        if _should_skip_global_variable(value_definitions[0]):
-            return RemoveFinal(value_definitions)
+    if (
+        has_global_scope_definition
+        and value_definitions
+        and not ignore_global_vars
+        and not _should_skip_global_variable(value_definitions[0])
+    ):
+        return RemoveFinal(value_definitions)
 
     match value_definitions:
         case [definition]:
