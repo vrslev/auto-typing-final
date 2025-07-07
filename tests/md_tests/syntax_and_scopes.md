@@ -9,7 +9,7 @@ def foo():
         a = 3  # insert
 ```
 
-# Using `global` to Modify a Global Variable
+### Using `global` to Modify a Global Variable
 ```python
 a = 1
 
@@ -18,14 +18,14 @@ def foo():
     a = 2
 ```
 
-# Reassigning a Variable After Importing
+### Reassigning a Variable After Importing
 ```python
 def foo():
     from b import bar
     baz = 1  # insert
 ```
 
-# Reassigning a Variable Imported with an Alias
+### Reassigning a Variable Imported with an Alias
 ```python
 def foo():
     from b import bar as baz
@@ -33,28 +33,28 @@ def foo():
     baz = 1
 ```
 
-# Reassigning a Variable Declared as Final
+### Reassigning a Variable Declared as Final
 ```python
 def foo():
     from b import bar
     bar: Final = 1  # remove
 ```
 
-# Reassigning an Imported Final Variable
+### Reassigning an Imported Final Variable
 ```python
 def foo():
     import bar
     bar: Final = 1  # remove
 ```
 
-# Reassigning a Final Variable with a Different Name
+### Reassigning a Final Variable with a Different Name
 ```python
 def foo():
     import baz
     bar: Final = 1
 ```
 
-# Reassigning Multiple Final Variables
+### Reassigning Multiple Final Variables
 ```python
 def foo():
     from b import bar, baz
@@ -62,7 +62,7 @@ def foo():
     baz = 1
 ```
 
-# Reassigning an Imported Final Variable and Another with an Alias
+### Reassigning an Imported Final Variable and Another with an Alias
 ```python
 def foo():
     from b import bar, baz as bazbaz
@@ -70,7 +70,7 @@ def foo():
     baz = 1  # insert
 ```
 
-# Reassigning a Dotted Import and an Alias
+### Reassigning a Dotted Import and an Alias
 ```python
 def foo():
     from b import d.bar, bazbaz as baz
@@ -78,7 +78,7 @@ def foo():
     baz = 1
 ```
 
-# Reassigning a Final Variable in a Parenthesized Import
+### Reassigning a Final Variable in a Parenthesized Import
 ```python
 def foo():
     from b import (bar, bazbaz)
@@ -86,34 +86,34 @@ def foo():
     baz = 1  # insert
 ```
 
-# Reassigning a Final Variable in a Function Parameter
+### Reassigning a Final Variable in a Function Parameter
 ```python
 def foo():
     a: Final = 1  # remove
     a += 1
 ```
 
-# Reassigning a Final Variable After a Type Annotation
+### Reassigning a Final Variable After a Type Annotation
 ```python
 def foo():
     a: Final = 1  # remove
     a: int
 ```
 
-# Reassigning a Final Variable with Another Final Declaration
+### Reassigning a Final Variable with Another Final Declaration
 ```python
 def foo():
     a: Final = 1  # remove
     a: Final
 ```
 
-# Assigning a Single Value to a Tuple
+### Assigning a Single Value to a Tuple
 ```python
 def foo():
     a, b = 1
 ```
 
-# Reassigning Final Variables in a Tuple Assignment
+### Reassigning Final Variables in a Tuple Assignment
 ```python
 def foo():
     a: Final = 1  # remove
@@ -121,76 +121,76 @@ def foo():
     a, b = 3
 ```
 
-# Reassigning a Final Variable in a Tuple Assignment
+### Reassigning a Final Variable in a Tuple Assignment
 ```python
 def foo():
     a: Final = 1
     b, c = 2
 ```
 
-# Syntax Error in Tuple Assignment
+### Syntax Error in Tuple Assignment
 ```python
 def foo():
     a, b: Final = 1
 ```
 
-# Reassigning a Final Variable in a Parenthesized Unpacking
+### Reassigning a Final Variable in a Parenthesized Unpacking
 ```python
 def foo():
     a: Final = 1  # remove
     (a, b) = 2
 ```
 
-# Reassigning a Final Variable in a Starred Unpacking
+### Reassigning a Final Variable in a Starred Unpacking
 ```python
 def foo():
     a: Final = 1  # remove
     (a, *other) = 2
 ```
 
-# Reassigning a Final Variable After a Function Definition
+### Reassigning a Final Variable After a Function Definition
 ```python
 def foo():
     def a(): ...
     a: Final = 1  # remove
 ```
 
-# Reassigning a Final Variable After a Class Definition
+### Reassigning a Final Variable After a Class Definition
 ```python
 def foo():
     class a: ...
     a: Final = 1  # remove
 ```
 
-# Reassigning a Final Variable with Walrus Assignment
+### Reassigning a Final Variable with Walrus Assignment
 ```python
 def foo():
     a: Final = 1  # remove
     if a := 1: ...
 ```
 
-# Reassigning a Variable Inside a While Loop
+### Reassigning a Variable Inside a While Loop
 ```python
 def foo():
     while True:
         a = 1
 ```
 
-# Reassigning a Final Variable Inside a While Loop
+### Reassigning a Final Variable Inside a While Loop
 ```python
 def foo():
     while True:
         a: Final = 1  # remove
 ```
 
-# Reassigning a Final Variable Inside a For Loop
+### Reassigning a Final Variable Inside a For Loop
 ```python
 def foo():
     for _ in ...:
         a: Final = 1  # remove
 ```
 
-# Reassigning a Final Variable Inside a Nested Function in a For Loop
+### Reassigning a Final Variable Inside a Nested Function in a For Loop
 ```python
 def foo():
     for _ in ...:
@@ -198,7 +198,7 @@ def foo():
             a: Final = 1  # remove
 ```
 
-# Reassigning a Final Variable and Using It in a For Loop
+### Reassigning a Final Variable and Using It in a For Loop
 ```python
 def foo():
     a: Final = 1  # remove
@@ -208,21 +208,21 @@ def foo():
         a: Final = 1  # remove
 ```
 
-# Reassigning a Variable Inside a For Loop
+### Reassigning a Variable Inside a For Loop
 ```python
 def foo():
     for _ in ...:
         a = 1
 ```
 
-# Reassigning a Final Variable Inside a For Loop with the Same Name
+### Reassigning a Final Variable Inside a For Loop with the Same Name
 ```python
 def foo():
     a: Final = 1  # remove
     for a in ...: ...
 ```
 
-# Reassigning a Final Variable Before a Match Statement
+### Reassigning a Final Variable Before a Match Statement
 ```python
 def foo():
     a: Final = 1
@@ -231,7 +231,7 @@ def foo():
         case ...: ...
 ```
 
-# Reassigning a Final Variable in a Match Case with `as`
+### Reassigning a Final Variable in a Match Case with `as`
 ```python
 def foo():
     a: Final = 1  # remove
@@ -240,7 +240,7 @@ def foo():
         case [] as a: ...
 ```
 
-# Reassigning a Final Variable in a Match Dictionary Pattern
+### Reassigning a Final Variable in a Match Dictionary Pattern
 ```python
 def foo():
     a: Final = 1  # remove
@@ -249,7 +249,7 @@ def foo():
         case {"hello": a, **b}: ...
 ```
 
-# Reassigning a Final Variable in a Match Dictionary with Double Star
+### Reassigning a Final Variable in a Match Dictionary with Double Star
 ```python
 def foo():
     a: Final = 1  # remove
@@ -258,7 +258,7 @@ def foo():
         case {**a}: ...
 ```
 
-# Reassigning a Final Variable in a Match Class Pattern
+### Reassigning a Final Variable in a Match Class Pattern
 ```python
 def foo():
     a: Final = 1  # remove
@@ -267,7 +267,7 @@ def foo():
         case A(b=a) | B(b=a): ...
 ```
 
-# Reassigning a Final Variable in a Match List Pattern
+### Reassigning a Final Variable in a Match List Pattern
 ```python
 def foo():
     a: Final = 1  # remove
@@ -276,7 +276,7 @@ def foo():
         case [b, *a]: ...
 ```
 
-# Reassigning a Final Variable in a Match List with a Single Element
+### Reassigning a Final Variable in a Match List with a Single Element
 ```python
 def foo():
     a: Final = 1  # remove
@@ -285,7 +285,7 @@ def foo():
         case [a]: ...
 ```
 
-# Reassigning a Final Variable in a Match Tuple with a Single Element
+### Reassigning a Final Variable in a Match Tuple with a Single Element
 ```python
 def foo():
     a: Final = 1  # remove
@@ -294,35 +294,35 @@ def foo():
         case (a,): ...
 ```
 
-# Reassigning a Final Variable with `nonlocal`
+### Reassigning a Final Variable with `nonlocal`
 ```python
 def foo():
     a: Final = 1  # remove
     nonlocal a
 ```
 
-# Reassigning a Variable with `nonlocal`
+### Reassigning a Variable with `nonlocal`
 ```python
 def foo():
     a = 1
     nonlocal a
 ```
 
-# Reassigning a Final Variable with `global`
+### Reassigning a Final Variable with `global`
 ```python
 def foo():
     a: Final = 1
     global b
 ```
 
-# Reassigning a Final Variable with `global a`
+### Reassigning a Final Variable with `global a`
 ```python
 def foo():
     a: Final = 1  # remove
     global a
 ```
 
-# Reassigning Final Variables in Nested Functions
+### Reassigning Final Variables in Nested Functions
 ```python
 def foo():
     a: Final = 1  # remove
@@ -344,14 +344,14 @@ def foo():
                 c: Final = 9
 ```
 
-# Assigning an Inner Variable with same name as a function
+### Assigning an Inner Variable with same name as a function
 
 ```python
 def foo():
     foo = 1  # insert
 ```
 
-# Reassigning Final Variables in Function Parameters
+### Reassigning Final Variables in Function Parameters
 ```python
 def foo(a, b: int, c=1, d: int = 2):
     a: Final = 1  # remove
@@ -361,13 +361,13 @@ def foo(a, b: int, c=1, d: int = 2):
     e: Final = 5
 ```
 
-# Assigning an Instance Variable in a Method
+### Assigning an Instance Variable in a Method
 ```python
 def foo(self):
     self.me = 1
 ```
 
-# Assigning to an Attribute of a Variable
+### Assigning to an Attribute of a Variable
 ```python
 a.b = 1
 ```

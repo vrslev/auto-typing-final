@@ -9,7 +9,7 @@ def foo():
     local_var = 1  # insert
 ```
 
-# Function Scope and Variable Shadowing
+### Function Scope and Variable Shadowing
 ```python
 MY_CONSTANT = 42
 
