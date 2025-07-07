@@ -93,9 +93,11 @@ def _is_upper_case_global_constant(name: str) -> bool:
 
 
 def _should_skip_global_variable(definition: Definition) -> bool:
-    if isinstance(definition, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)):
-        return _is_upper_case_global_constant(definition.left)
-    return False
+    return isinstance(definition, (EditableAssignmentWithoutAnnotation, EditableAssignmentWithAnnotation)) and (
+        not _is_upper_case_global_constant(definition.left)
+        or "TypeVar" in definition.right
+        or "ParamSpec" in definition.right
+    )
 
 
 def _is_global_scope_definition(node: SgNode) -> bool:
@@ -105,7 +107,7 @@ def _is_global_scope_definition(node: SgNode) -> bool:
     return True
 
 
-def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool = False) -> Operation:
+def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_global_vars: bool) -> Operation | None:
     value_definitions: Final[list[Definition]] = []
     has_node_inside_loop = False
     has_global_scope_definition = False
@@ -126,9 +128,9 @@ def _make_operation_from_definitions_of_one_name(nodes: list[SgNode], ignore_glo
         not ignore_global_vars
         and has_global_scope_definition
         and value_definitions
-        and not _should_skip_global_variable(value_definitions[0])
+        and _should_skip_global_variable(value_definitions[0])
     ):
-        return RemoveFinal(value_definitions)
+        return None
 
     match value_definitions:
         case [definition]:
@@ -229,7 +231,8 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
     imports_result: Final = find_imports_of_identifier_in_scope(root, module_name="typing", identifier_name="Final")
 
     for current_definitions in find_all_definitions_in_functions(root):
-        operation = _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)
+        if not (operation := _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)):
+            continue
         edits = [
             Edit(node=node, new_text=new_text)
             for node, new_text in _make_changed_text_from_operation(
@@ -248,7 +251,11 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
 
     if not ignore_global_vars:
         for current_definitions in find_global_definitions(root):
-            operation = _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars)
+            if (
+                not (operation := _make_operation_from_definitions_of_one_name(current_definitions, ignore_global_vars))
+                or (operation_type := type(operation)) == RemoveFinal
+            ):
+                continue
             edits = [
                 Edit(node=node, new_text=new_text)
                 for node, new_text in _make_changed_text_from_operation(
@@ -259,8 +266,7 @@ def make_replacements(root: SgNode, import_config: ImportConfig, ignore_global_v
                 )
                 if node.text() != new_text
             ]
-
-            if (operation_type := type(operation)) == RemoveFinal or not edits:
+            if not edits:
                 continue
             has_added_final = True
             replacements.append(Replacement(operation_type=operation_type, edits=edits))
