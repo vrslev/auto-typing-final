@@ -1,19 +1,15 @@
-# insert
-## 1
-
+# Constants and Variable Assignments
 ```python
 MY_CONSTANT = 42  # insert
 MY_OTHER_CONSTANT = "hello"  # insert
 ```
 
-## 5
-
+# Debug Flag Assignment
 ```python
 DEBUG = True  # insert
 ```
 
-## 6
-
+# Global vs. Local Variable Scope
 ```python
 MY_CONSTANT = 42  # insert
 global_var = "hello"
@@ -22,22 +18,19 @@ def foo():
     local_var = 1  # insert
 ```
 
-## 7
-
+# Constants with Type Hints
 ```python
 MY_CONSTANT: typing.Final = 42
 MY_OTHER_CONSTANT = "hello"  # insert
 ```
 
-## 8
-
+# Constants with Explicit Typing
 ```python
 MY_CONSTANT: int = 42  # insert
 MY_OTHER_CONSTANT = "hello"  # insert
 ```
 
-## 9
-
+# Constant Shadowing in Function Scope
 ```python
 MY_CONSTANT = 42  # insert
 
@@ -46,32 +39,29 @@ def foo():
     local_var = 2  # insert
 ```
 
-## 10
-
+# Union Types for Constants
 ```python
 FRUIT = Apple | Banana  # insert
 ```
 
-# remain unchanged
-## 2
+# Code Examples with Header Improvements
 
+# Unchanged Global Assignment
 ```python
 global_var = 42
 ```
 
-## 3
-
+# Simple Assignment
 ```python
 myVar = "hello"
 ```
 
-## 4
-
+# Constant Assignment
 ```python
 A = 42
 ```
 
-## 10
+# Constants with Global Statement
 
 ```python
 MY_CONSTANT = 42
@@ -81,51 +71,43 @@ def foo():
     MY_CONSTANT = 1
 ```
 
-## 10
-
+# Constants with Global Declaration
 ```python
 from foo import MY_CONSTANT
 MY_CONSTANT = 42
 ```
 
-## 10
-
+# Final Assignment for Constants
 ```python
 a: typing.Final = 1
 ```
 
-## 10
-
+# TypeVar Declaration for Generics
 ```python
 _T = typing.TypeVar("_T")
 ```
 
-## 10
-
+# Final TypeVar Declaration
 ```python
 _T: typing.Final = typing.TypeVar("_T")
 ```
 
-## 10
-
+# ParamSpec Declaration for Function Generics
 ```python
 _P = typing.ParamSpec("_P")
 ```
 
-## 10
-
+# Final ParamSpec Declaration
 ```python
 _P: typing.Final = typing.ParamSpec("_P")
 ```
 
-## 10
-
+# Union Types for Variables
 ```python
 Fruit = Apple | Banana
 ```
 
-## 10
-
+# String Assignment for Constants
 ```python
 A = "ParamSpec"
 ```

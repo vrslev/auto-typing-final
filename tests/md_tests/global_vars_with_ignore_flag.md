@@ -1,4 +1,4 @@
-# 1
+# Global Constants and Variable Declaration
 
 ```python
 MY_CONSTANT = 42
@@ -9,8 +9,7 @@ def foo():
     local_var = 1  # insert
 ```
 
-## 5
-
+# Function Scope and Variable Shadowing
 ```python
 MY_CONSTANT = 42
 

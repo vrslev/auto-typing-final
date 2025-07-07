@@ -1,47 +1,40 @@
-# 1
-
+# Variable Declaration with Type Annotation
 ```python
 def foo():
     a: int
 ```
 
-# 1
-
+# Variable Assignment with Inline Comment
 ```python
 def foo():
     a = 1  # insert
 ```
 
-# 1
-
+# Variable Declaration with Final Type Annotation
 ```python
 def foo():
     a: Final = 1
 ```
 
-# 1
-
+# Variable Declaration with Type Annotation and Assignment
 ```python
 def foo():
     a: int = 1   # insert
 ```
 
-# 1
-
+# Annotated Variable with Custom Metadata
 ```python
 def foo():
     a: typing.Annotated[int, 'hello'] = 1   # insert
 ```
 
-# 1
-
+# List Type Annotation and Assignment
 ```python
 def foo():
     a: list[int] = 1   # insert
 ```
 
-# 1
-
+# Variable Assignment with Previous Declaration
 ```python
 def foo():
     b = 1
@@ -49,8 +42,7 @@ def foo():
     b = 3
 ```
 
-# 1
-
+# Variable Assignment with Reassignment of Another Variable
 ```python
 def foo():
     b = 1
@@ -58,8 +50,7 @@ def foo():
     a = 3  # insert
 ```
 
-# 1
-
+# Variable Assignment with Later Reassignment
 ```python
 def foo():
     a = 1  # insert
@@ -67,8 +58,7 @@ def foo():
     b = 3
 ```
 
-# 1
-
+# Reassignment of a Variable with Previous Assignment
 ```python
 def foo():
     a = 1
@@ -76,144 +66,125 @@ def foo():
     b: int
 ```
 
-# 1
-
+# Variable Declaration After Assignment
 ```python
 def foo():
     a = 1
     a: int
 ```
 
-# 1
-
+# Variable Declaration Before Assignment
 ```python
 def foo():
     a: int
     a = 1
 ```
 
-# 1
-
+# Final Variable Declaration Before Assignment
 ```python
 def foo():
     a: Final
     a = 1
 ```
 
-# 1
-
+# Redundant Type Annotation with Final
 ```python
 def foo():
     a: int
     a: int = 1
 ```
 
-# 1
-
+# Simultaneous Variable Assignment
 ```python
 def foo():
     a, b = 1, 2
 ```
 
-# 1
-
+# Tuple Assignment with Parentheses
 ```python
 def foo():
     (a, b) = 1, 2
 ```
 
-# 1
-
+# Tuple Assignment from Function Return
 ```python
 def foo():
     (a, b) = t()
 ```
 
-# 1
-
+# List Assignment from Function Return
 ```python
 def foo():
     [a, b] = t()
 ```
 
-# 1
-
+# Single Element List Assignment
 ```python
 def foo():
     [a] = t()
 ```
 
-# 1
-
+# Multiple Variable Assignment in a Single Line
 ```python
 def foo():
     a = b = 1
 ```
 
-# 1
-
+# Chained Multiple Variable Assignment
 ```python
 def foo():
     a = b = c = 1
 ```
 
-# 1
-
+# Variable Assignment with Walrus Operator
 ```python
 def foo():
     a = (b := 1)  # insert
 ```
 
-# 1
-
+# Reassignment with Final Annotation
 ```python
 def foo():
     a = 1
     a: Final[int] = 2  # remove
 ```
 
-# 1
-
+# Reassignment with Final Type Declaration
 ```python
 def foo():
     a = 1
     a: Final = 2  # remove
 ```
 
-# 1
-
+# Reassignment with Final Type Declaration (No Space)
 ```python
 def foo():
     a = 1
     a: Final=2  # remove
 ```
 
-# 1
-
+# Simple Variable Reassignment
 ```python
 def foo():
     a = 1
     a =2
 ```
 
-# 1
-
+# Type Annotation Followed by Final Reassignment
 ```python
 def foo():
     a: int = 1
     a: Final[int] = 2  # remove
 ```
 
-# 1
-
+# Final Reassignment After Int Type Annotation
 ```python
 def foo():
     a: int = 1
     a: Final = 2  # remove
 ```
 
-# 1
-
+# Multiple Reassignments with Final and Type Annotation
 ```python
 def foo():
     a: Final = 1  # remove
@@ -222,15 +193,13 @@ def foo():
     a: int = 4
 ```
 
-# 1
-
+# Final and Assignment in a Single Line
 ```python
 def foo():
     a: Final = b = 1
 ```
 
-# 1
-
+# Variable Assignment and Final Annotation
 ```python
 def foo():
     a = 1  # insert
