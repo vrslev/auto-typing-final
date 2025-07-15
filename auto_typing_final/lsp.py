@@ -1,5 +1,6 @@
 import os
 import sys
+import typing
 import uuid
 from dataclasses import dataclass
 from importlib.metadata import version
@@ -51,6 +52,19 @@ ClientSettings = TypedDict("ClientSettings", {"import-style": ImportStyle, "igno
 FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": ClientSettings})
 
 
+def parse_settings(raw_full_client_settings: Any) -> FullClientSettings | None:  # noqa: ANN401
+    if not isinstance(raw_full_client_settings, dict):
+        return None
+    client_settings: Final = raw_full_client_settings.get("auto-typing-final")
+    if not isinstance(client_settings, dict):
+        return None
+    if client_settings.get("import-style") not in {"typing-final", "final"}:
+        return None
+    if not isinstance(client_settings.get("ignore-global-vars"), bool):
+        return None
+    return typing.cast("FullClientSettings", raw_full_client_settings)
+
+
 @attr.define
 class Fix:
     message: str
@@ -84,9 +98,8 @@ class Service:
 
     @staticmethod
     def try_from_settings(ls_name: str, settings: Any) -> "Service | None":  # noqa: ANN401
-        try:
-            validated_settings: Final = cattrs.structure(settings, FullClientSettings)
-        except cattrs.BaseValidationError:
+        validated_settings: Final = parse_settings(settings)
+        if validated_settings is None:
             return None
 
         executable_path: Final = Path(sys.executable)
