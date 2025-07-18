@@ -1,6 +1,7 @@
 import argparse
 import sys
 from collections.abc import Iterable
+from concurrent.futures import Future, ThreadPoolExecutor
 from difflib import unified_diff
 from pathlib import Path
 from typing import Final, cast, get_args
@@ -41,6 +42,37 @@ def find_all_source_files(paths: list[Path]) -> Iterable[Path]:
         yield from find_source_files_from_one_path(path)
 
 
+def process_file(path: Path, args: argparse.Namespace) -> bool:
+    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS[args.import_style]
+    open_mode: Final = "r" if args.check else "r+"
+
+    with path.open(open_mode) as file:
+        source: Final = file.read()
+        transformed_content: Final = transform_file_content(
+            source=source, import_config=import_config, ignore_global_vars=args.ignore_global_vars
+        )
+        if source == transformed_content:
+            return False
+
+        if args.check:
+            # TODO: do not write to stdout in thread  # noqa: FIX002, TD002, TD003
+            sys.stdout.writelines(
+                unified_diff(
+                    source.splitlines(keepends=True),
+                    transformed_content.splitlines(keepends=True),
+                    fromfile=str(path),
+                    tofile=str(path),
+                )
+            )
+            sys.stdout.write("\n")
+            return False
+
+        file.seek(0)
+        file.write(transformed_content)
+        file.truncate()
+        return True
+
+
 def main() -> int:
     parser: Final = argparse.ArgumentParser()
     parser.add_argument("files", type=Path, nargs="*", default=[Path()])
@@ -51,34 +83,15 @@ def main() -> int:
     )
 
     args: Final = parser.parse_args()
-    import_config: Final = IMPORT_STYLES_TO_IMPORT_CONFIGS[args.import_style]
-    open_mode: Final = "r" if args.check else "r+"
     changed_files_count = 0
 
-    for path in find_all_source_files(args.files):
-        with path.open(open_mode) as file:
-            source = file.read()
-            transformed_content = transform_file_content(
-                source=source, import_config=import_config, ignore_global_vars=args.ignore_global_vars
-            )
-            if source == transformed_content:
-                continue
-            changed_files_count += 1
+    futures: Final[list[Future[int]]] = []
+    with ThreadPoolExecutor() as executor:
+        for one_path in find_all_source_files(args.files):
+            futures.append(executor.submit(process_file, one_path, args))
 
-            if args.check:
-                sys.stdout.writelines(
-                    unified_diff(
-                        source.splitlines(keepends=True),
-                        transformed_content.splitlines(keepends=True),
-                        fromfile=str(path),
-                        tofile=str(path),
-                    )
-                )
-                sys.stdout.write("\n")
-            else:
-                file.seek(0)
-                file.write(transformed_content)
-                file.truncate()
+    for future in futures:
+        changed_files_count += future.result()
 
     match changed_files_count, cast(bool, args.check):
         case 0, _:
