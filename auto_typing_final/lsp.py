@@ -54,13 +54,25 @@ FullClientSettings = TypedDict("FullClientSettings", {"auto-typing-final": Clien
 
 def parse_settings(raw_full_client_settings: Any) -> FullClientSettings | None:  # noqa: ANN401
     if not isinstance(raw_full_client_settings, dict):
+        LSP_SERVER.show_message_log(
+            f"invalid settings format: expected a dictionary. Settings: {raw_full_client_settings}"
+        )
         return None
     client_settings: Final = raw_full_client_settings.get("auto-typing-final")
     if not isinstance(client_settings, dict):
+        LSP_SERVER.show_message_log(
+            f"invalid settings format: 'auto-typing-final' is not a dictionary. Settings: {raw_full_client_settings}"
+        )
         return None
     if client_settings.get("import-style") not in {"typing-final", "final"}:
+        LSP_SERVER.show_message_log(
+            f"invalid import-style setting: must be 'typing-final' or 'final'. Settings: {raw_full_client_settings}"
+        )
         return None
     if not isinstance(client_settings.get("ignore-global-vars"), bool):
+        LSP_SERVER.show_message_log(
+            f"invalid ignore-global-vars setting: must be a boolean. Settings: {raw_full_client_settings}"
+        )
         return None
     return typing.cast("FullClientSettings", raw_full_client_settings)
 
@@ -189,10 +201,12 @@ async def initialized(ls: CustomLanguageServer, _: lsp.InitializedParams) -> Non
             ]
         )
     )
+    LSP_SERVER.show_message_log("language server initialized")
 
 
 @LSP_SERVER.feature(lsp.WORKSPACE_DID_CHANGE_CONFIGURATION)
 def workspace_did_change_configuration(ls: CustomLanguageServer, params: lsp.DidChangeConfigurationParams) -> None:
+    LSP_SERVER.show_message_log("handling workspace configuration change")
     ls.service = Service.try_from_settings(ls_name=ls.name, settings=params.settings) or ls.service
     if not ls.service:
         return
