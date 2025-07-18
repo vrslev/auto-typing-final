@@ -92,7 +92,7 @@ def _make_definition_from_definition_node(node: SgNode) -> Definition:
 
 def _should_skip_global_variable(definition: Definition) -> bool:
     return isinstance(definition, EditableAssignmentWithoutAnnotation | EditableAssignmentWithAnnotation) and (
-        not (definition.left.isupper() and len(definition.left) > 1)
+        not ((definition.left.isupper() or definition.left.islower()) and len(definition.left) > 1)
         or any(one_pattern in definition.right for one_pattern in IGNORED_DEFINITION_PATTERNS)
     )
 

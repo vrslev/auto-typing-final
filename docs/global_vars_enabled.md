@@ -14,7 +14,7 @@ DEBUG = True  # insert
 ### Global vs. Local Variable Scope
 ```python
 MY_CONSTANT = 42  # insert
-global_var = "hello"
+global_var = "hello"  # insert
 
 def foo():
     local_var = 1  # insert
@@ -48,12 +48,12 @@ FRUIT = Apple | Banana  # insert
 
 ### Code Examples with Header Improvements
 
-### Unchanged Global Assignment
+### Changed lower case assignment
 ```python
-global_var = 42
+global_var = 42  # insert
 ```
 
-### Simple Assignment
+### Not lower case assignment
 ```python
 myVar = "hello"
 ```
